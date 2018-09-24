@@ -33,3 +33,21 @@ struct MaterialProperties
     MaterialProperties(inertia::InertiaMaterialProperties) = new(nothing, inertia)
     MaterialProperties() = new(nothing, nothing)
 end
+
+function calculateExtrensicCompliance(mat::MaterialProperties)
+    (mat.contact == nothing) && return 0.0
+    return 1 / (mat.contact.E_effective * mat.contact.inv_thickness)
+end
+function calcMutualMu(mat_1::MaterialProperties, mat_2::MaterialProperties)
+    is_mu_1 = (mat_1.contact != nothing)
+    is_mu_2 = (mat_2.contact != nothing)
+    if is_mu_1
+        return is_mu_2 ? sqrt(mat_1.contact.mu, mat_2.contact.mu) : mat_1.contact.mu
+    else
+        if is_mu_2
+            return mat_2.contact.mu
+        else
+            error("both mu_1 and mu_2 are nothing")
+        end
+    end
+end

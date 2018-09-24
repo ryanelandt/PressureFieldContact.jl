@@ -17,6 +17,12 @@ struct RawMeshCache
     end
 end
 
+function asHomogenousMesh(meshCache::RawMeshCache)
+    vec_Face = Face{3, Int32}.(meshCache.tri_ind)  # TODO: consider changing this to Int32
+    vec_Point = Point{3, Float32}.(meshCache.point)  # TODO: consider changing this to Float32
+    return HomogenousMesh(vec_Point, vec_Face)
+end
+
 @RigidBodyDynamics.indextype MeshID
 const MeshDict{V} = RigidBodyDynamics.IndexDict{MeshID, Base.OneTo{MeshID}, V}
 const MeshCacheDict{V} = RigidBodyDynamics.CacheIndexDict{MeshID, Base.OneTo{MeshID}, V}

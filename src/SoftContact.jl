@@ -5,6 +5,7 @@ using StaticArrays
 using Tri_Tet_Intersections
 using Binary_BB_Trees
 using LinearAlgebra
+using GeometryTypes: HomogenousMesh, Face, Point
 
 
 include("material.jl")
@@ -16,10 +17,13 @@ export
     ContactMaterialProperties,
     InertiaMaterialProperties,
     MaterialProperties,
+    calculateExtrensicCompliance,
+    calcMutualMu,
 
     # mesh_cache.jl
-    MeshID,
     RawMeshCache,
+    asHomogenousMesh,
+    MeshID,
     MeshDict,
     MeshCacheDict,
     MeshCache,
