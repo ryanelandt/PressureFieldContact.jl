@@ -4,6 +4,7 @@ using RigidBodyDynamics
 using StaticArrays
 using Tri_Tet_Intersections
 using Binary_BB_Trees
+using LinearAlgebra
 
 
 include("material.jl")
