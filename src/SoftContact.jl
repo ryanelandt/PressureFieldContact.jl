@@ -17,6 +17,7 @@ export
     MaterialProperties,
 
     # mesh_cache.jl
+    MeshID,
     RawMeshCache,
     MeshDict,
     MeshCacheDict,
