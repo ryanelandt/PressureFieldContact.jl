@@ -32,6 +32,7 @@ Base.@propagate_inbounds Base.setindex!(d::RigidBodyDynamics.AbstractIndexDict{M
 struct MeshCache
     name::String
     BodyID::Union{Nothing,BodyID}
+    FrameID::CartesianFrame3D
     raw::RawMeshCache
-    MeshCache(name::String, raw::RawMeshCache, body::RigidBody{Float64}) = new(name, BodyID(body), raw)
+    MeshCache(name::String, raw::RawMeshCache, body::RigidBody{Float64}) = new(name, BodyID(body), default_frame(body), raw)
 end
