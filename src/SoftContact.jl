@@ -17,6 +17,8 @@ include("material.jl")
 include("mesh_cache.jl")
 include("mesh_inertia.jl")
 include("mesh_body_utility.jl")
+include("mechanism_scenario.jl")
+include("contact_instructions.jl")
 
 export
     frame_tet_cs,
@@ -56,6 +58,17 @@ export
     # mesh_body_utility.jl
     bodyFromMesh!,
     newBodyFromInertia,
-    outputJointTransform_ParentChild
+
+    # mechanism_scenario
+    ContactInstructions,
+    TractionCache,
+    TypedQuadTriCache,
+    TypedTriTetCache,
+    TypedElasticBodyBodyCache,
+    TypedMechanismScenario,
+    MechanismScenario,
+
+    # contact_instructions.jl
+    addContactRigidCompliant!
 
 end
