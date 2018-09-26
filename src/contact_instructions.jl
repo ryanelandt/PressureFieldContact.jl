@@ -1,5 +1,5 @@
          # addContactRigidCompliant!
-function addContactRigidCompliant!(mech_scen::MechanismScenario, name_tri::String, name_tet::String)
+function addContactRigidCompliant!(mech_scen::MechanismScenario, name_tri::String, name_tet::String, friction_model::Function)
     function find_mesh_id(mech_scen::MechanismScenario, name::String)
         id = MeshID(-9999)
         for k = mech_scen.mesh_ids
@@ -34,7 +34,7 @@ function addContactRigidCompliant!(mech_scen::MechanismScenario, name_tri::Strin
     end
     (0.0 <= mu <= 3.0) || error("mu our of range")
     frac_linear_weight = 1.0
-    new_contact = ContactInstructions(mesh_id_tri, mesh_id_tet, frac_epsilon, frac_linear_weight, mu)
+    new_contact = ContactInstructions(mesh_id_tri, mesh_id_tet, frac_epsilon, frac_linear_weight, mu, friction_model)
     push!(mech_scen.ContactInstructions, new_contact)
     return nothing
 end

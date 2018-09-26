@@ -5,8 +5,9 @@ mutable struct ContactInstructions
     frac_epsilon::Float64
     frac_linear_weight::Float64
     mu_pair::Float64
-    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64)
-        return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair)
+    friction_model::Function
+    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64, friction_model::Function)
+        return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, friction_model::Function)
     end
 end
 

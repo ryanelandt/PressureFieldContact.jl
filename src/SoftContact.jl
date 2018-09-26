@@ -6,6 +6,7 @@ using RigidBodyDynamics
 using GeometryTypes: HomogenousMesh, Face, Point
 using Tri_Tet_Intersections
 using Binary_BB_Trees
+using NumericalTricks
 using LinearAlgebra
 
 const frame_tet_cs = CartesianFrame3D("tet_cs")
@@ -19,6 +20,8 @@ include("mesh_inertia.jl")
 include("mesh_body_utility.jl")
 include("mechanism_scenario.jl")
 include("contact_instructions.jl")
+include("extensions.jl")
+include("contact_algorithms_non_friction.jl")
 
 export
     frame_tet_cs,
@@ -70,5 +73,22 @@ export
 
     # contact_instructions.jl
     addContactRigidCompliant!
+
+    # extensions.jl
+
+
+    # # contact_algorithms_non_friction.jl
+    # calcXd!,
+    # refreshJacobians!,
+    # forceAllElasticIntersections!,
+    # calcTriTetIntersections!,
+    # refreshBodyBodyCache!,
+    # integrateOverContactPatch!,
+    # intersectionTriangulation!,
+    # fillTractionCacheForTriangle!,
+    # fillTractionCacheInnerLoop!,
+    # calcTangentialVelocity,
+    # addGeneralizedForcesThirdLaw!,
+    # addGeneralizedForcesExternal!
 
 end

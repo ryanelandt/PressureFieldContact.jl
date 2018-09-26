@@ -11,6 +11,7 @@ matrix:
   allow_failures:
     - julia: nightly
 before_script:
+  - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/NumericalTricks.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
   - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/Tri_Tet_Intersections.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
   - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/Binary_BB_Trees.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
 # script:
