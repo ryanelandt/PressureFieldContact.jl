@@ -22,6 +22,7 @@ include("mechanism_scenario.jl")
 include("contact_instructions.jl")
 include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
+include("contact_algorithms_friction.jl")
 
 export
     frame_tet_cs,
@@ -72,23 +73,27 @@ export
     MechanismScenario,
 
     # contact_instructions.jl
-    addContactRigidCompliant!
+    addContactRigidCompliant!,
 
     # extensions.jl
 
+    # contact_algorithms_non_friction.jl
+    calcXd!,
+    refreshJacobians!,
+    forceAllElasticIntersections!,
+    calcTriTetIntersections!,
+    refreshBodyBodyCache!,
+    integrateOverContactPatch!,
+    intersectionTriangulation!,
+    fillTractionCacheForTriangle!,
+    fillTractionCacheInnerLoop!,
+    calcTangentialVelocity,
+    addGeneralizedForcesThirdLaw!,
+    addGeneralizedForcesExternal!,
 
-    # # contact_algorithms_non_friction.jl
-    # calcXd!,
-    # refreshJacobians!,
-    # forceAllElasticIntersections!,
-    # calcTriTetIntersections!,
-    # refreshBodyBodyCache!,
-    # integrateOverContactPatch!,
-    # intersectionTriangulation!,
-    # fillTractionCacheForTriangle!,
-    # fillTractionCacheInnerLoop!,
-    # calcTangentialVelocity,
-    # addGeneralizedForcesThirdLaw!,
-    # addGeneralizedForcesExternal!
+    # contact_algorithms_friction.jl
+    friction_regularization,
+    friction_bristle,
+    friction_model
 
 end
