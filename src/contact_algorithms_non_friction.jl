@@ -79,9 +79,9 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     b.frac_epsilon = con_ins_k.frac_epsilon
     b.mu = con_ins_k.mu_pair
 
-    b.E_effective = mat_tet.contact.E_effective
-    b.hc_velocity_damping = mat_tet.contact.hc_velocity_damping
-    b.inv_thickness = mat_tet.contact.inv_thickness
+    b.E_effective = mat_tet.E_effective
+    b.hc_velocity_damping = mat_tet.hc_velocity_damping
+    b.inv_thickness = mat_tet.inv_thickness
     return nothing
 end
 
