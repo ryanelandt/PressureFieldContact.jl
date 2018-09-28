@@ -12,7 +12,7 @@ struct SimplexTree{N}
 end
 
 struct TetMesh
-    tet_simp_tree::SimplexTree{4}
+    tet::SimplexTree{4}
     strain::Vector{Float64}
     contact_prop::ContactProperties
     function TetMesh(point::Vector{SVector{3,Float64}}, tet_ind::Vector{SVector{4,Int64}}, strain::Vector{Float64}, contact_prop::ContactProperties)
@@ -27,7 +27,7 @@ struct MeshCache
     BodyID::Union{Nothing,BodyID}
     FrameID::CartesianFrame3D
     InertiaProperties::Union{Nothing, InertiaProperties}
-    tri_simp_tree::SimplexTree{3}
+    tri::SimplexTree{3}
     tet::Union{Nothing, TetMesh}
 
     function MeshCache(point::Vector{SVector{3,Float64}}, name::String, tri_ind::Vector{SVector{3,Int64}}, tet_ind::Vector{SVector{4,Int64}},

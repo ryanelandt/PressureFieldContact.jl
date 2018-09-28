@@ -51,7 +51,7 @@ function calcTriTetIntersections!(m::MechanismScenario, con_ins_k::ContactInstru
     refreshBodyBodyTransform!(m, m.float, con_ins_k)
     x_tri_tet = inv(b.x_root_tri) * b.x_root_tet
     update_TT_Cache!(m.TT_Cache, translation(x_tri_tet), rotation(x_tri_tet))
-    tree_tree_intersect(m.TT_Cache, b.mesh_tri.raw.tri_tree, b.mesh_tet.raw.tet_tree)
+    tree_tree_intersect(m.TT_Cache, b.mesh_tri.tri.tree, b.mesh_tet.tet.tet.tree)
     return nothing
 end
 
@@ -70,7 +70,7 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     empty!(b.TractionCache)
     refreshBodyBodyTransform!(m, tm, con_ins_k)
 
-    mat_tet = b.mesh_tet.raw.material
+    mat_tet = b.mesh_tet.tet.contact_prop
     twist_root_tri = twist_wrt_world(tm.state, b.mesh_tri.BodyID)
     twist_root_tet = twist_wrt_world(tm.state, b.mesh_tet.BodyID)
 
@@ -92,10 +92,10 @@ function integrateOverContactPatch!(b::TypedElasticBodyBodyCache{N,T}, ttCache::
     quadTriCache = triTetCache.quadTriCache
     for k = 1:length(ttCache.vc)
         i_tri, i_tet = ttCache.vc[k]
-        p_tri = mesh_tri.raw.point[mesh_tri.raw.tri_ind[i_tri]]
-        i_vert_tet = mesh_tet.raw.tet_ind[i_tet]
-        p_tet = mesh_tet.raw.point[i_vert_tet]
-        triTetCache.strain = mesh_tet.raw.strain[i_vert_tet]
+        p_tri = mesh_tri.point[mesh_tri.tri.ind[i_tri]]
+        i_vert_tet = mesh_tet.tet.tet.ind[i_tet]
+        p_tet = mesh_tet.point[i_vert_tet]
+        triTetCache.strain = mesh_tet.tet.strain[i_vert_tet]
         # tet calculation
         A_tet_zeta = MatrixTransform(frame_tet_cs, mesh_tet.FrameID, asMatOnePad(p_tet))
         triTetCache.A_w_zeta_top = getTop(b.x_root_tet * A_tet_zeta)
