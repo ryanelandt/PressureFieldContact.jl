@@ -130,19 +130,6 @@ struct TypedMechanismScenario{N,T}
     end
 end
 
-# function makePaths(mechanism::Mechanism, vec_MeshCache::Vector{MeshCache}, body_ids::Base.OneTo{BodyID})
-#     the_type = Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}
-#     v_path = RigidBodyDynamics.BodyDict{the_type}(body_ids)
-#     fill_with_nothing!(v_path)
-#     for mesh_k = vec_MeshCache
-#         body_id = mesh_k.BodyID
-#         if body_id != BodyID(root_body(mechanism))
-#             v_path[body_id] = path(mechanism, root_body(mechanism), bodies(mechanism)[body_id])
-#         end
-#     end
-#     return v_path
-# end
-
 function makePaths(mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, body_ids::Base.OneTo{BodyID})
     the_type = Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}
     v_path = RigidBodyDynamics.BodyDict{the_type}(body_ids)
@@ -155,14 +142,6 @@ function makePaths(mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, b
     end
     return v_path
 end
-
-# function makeMeshCacheDict(mechanism::Mechanism, vec_MeshCache::Vector{MeshCache}, mesh_ids::Base.OneTo{MeshID})
-#     cache_mesh = MeshCacheDict{MeshCache}(mesh_ids)
-#     for id = mesh_ids
-#         cache_mesh[id] = vec_MeshCache[id]  # should index vec_MeshCache fine
-#     end
-#     return cache_mesh
-# end
 
 struct MechanismScenario{N,T}
     body_ids::Base.OneTo{BodyID}
@@ -183,8 +162,6 @@ struct MechanismScenario{N,T}
         tau_ext = zeros(Float64, num_positions(mechanism))
         body_ids = Base.OneTo(BodyID(num_bodies(mechanism)))
         mesh_ids = keys(mesh_cache)
-        # Base.OneTo(MeshID(length(vec_MeshCache)))
-        # cache_mesh = makeMeshCacheDict(mechanism, vec_MeshCache, mesh_ids)
         cache_path = makePaths(mechanism, mesh_cache, body_ids)
         vec_instructions = Vector{ContactInstructions}()
         cache_float = TypedMechanismScenario{N,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
