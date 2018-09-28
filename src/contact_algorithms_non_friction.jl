@@ -40,7 +40,7 @@ function forceAllElasticIntersections!(m::MechanismScenario{N,T1}, tm::TypedMech
             if con_ins_k.BristleFriction == nothing
                 wrench = regularized_friction(wrench_zero, tm.bodyBodyCache)
             end
-            addGeneralizedForcesThirdLaw!(wrench, tm, con_ins_k)
+            addGeneralizedForcesThirdLaw!(wrench_zero, tm, con_ins_k)
         end
     end
     return nothing
