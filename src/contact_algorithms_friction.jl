@@ -1,6 +1,3 @@
-# function friction_regularization end
-# function friction_bristle end
-
 function regularized_friction(wrench::Wrench{T}, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
