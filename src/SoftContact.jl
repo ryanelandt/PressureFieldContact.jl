@@ -12,11 +12,11 @@ using LinearAlgebra
 const frame_tet_cs = CartesianFrame3D("tet_cs")
 const frame_tri_cs = CartesianFrame3D("tri_cs")
 
+include("mesh_inertia.jl")
 include("utility.jl")
 include("matrix_transform.jl")
 include("material.jl")
 include("mesh_cache.jl")
-include("mesh_inertia.jl")
 include("mesh_body_utility.jl")
 include("mechanism_scenario.jl")
 include("contact_instructions.jl")
@@ -27,6 +27,11 @@ include("contact_algorithms_friction.jl")
 export
     frame_tet_cs,
     frame_tri_cs,
+
+    # mesh_inertia.jl
+    makeInertiaTensor,
+    centroidVolumeCombo,
+    equiv_volume,
 
     # utility.jl
     unPad,
@@ -40,9 +45,9 @@ export
     getPoint,
 
     # material.jl
-    ContactMaterialProperties,
-    InertiaMaterialProperties,
-    MaterialProperties,
+    ContactProperties,
+    InertiaProperties,
+    # MaterialProperties,
     calculateExtrensicCompliance,
     calcMutualMu,
 
@@ -53,11 +58,10 @@ export
     MeshDict,
     MeshCacheDict,
     MeshCache,
+    addBodyMeshCache,
+    # new_mesh_cache,
+    # remake_mesh_cache,
 
-    # mesh_inertia.jl
-    makeInertiaTensor,
-    centroidVolumeCombo,
-    equiv_volume,
 
     # mesh_body_utility.jl
     bodyFromMesh!,
@@ -72,6 +76,8 @@ export
     TypedTriTetCache,
     TypedElasticBodyBodyCache,
     TypedMechanismScenario,
+    makePaths,
+    # makeMeshCacheDict,
     MechanismScenario,
 
     # contact_instructions.jl

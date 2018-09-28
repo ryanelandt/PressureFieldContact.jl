@@ -18,12 +18,19 @@ mutable struct ContactInstructions
     frac_linear_weight::Float64
     mu_pair::Float64
     BristleFriction::Union{Nothing,BristleFriction}
-    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64)
-        return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, nothing)
+    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64,
+        fric_model::Union{Nothing,BristleFriction})
+
+        return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, fric_model)
     end
-    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64, bristle_friction::BristleFriction)
-        return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, bristle_friction)
-    end
+    # function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64)
+    #     return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, nothing)
+    # end
+    # function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64,
+    #     bristle_friction::BristleFriction)
+    #
+    #     return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, bristle_friction)
+    # end
 end
 
 mutable struct TractionCache{N,T}
@@ -123,6 +130,40 @@ struct TypedMechanismScenario{N,T}
     end
 end
 
+# function makePaths(mechanism::Mechanism, vec_MeshCache::Vector{MeshCache}, body_ids::Base.OneTo{BodyID})
+#     the_type = Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}
+#     v_path = RigidBodyDynamics.BodyDict{the_type}(body_ids)
+#     fill_with_nothing!(v_path)
+#     for mesh_k = vec_MeshCache
+#         body_id = mesh_k.BodyID
+#         if body_id != BodyID(root_body(mechanism))
+#             v_path[body_id] = path(mechanism, root_body(mechanism), bodies(mechanism)[body_id])
+#         end
+#     end
+#     return v_path
+# end
+
+function makePaths(mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, body_ids::Base.OneTo{BodyID})
+    the_type = Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}
+    v_path = RigidBodyDynamics.BodyDict{the_type}(body_ids)
+    fill_with_nothing!(v_path)
+    for mesh_k = values(mesh_cache)
+        body_id = mesh_k.BodyID
+        if body_id != BodyID(root_body(mechanism))
+            v_path[body_id] = path(mechanism, root_body(mechanism), bodies(mechanism)[body_id])
+        end
+    end
+    return v_path
+end
+
+# function makeMeshCacheDict(mechanism::Mechanism, vec_MeshCache::Vector{MeshCache}, mesh_ids::Base.OneTo{MeshID})
+#     cache_mesh = MeshCacheDict{MeshCache}(mesh_ids)
+#     for id = mesh_ids
+#         cache_mesh[id] = vec_MeshCache[id]  # should index vec_MeshCache fine
+#     end
+#     return cache_mesh
+# end
+
 struct MechanismScenario{N,T}
     body_ids::Base.OneTo{BodyID}
     mesh_ids::Base.OneTo{MeshID}
@@ -136,39 +177,20 @@ struct MechanismScenario{N,T}
     MeshCache::RigidBodyDynamics.CustomCollections.CacheIndexDict{MeshID,Base.OneTo{MeshID},MeshCache}
     ContactInstructions::Vector{ContactInstructions}
     de::Function
-    function MechanismScenario(de::Function, mechanism::Mechanism, vec_MeshCache::Vector{MeshCache}, T, n_bristle_pairs::Int64)
-        function makeMeshCacheDict(mechanism::Mechanism, vec_MeshCache::Vector{MeshCache}, mesh_ids::Base.OneTo{MeshID})
-            cache_mesh = MeshCacheDict{MeshCache}(mesh_ids)
-            for id = mesh_ids
-                cache_mesh[id] = vec_MeshCache[id]  # should index vec_MeshCache fine
-            end
-            return cache_mesh
-        end
-        function makePaths(mechanism::Mechanism, vec_MeshCache::Vector{MeshCache}, body_ids::Base.OneTo{BodyID})
-            the_type = Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}
-            v_path = RigidBodyDynamics.BodyDict{the_type}(body_ids)
-            fill_with_nothing!(v_path)
-            for mesh_k = vec_MeshCache
-                body_id = mesh_k.BodyID
-                if body_id != BodyID(root_body(mechanism))
-                    v_path[body_id] = path(mechanism, root_body(mechanism), bodies(mechanism)[body_id])
-                end
-            end
-            return v_path
-        end
-
+    function MechanismScenario(de::Function, mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, T, n_bristle_pairs::Int64)
         quad = getTriQuadRule(2)  # TODO: move somewhere else
         N = length(quad.w)
         tau_ext = zeros(Float64, num_positions(mechanism))
         body_ids = Base.OneTo(BodyID(num_bodies(mechanism)))
-        mesh_ids = Base.OneTo(MeshID(length(vec_MeshCache)))
-        cache_mesh = makeMeshCacheDict(mechanism, vec_MeshCache, mesh_ids)
-        cache_path = makePaths(mechanism, vec_MeshCache, body_ids)
+        mesh_ids = keys(mesh_cache)
+        # Base.OneTo(MeshID(length(vec_MeshCache)))
+        # cache_mesh = makeMeshCacheDict(mechanism, vec_MeshCache, mesh_ids)
+        cache_path = makePaths(mechanism, mesh_cache, body_ids)
         vec_instructions = Vector{ContactInstructions}()
         cache_float = TypedMechanismScenario{N,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         cache_dual = TypedMechanismScenario{N,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         frame_world = root_frame(mechanism)
         bristle_ids = Base.OneTo(n_bristle_pairs)
-        return new{N,T}(body_ids, mesh_ids, bristle_ids, frame_world, TT_Cache(), tau_ext, cache_float, cache_dual, cache_path, cache_mesh, vec_instructions, de)
+        return new{N,T}(body_ids, mesh_ids, bristle_ids, frame_world, TT_Cache(), tau_ext, cache_float, cache_dual, cache_path, mesh_cache, vec_instructions, de)
     end
 end
