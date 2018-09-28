@@ -38,6 +38,7 @@ export
     onePad,
     zeroPad,
     fill_with_nothing!,
+    zeroWrench,
 
     # matrix_transform.jl
     Point4D,

@@ -23,14 +23,6 @@ mutable struct ContactInstructions
 
         return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, fric_model)
     end
-    # function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64)
-    #     return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, nothing)
-    # end
-    # function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64,
-    #     bristle_friction::BristleFriction)
-    #
-    #     return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, bristle_friction)
-    # end
 end
 
 mutable struct TractionCache{N,T}

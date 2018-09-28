@@ -8,3 +8,7 @@ function fill_with_nothing!(a)  # TODO: find more elegant way to do this
     end
     return nothing
 end
+
+function zeroWrench(frame::CartesianFrame3D, T::Type)
+    return Wrench(Point3D(frame, SVector{3,T}(0.0, 0.0, 0.0)), FreeVector3D(frame, SVector{3,T}(0.0, 0.0, 0.0)))
+end
