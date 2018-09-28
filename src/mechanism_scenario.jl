@@ -1,13 +1,28 @@
 
+@RigidBodyDynamics.indextype BristleID
+
+struct BristleFriction
+    BristleID::BristleID
+    tau::Float64
+    K_r::Float64
+    K_theta::Float64
+    function BristleFriction(bristle_ID::BristleID, tau::Float64, K_r::Float64, K_theta::Float64)
+        return new(bristle_ID, tau, K_r, K_theta)
+    end
+end
+
 mutable struct ContactInstructions
     id_tri::MeshID
     id_tet::MeshID
     frac_epsilon::Float64
     frac_linear_weight::Float64
     mu_pair::Float64
-    friction_model::Function
-    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64, friction_model::Function)
-        return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, friction_model::Function)
+    BristleFriction::Union{Nothing,BristleFriction}
+    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64)
+        return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, nothing)
+    end
+    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64, bristle_friction::BristleFriction)
+        return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, bristle_friction)
     end
 end
 
@@ -73,11 +88,13 @@ end
 
 struct TypedMechanismScenario{N,T}
     state::MechanismState{T}
+    s::SegmentedVector{BristleID,T,Base.OneTo{BristleID},Array{T,1}}
     result::DynamicsResult{T}
+    ṡ::SegmentedVector{BristleID,T,Base.OneTo{BristleID},Array{T,1}}
     f_generalized::Vector{T}
     bodyBodyCache::TypedElasticBodyBodyCache{N,T}
     GeometricJacobian::RigidBodyDynamics.CustomCollections.CacheIndexDict{BodyID,Base.OneTo{BodyID},Union{Nothing,GeometricJacobian{Array{T,2}}}}
-    function TypedMechanismScenario{N,T}(mechanism::Mechanism, quad::TriTetQuadRule{3,N}, v_path, body_ids) where {N,T}
+    function TypedMechanismScenario{N,T}(mechanism::Mechanism, quad::TriTetQuadRule{3,N}, v_path, body_ids, n_bristle_pairs::Int64) where {N,T}
         function makeJacobian(v_path, state::MechanismState{T}, body_ids::Base.OneTo{BodyID}) where {T}
             v_jac = RigidBodyDynamics.BodyCacheDict{Union{Nothing,GeometricJacobian{Array{T,2}}}}(body_ids)
             fill_with_nothing!(v_jac)
@@ -91,6 +108,7 @@ struct TypedMechanismScenario{N,T}
             end
             return v_jac
         end
+        function_Int64_six(k) = 6
 
         state = MechanismState{T}(mechanism)
         result = DynamicsResult{T}(mechanism)
@@ -98,13 +116,17 @@ struct TypedMechanismScenario{N,T}
         frame_world = root_frame(mechanism)
         bodyBodyCache = TypedElasticBodyBodyCache{N,T}(frame_world, quad)
         v_jac = makeJacobian(v_path, state, body_ids)
-        return new{N,T}(state, result, f_generalized, bodyBodyCache, v_jac)
+        n_dof_bristle = 6 * n_bristle_pairs
+        s = SegmentedVector{BristleID}(Vector{T}(undef, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
+        ṡ = SegmentedVector{BristleID}(Vector{T}(undef, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
+        return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac)
     end
 end
 
 struct MechanismScenario{N,T}
     body_ids::Base.OneTo{BodyID}
     mesh_ids::Base.OneTo{MeshID}
+    bristle_ids::Base.OneTo{BristleID}
     frame_world::CartesianFrame3D
     TT_Cache::TT_Cache
     tau_ext::Vector{Float64}
@@ -114,7 +136,7 @@ struct MechanismScenario{N,T}
     MeshCache::RigidBodyDynamics.CustomCollections.CacheIndexDict{MeshID,Base.OneTo{MeshID},MeshCache}
     ContactInstructions::Vector{ContactInstructions}
     de::Function
-    function MechanismScenario(de::Function, mechanism::Mechanism, vec_MeshCache::Vector{MeshCache}, T)
+    function MechanismScenario(de::Function, mechanism::Mechanism, vec_MeshCache::Vector{MeshCache}, T, n_bristle_pairs::Int64)
         function makeMeshCacheDict(mechanism::Mechanism, vec_MeshCache::Vector{MeshCache}, mesh_ids::Base.OneTo{MeshID})
             cache_mesh = MeshCacheDict{MeshCache}(mesh_ids)
             for id = mesh_ids
@@ -143,9 +165,10 @@ struct MechanismScenario{N,T}
         cache_mesh = makeMeshCacheDict(mechanism, vec_MeshCache, mesh_ids)
         cache_path = makePaths(mechanism, vec_MeshCache, body_ids)
         vec_instructions = Vector{ContactInstructions}()
-        cache_float = TypedMechanismScenario{N,Float64}(mechanism, quad, cache_path, body_ids)
-        cache_dual = TypedMechanismScenario{N,T}(mechanism, quad, cache_path, body_ids)
+        cache_float = TypedMechanismScenario{N,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
+        cache_dual = TypedMechanismScenario{N,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         frame_world = root_frame(mechanism)
-        return new{N,T}(body_ids, mesh_ids, frame_world, TT_Cache(), tau_ext, cache_float, cache_dual, cache_path, cache_mesh, vec_instructions, de)
+        bristle_ids = Base.OneTo(n_bristle_pairs)
+        return new{N,T}(body_ids, mesh_ids, bristle_ids, frame_world, TT_Cache(), tau_ext, cache_float, cache_dual, cache_path, cache_mesh, vec_instructions, de)
     end
 end

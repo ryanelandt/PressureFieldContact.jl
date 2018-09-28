@@ -64,6 +64,8 @@ export
     newBodyFromInertia,
 
     # mechanism_scenario
+    BristleID,
+    BristleFriction,
     ContactInstructions,
     TractionCache,
     TypedQuadTriCache,
@@ -89,11 +91,12 @@ export
     fillTractionCacheInnerLoop!,
     calcTangentialVelocity,
     addGeneralizedForcesThirdLaw!,
-    addGeneralizedForcesExternal!,
+    addGeneralizedForcesExternal!
 
     # contact_algorithms_friction.jl
-    friction_regularization,
-    friction_bristle,
-    friction_model
+    # friction_regularization,
+    # friction_bristle,
+    # friction_model
+
 
 end

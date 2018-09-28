@@ -1,5 +1,9 @@
-         # addContactRigidCompliant!
-function addContactRigidCompliant!(mech_scen::MechanismScenario, name_tri::String, name_tet::String, friction_model::Function)
+# addContactRigidCompliant!
+
+function addContactRigidCompliant!(mech_scen::MechanismScenario, name_tri::String, name_tet::String)
+    return addContactRigidCompliant!(mech_scen, name_tri, name_tet, nothing)
+end
+function addContactRigidCompliant!(mech_scen::MechanismScenario, name_tri::String, name_tet::String, friction_model::Union{Nothing,BristleFriction})
     function find_mesh_id(mech_scen::MechanismScenario, name::String)
         id = MeshID(-9999)
         for k = mech_scen.mesh_ids
