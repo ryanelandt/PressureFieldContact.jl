@@ -48,7 +48,6 @@ export
     # material.jl
     ContactProperties,
     InertiaProperties,
-    # MaterialProperties,
     calculateExtrensicCompliance,
     calcMutualMu,
 
@@ -60,9 +59,6 @@ export
     MeshCacheDict,
     MeshCache,
     addBodyMeshCache,
-    # new_mesh_cache,
-    # remake_mesh_cache,
-
 
     # mesh_body_utility.jl
     bodyFromMesh!,
@@ -78,7 +74,6 @@ export
     TypedElasticBodyBodyCache,
     TypedMechanismScenario,
     makePaths,
-    # makeMeshCacheDict,
     MechanismScenario,
 
     # contact_instructions.jl
@@ -98,12 +93,11 @@ export
     fillTractionCacheInnerLoop!,
     calcTangentialVelocity,
     addGeneralizedForcesThirdLaw!,
-    addGeneralizedForcesExternal!
+    addGeneralizedForcesExternal!,
 
     # contact_algorithms_friction.jl
-    # friction_regularization,
-    # friction_bristle,
-    # friction_model
+    regularized_friction,
+    find_contact_pressure_center
 
 
 end
