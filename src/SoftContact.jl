@@ -52,7 +52,6 @@ export
     calcMutualMu,
 
     # mesh_cache.jl
-    RawMeshCache,
     asHomogenousMesh,
     MeshID,
     MeshDict,
@@ -61,7 +60,6 @@ export
     addBodyMeshCache,
 
     # mesh_body_utility.jl
-    bodyFromMesh!,
     newBodyFromInertia,
 
     # mechanism_scenario
