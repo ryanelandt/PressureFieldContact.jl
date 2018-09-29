@@ -36,9 +36,8 @@ function forceAllElasticIntersections!(m::MechanismScenario{N,T1}, tm::TypedMech
         if 0 != length(m.TT_Cache)
             refreshBodyBodyCache!(m, tm, con_ins_k)
             integrateOverContactPatch!(tm.bodyBodyCache, m.TT_Cache)
-            wrench_zero = Wrench(Point3D(m.frame_world, SVector{3,T2}(0.0, 0.0, 0.0)), FreeVector3D(m.frame_world, SVector{3,T2}(0.0, 0.0, 0.0)))
             if con_ins_k.BristleFriction == nothing
-                wrench = regularized_friction(wrench_zero, tm.bodyBodyCache)
+                wrench = regularized_friction(m.frame_world, tm.bodyBodyCache)
             end
             addGeneralizedForcesThirdLaw!(wrench_zero, tm, con_ins_k)
         end
