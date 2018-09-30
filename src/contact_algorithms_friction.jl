@@ -25,5 +25,5 @@ function find_contact_pressure_center(b::TypedElasticBodyBodyCache{N,T}) where {
         end
     end
     frame = b.TractionCache[1].r_cart[1].frame
-    return Point3D(frame, int_p_r_dA / int_p_dA )
+    return Point3D(frame, int_p_r_dA / int_p_dA ), int_p_dA
 end
