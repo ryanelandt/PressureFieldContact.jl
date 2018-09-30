@@ -27,3 +27,14 @@ function find_contact_pressure_center(b::TypedElasticBodyBodyCache{N,T}) where {
     frame = b.TractionCache[1].r_cart[1].frame
     return Point3D(frame, int_p_r_dA / int_p_dA ), int_p_dA
 end
+
+function normal_wrench(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+    wrench = zeroWrench(frame, T)
+    for k_trac = 1:length(b.TractionCache)
+        trac = b.TractionCache[k_trac]
+        for k = 1:N
+            wrench += Wrench(trac.r_cart[k], trac.p_dA[k] * trac.traction_normal)
+        end
+    end
+    return wrench
+end

@@ -95,7 +95,8 @@ export
 
     # contact_algorithms_friction.jl
     regularized_friction,
-    find_contact_pressure_center
+    find_contact_pressure_center,
+    normal_wrench
 
 
 end
