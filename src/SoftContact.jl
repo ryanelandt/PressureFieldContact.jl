@@ -18,6 +18,7 @@ include("matrix_transform.jl")
 include("material.jl")
 include("mesh_cache.jl")
 include("mesh_body_utility.jl")
+include("temp_structures.jl")
 include("mechanism_scenario.jl")
 include("contact_instructions.jl")
 include("extensions.jl")
@@ -61,13 +62,25 @@ export
 
     # mesh_body_utility.jl
     newBodyFromInertia,
+    outputJointTransform_ParentChild,
     area,
     volume,
 
-    # mechanism_scenario
+    # temp_structures.jl
     BristleID,
     BristleFriction,
     ContactInstructions,
+    TempContactStruct,
+    addMesh!,
+    add_body_volume_mesh!,
+    add_volume_mesh!,
+    add_body_surface_mesh!,
+    add_surface_mesh!,
+    add_body_surface!,
+    add_body_from_inertia!,
+    findmesh,
+
+    # mechanism_scenario
     TractionCache,
     TypedQuadTriCache,
     TypedTriTetCache,
@@ -77,7 +90,7 @@ export
     MechanismScenario,
 
     # contact_instructions.jl
-    addContactRigidCompliant!,
+    # addContactRigidCompliant!,
     # tune_bristle_friction,
 
     # extensions.jl

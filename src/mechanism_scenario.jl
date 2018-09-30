@@ -1,30 +1,4 @@
 
-@RigidBodyDynamics.indextype BristleID
-
-struct BristleFriction
-    BristleID::BristleID
-    tau::Float64
-    K_θ::Float64
-    K_r::Float64
-    function BristleFriction(bristle_ID::BristleID; tau::Float64, K_θ::Float64, K_r::Float64)
-        return new(bristle_ID, tau, K_θ, K_r)
-    end
-end
-
-mutable struct ContactInstructions
-    id_tri::MeshID
-    id_tet::MeshID
-    frac_epsilon::Float64
-    frac_linear_weight::Float64
-    mu_pair::Float64
-    BristleFriction::Union{Nothing,BristleFriction}
-    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64,
-        fric_model::Union{Nothing,BristleFriction})
-
-        return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, fric_model)
-    end
-end
-
 mutable struct TractionCache{N,T}
     traction_normal::FreeVector3D{SVector{3,T}}
     r_cart::MVector{N,Point3D{SVector{3,T}}}

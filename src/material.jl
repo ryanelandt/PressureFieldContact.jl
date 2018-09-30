@@ -25,22 +25,11 @@ struct InertiaProperties
     end
 end
 
-# struct MaterialProperties
-#     contact::Union{Nothing,ContactMaterialProperties}
-#     inertia::Union{Nothing,InertiaMaterialProperties}
-#     MaterialProperties(contact::ContactMaterialProperties, inertia::InertiaMaterialProperties) = new(contact, inertia)
-#     MaterialProperties(contact::ContactMaterialProperties) = new(contact, nothing)
-#     MaterialProperties(inertia::InertiaMaterialProperties) = new(nothing, inertia)
-#     MaterialProperties() = new(nothing, nothing)
-# end
-
 function calculateExtrensicCompliance(mat::ContactProperties)
-    # (mat.contact == nothing) && return 0.0
     return 1 / (mat.E_effective * mat.inv_thickness)
 end
+
 function calcMutualMu(mat_1::ContactProperties, mat_2::ContactProperties)
-    # is_mu_1 = (mat_1 != nothing)
-    # is_mu_2 = (mat_2 != nothing)
     if is_mu_1
         return is_mu_2 ? sqrt(mat_1.mu, mat_2.mu) : mat_1.mu
     else
