@@ -61,6 +61,8 @@ export
 
     # mesh_body_utility.jl
     newBodyFromInertia,
+    area,
+    volume,
 
     # mechanism_scenario
     BristleID,
