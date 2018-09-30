@@ -2,6 +2,7 @@ module SoftContact
 
 using StaticArrays
 using Rotations: Quat
+using ForwardDiff: Dual
 using RigidBodyDynamics
 using GeometryTypes: HomogenousMesh, Face, Point
 using Tri_Tet_Intersections

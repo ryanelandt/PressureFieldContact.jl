@@ -129,13 +129,13 @@ struct MechanismScenario{N,T}
         body_ids = Base.OneTo(last(bodies(mechanism)).id)
         mesh_ids = ts.mesh_ids
         bristle_ids = ts.bristle_ids
+        n_bristle_pairs = length(bristle_ids)
         n_dof = num_positions(mechanism) + num_velocities(mechanism) + 6 * n_bristle_pairs
-        T = ForwardDiff.Dual{Float64,Float64,n_dof}
+        T = Dual{Float64,Float64,n_dof}
         frame_world = root_frame(mechanism)
         tau_ext = zeros(Float64, num_positions(mechanism))
         mesh_cache = ts.MeshCache
         cache_path = makePaths(mechanism, mesh_cache, body_ids)
-        n_bristle_pairs = length(ts.bristle_ids)
         cache_float = TypedMechanismScenario{N,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         cache_dual = TypedMechanismScenario{N,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         vec_instructions = ts.ContactInstructions
