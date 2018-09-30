@@ -78,6 +78,7 @@ export
 
     # contact_instructions.jl
     addContactRigidCompliant!,
+    # tune_bristle_friction,
 
     # extensions.jl
 

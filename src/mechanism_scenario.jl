@@ -4,10 +4,10 @@
 struct BristleFriction
     BristleID::BristleID
     tau::Float64
+    K_θ::Float64
     K_r::Float64
-    K_theta::Float64
-    function BristleFriction(bristle_ID::BristleID, tau::Float64, K_r::Float64, K_theta::Float64)
-        return new(bristle_ID, tau, K_r, K_theta)
+    function BristleFriction(bristle_ID::BristleID; tau::Float64, K_θ::Float64, K_r::Float64)
+        return new(bristle_ID, tau, K_θ, K_r)
     end
 end
 
