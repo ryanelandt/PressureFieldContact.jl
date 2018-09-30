@@ -80,6 +80,10 @@ export
     add_body_surface!,
     add_body_from_inertia!,
     findmesh,
+    findMesh,
+    add_pair_rigid_compliant_regularize!,
+    add_pair_rigid_compliant!,
+    add_pair_rigid_compliant_bristle!,
 
     # mechanism_scenario
     TractionCache,

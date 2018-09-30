@@ -142,32 +142,3 @@ struct MechanismScenario{N,T}
         return new{N,T}(body_ids, mesh_ids, bristle_ids, frame_world, TT_Cache(), tau_ext, cache_float, cache_dual, cache_path, mesh_cache, vec_instructions, de)
     end
 end
-
-# struct MechanismScenario{N,T}
-#     body_ids::Base.OneTo{BodyID}
-#     mesh_ids::Base.OneTo{MeshID}
-#     bristle_ids::Base.OneTo{BristleID}
-#     frame_world::CartesianFrame3D
-#     TT_Cache::TT_Cache
-#     tau_ext::Vector{Float64}
-#     float::TypedMechanismScenario{N,Float64}
-#     dual::TypedMechanismScenario{N,T}
-#     path::RigidBodyDynamics.CustomCollections.IndexDict{BodyID,Base.OneTo{BodyID},Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}}
-#     MeshCache::RigidBodyDynamics.CustomCollections.CacheIndexDict{MeshID,Base.OneTo{MeshID},MeshCache}
-#     ContactInstructions::Vector{ContactInstructions}
-#     de::Function
-#     function MechanismScenario(de::Function, mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, T, n_bristle_pairs::Int64)
-#         quad = getTriQuadRule(2)  # TODO: move somewhere else
-#         N = length(quad.w)
-#         tau_ext = zeros(Float64, num_positions(mechanism))
-#         body_ids = Base.OneTo(BodyID(num_bodies(mechanism)))
-#         mesh_ids = keys(mesh_cache)
-#         cache_path = makePaths(mechanism, mesh_cache, body_ids)
-#         vec_instructions = Vector{ContactInstructions}()
-#         cache_float = TypedMechanismScenario{N,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
-#         cache_dual = TypedMechanismScenario{N,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
-#         frame_world = root_frame(mechanism)
-#         bristle_ids = Base.OneTo(n_bristle_pairs)
-#         return new{N,T}(body_ids, mesh_ids, bristle_ids, frame_world, TT_Cache(), tau_ext, cache_float, cache_dual, cache_path, mesh_cache, vec_instructions, de)
-#     end
-# end

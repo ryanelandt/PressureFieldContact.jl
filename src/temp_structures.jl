@@ -1,4 +1,3 @@
-
 @RigidBodyDynamics.indextype BristleID
 
 struct BristleFriction
@@ -6,9 +5,7 @@ struct BristleFriction
     tau::Float64
     K_θ::Float64
     K_r::Float64
-    function BristleFriction(bristle_ID::BristleID; tau::Float64, K_θ::Float64, K_r::Float64)
-        return new(bristle_ID, tau, K_θ, K_r)
-    end
+    BristleFriction(bristle_ID::BristleID; tau::Float64, K_θ::Float64, K_r::Float64) = new(bristle_ID, tau, K_θ, K_r)
 end
 
 mutable struct ContactInstructions
@@ -18,8 +15,8 @@ mutable struct ContactInstructions
     frac_linear_weight::Float64
     mu_pair::Float64
     BristleFriction::Union{Nothing,BristleFriction}
-    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64, mu_pair::Float64,
-        fric_model::Union{Nothing,BristleFriction})
+    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64,
+        mu_pair::Float64, fric_model::Union{Nothing,BristleFriction})
 
         return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, fric_model)
     end
@@ -39,6 +36,7 @@ mutable struct TempContactStruct
         return new(mechanism, mesh_ids, bristle_ids, mesh_cache, vec_ins)
     end
 end
+
 function addMesh!(ts::TempContactStruct, mesh::MeshCache)
     mesh_ids_old = ts.mesh_ids
     mesh_ids_new = Base.OneTo(MeshID(length(ts.mesh_ids) + 1))
@@ -51,6 +49,7 @@ function addMesh!(ts::TempContactStruct, mesh::MeshCache)
     ts.mesh_ids = mesh_ids_new
     return nothing
 end
+
 ### Volume ###
 function add_body_volume_mesh!(ts::TempContactStruct, name::String, point::Vector{SVector{3,Float64}},
     tri_ind::Vector{SVector{3,Int64}}, tet_ind::Vector{SVector{4,Int64}}, strain::Vector{Float64},
@@ -59,6 +58,7 @@ function add_body_volume_mesh!(ts::TempContactStruct, name::String, point::Vecto
     body = add_body_volume!(ts.mechanism, name, point, tet_ind, inertia_prop)
     add_volume_mesh!(ts, body, name, point, tri_ind, tet_ind, strain, contact_prop, inertia_prop)
 end
+
 function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, point::Vector{SVector{3,Float64}},
     tri_ind::Vector{SVector{3,Int64}}, tet_ind::Vector{SVector{4,Int64}}, strain::Vector{Float64},
     contact_prop::ContactProperties, inertia_prop::Union{Nothing,InertiaProperties}=nothing)
@@ -66,12 +66,14 @@ function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name:
     mesh = MeshCache(point, name, tri_ind, tet_ind, strain, contact_prop, body, inertia_prop)
     addMesh!(ts, mesh)
 end
+
 function add_body_volume!(mechanism::Mechanism, name::String, point::Vector{SVector{3,Float64}}, tet_ind::Vector{SVector{4,Int64}}, inertia_prop::InertiaProperties)
     rho = inertia_prop.rho
     (inertia_prop.thickness == nothing) || error("assumed thickness is something but should be nothing")
     I3, com, mass, mesh_vol = makeInertiaTensor(point, tet_ind, rho)
     return add_body_from_inertia!(mechanism, name, I3, com, mass)
 end
+
 ### Surface ###
 function add_body_surface_mesh!(ts::TempContactStruct, name::String, point::Vector{SVector{3,Float64}},
     tri_ind::Vector{SVector{3,Int64}}, inertia_prop::InertiaProperties)
@@ -79,12 +81,14 @@ function add_body_surface_mesh!(ts::TempContactStruct, name::String, point::Vect
     body = add_body_surface!(ts.mechanism, name, point, tri_ind, inertia_prop)
     add_surface_mesh!(ts, body, name, point, tri_ind, inertia_prop)
 end
+
 function add_surface_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, point::Vector{SVector{3,Float64}},
         tri_ind::Vector{SVector{3,Int64}}, inertia_prop::Union{Nothing, InertiaProperties}=nothing)
 
     mesh = MeshCache(point, name, tri_ind, body, inertia_prop)
     addMesh!(ts, mesh)
 end
+
 function add_body_surface!(mechanism::Mechanism, name::String, point::Vector{SVector{3,Float64}}, tri_ind::Vector{SVector{3,Int64}}, inertia_prop::InertiaProperties)
     rho = inertia_prop.rho
     thickness = inertia_prop.thickness
@@ -92,7 +96,7 @@ function add_body_surface!(mechanism::Mechanism, name::String, point::Vector{SVe
     I3, com, mass, mesh_vol = makeInertiaTensor(point, tri_ind, rho, thickness)
     return add_body_from_inertia!(mechanism, name, I3, com, mass)
 end
-###
+
 function add_body_from_inertia!(mechanism::Mechanism, name::String, I3, com, mass)
     body_child = newBodyFromInertia(name, I3, com, mass)
     body_parent = root_body(mechanism)
@@ -110,4 +114,67 @@ function findmesh(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this
         end
     end
     return id
+end
+
+function findMesh(ts::MeshCacheDict{MeshCache}, name::String)
+    return ts[findmesh(ts, name)]
+end
+
+function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, name_tri::String, name_tet::String)
+    return add_pair_rigid_compliant!(ts, name_tri, name_tet, nothing)
+end
+
+function add_pair_rigid_compliant!(ts::TempContactStruct, name_tri::String, name_tet::String, friction_model::Union{Nothing,BristleFriction})
+    mesh_id_tri = findmesh(ts.MeshCache, name_tri)
+    mesh_id_tet = findmesh(ts.MeshCache, name_tet)
+    (1 <= mesh_id_tri) || error("invalid tri mesh id $mesh_id_tri")
+    (1 <= mesh_id_tet) || error("invalid tet mesh id $mesh_id_tet")
+    (mesh_id_tri == mesh_id_tet) && error("tri_mesh and tet_mesh id are the same $mesh_id_tri")
+    mesh_cache_tri = ts.MeshCache[mesh_id_tri]
+    mesh_cache_tet = ts.MeshCache[mesh_id_tet]
+    (mesh_cache_tet.tet == nothing) && error("compliant mesh named $name_tet has no volume mesh")
+    mat_tet = mesh_cache_tet.tet.contact_prop
+    if mesh_cache_tri.tet == nothing
+        mu = mat_tet.mu
+        frac_epsilon = 1.0
+    else
+        mat_tri = mesh_cache_tri.contact_prop
+        mu = calcMutualMu(mat_tri, mat_tet)
+        hC_tri = calculateExtrensicCompliance(mat_tri)
+        hC_tet = calculateExtrensicCompliance(mat_tet)
+        (hC_tet == 0.0) && error("compliance f tet mesh is rigid because its compliance is zero")
+        frac_epsilon = hC_tet / (hC_tri + hC_tet)
+    end
+    (0.0 <= mu <= 3.0) || error("mu our of range")
+    frac_linear_weight = 1.0
+    new_contact = ContactInstructions(mesh_id_tri, mesh_id_tet, frac_epsilon, frac_linear_weight, mu, friction_model)
+    push!(ts.ContactInstructions, new_contact)
+    return nothing
+end
+
+function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; tau::Float64=10.0, f_disp::Float64=0.0025, rad_disp::Float64=deg2rad(0.25))
+    K_r = calc_linear_stiffness(ts, name_tet, f_disp=f_disp)
+    K_θ = calc_angular_stiffness(ts, name_tet, rad_disp=rad_disp)
+    bristle_id = BristleID(1 + length(ts.bristle_ids))
+    bf = BristleFriction(bristle_id, tau=tau, K_θ=K_θ, K_r=K_r)
+    ts.bristle_ids = Base.OneTo(bristle_id)
+    return add_pair_rigid_compliant!(ts, name_tri, name_tet, bf)
+end
+
+function calc_linear_stiffness(ts::TempContactStruct, name::String; f_disp::Float64=0.0025)
+    mesh_id = findmesh(ts.MeshCache, name)
+    gravity = norm(ts.mechanism.gravitational_acceleration.v)
+    mesh = ts.MeshCache[mesh_id]
+    char_length = sum(mesh.tri.tree.box.e) / 3  # to avoid importing Statistics
+    F = volume(mesh) * mesh.InertiaProperties.rho
+    delta_x = char_length * f_disp
+    return F / delta_x
+end
+
+function calc_angular_stiffness(ts::TempContactStruct, name::String; rad_disp::Float64=deg2rad(0.25))
+    mesh_id = findmesh(ts.MeshCache, name)
+    mesh = ts.MeshCache[mesh_id]
+    inertia_tensor = bodies(ts.mechanism)[mesh.BodyID].inertia
+    avg_inertia = sum(svd(inertia_tensor.moment).S) / 3  # to avoid importing Statistics
+    return avg_inertia / rad_disp
 end
