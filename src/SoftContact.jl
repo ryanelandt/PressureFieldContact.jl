@@ -84,6 +84,9 @@ export
     add_pair_rigid_compliant_regularize!,
     add_pair_rigid_compliant!,
     add_pair_rigid_compliant_bristle!,
+    tune_bristle_stiffness,
+    add_pair_rigid_compliant_bristle_tune_tet!,
+    add_pair_rigid_compliant_bristle_tune_tri!,
 
     # mechanism_scenario
     TractionCache,
