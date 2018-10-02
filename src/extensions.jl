@@ -1,4 +1,4 @@
-NumericalTricks.safe_normalize(p::FreeVector3D{SVector{3,T}}) where {T} = FreeVector3D(p.frame, safeNormalize(p.v))
+NumericalTricks.safe_normalize(p::FreeVector3D{SVector{3,T}}) where {T} = FreeVector3D(p.frame, safe_normalize(p.v))
 
 Tri_Tet_Intersections.area(p1::Point3D{T}, p2::Point3D{T}, p3::Point3D{T}) where {T} = area(p1.v, p2.v, p3.v)
 Tri_Tet_Intersections.getTop(m::MatrixTransform{4,N2,T,N3}) where {N2,T,N3} = MatrixTransform(m.from, m.to, getTop(m.mat))
