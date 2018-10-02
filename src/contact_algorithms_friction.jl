@@ -4,9 +4,9 @@ function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCa
         trac = b.TractionCache[k_trac]
         for k = 1:N
             cart_vel_crw_t = trac.v_cart_t[k]
-            mag_vel_t  = safeNorm(cart_vel_crw_t.v)
+            mag_vel_t  = norm(cart_vel_crw_t.v)
             mu_reg     = b.mu * fastSigmoid(mag_vel_t)
-            traction_k = trac.p_dA[k] * (trac.traction_normal - mu_reg * safeNormalize(cart_vel_crw_t))
+            traction_k = trac.p_dA[k] * (trac.traction_normal - mu_reg * safe_normalize(cart_vel_crw_t))
             wrench += Wrench(trac.r_cart[k], traction_k)
         end
     end
