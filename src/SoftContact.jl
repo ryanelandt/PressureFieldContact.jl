@@ -59,7 +59,7 @@ export
     MeshDict,
     MeshCacheDict,
     MeshCache,
-    addBodyMeshCache,
+    # addBodyMeshCache,
 
     # mesh_body_utility.jl
     newBodyFromInertia,
