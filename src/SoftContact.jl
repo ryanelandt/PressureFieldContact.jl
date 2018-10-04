@@ -21,7 +21,6 @@ include("mesh_cache.jl")
 include("mesh_body_utility.jl")
 include("temp_structures.jl")
 include("mechanism_scenario.jl")
-include("contact_instructions.jl")
 include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
 include("contact_algorithms_friction.jl")
@@ -95,10 +94,6 @@ export
     TypedMechanismScenario,
     makePaths,
     MechanismScenario,
-
-    # contact_instructions.jl
-    # addContactRigidCompliant!,
-    # tune_bristle_friction,
 
     # extensions.jl
 
