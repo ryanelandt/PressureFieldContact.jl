@@ -78,7 +78,7 @@ function calc_T_θ(r_rel_c::FreeVector3D{SVector{3,T}}, τ_θ_s::FreeVector3D{SV
     return p * dot(v2, v2)
 end
 
-function calc_T_θ_dA(b::TypedElasticBodyBodyCache{N,T}, τ_θ_s::FreeVector3D, r̄_c::Point3D) where {N,T}
+function calc_T_θ_dA(b::TypedElasticBodyBodyCache{N,T}, τ_θ_s::FreeVector3D{SVector{3,T}}, r̄_c::Point3D{SVector{3,T}}) where {N,T}
     @framecheck(τ_θ_s.frame, r̄_c.frame)
     int_T_θ_dA = zero(T)
     for k_trac = 1:length(b.TractionCache)
@@ -127,7 +127,7 @@ end
 
 function bristle_no_slip_force_moment(b::TypedElasticBodyBodyCache{N,T}, frame_c::CartesianFrame3D, BF::BristleFriction,
         c_θ::FreeVector3D{SVector{3,T}}, c_r::FreeVector3D{SVector{3,T}}) where {N,T}
-        
+
     inv_τ = 1 / BF.τ
     twist_r_c_w = b.twist_tri_tet
     twist_r_c_c = transform(twist_r_c_w, b.x_tet_root)
