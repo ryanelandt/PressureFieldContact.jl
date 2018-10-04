@@ -1,3 +1,27 @@
+function verify_bristle_ids!(m::MechanismScenario{N,T}, x::Vector{Float64}) where {N,T}
+    copyto!(m.float, x)
+
+    bristle_done = falses(m.bristle_ids)
+    for k = 1:length(m.ContactInstructions)
+        con_ins_k = m.ContactInstructions[k]
+        if con_ins_k.BristleFriction != nothing
+            bristle_id = con_ins_k.BristleFriction.BristleID
+            (bristle_done[bristle_id] == true) && error("BristleID $bristle_id assigned twice")
+            bristle_done[bristle_id] = true
+        end
+    end
+    for bristle_id = m.bristle_ids
+        if !bristle_done[bristle_id]
+            segments_s = get_bristle_d0(m.float, bristle_id)
+            fill!(segments_s, 0.0)
+            println("BristleID $bristle_id not assigned")
+        end
+    end
+
+    copyto!(x, m.float)
+    return nothing
+end
+
 calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.dual)
 calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.float)
 function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{N,T2}, tm::TypedMechanismScenario{N,T1}) where {N,T1,T2}

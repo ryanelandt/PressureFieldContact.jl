@@ -59,7 +59,6 @@ export
     MeshDict,
     MeshCacheDict,
     MeshCache,
-    # addBodyMeshCache,
 
     # mesh_body_utility.jl
     newBodyFromInertia,
@@ -104,6 +103,7 @@ export
     # extensions.jl
 
     # contact_algorithms_non_friction.jl
+    verify_bristle_ids!,
     calcXd!,
     refreshJacobians!,
     forceAllElasticIntersections!,
@@ -120,7 +120,8 @@ export
     # contact_algorithms_friction.jl
     regularized_friction,
     find_contact_pressure_center,
-    normal_wrench
-
+    normal_wrench,
+    bristle_friction!,
+    bristle_friction_no_contact!
 
 end
