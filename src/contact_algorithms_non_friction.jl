@@ -25,22 +25,23 @@ end
 calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.dual)
 calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.float)
 function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{N,T2}, tm::TypedMechanismScenario{N,T1}) where {N,T1,T2}
-  state = tm.state
-  copyto!(state, x)
-  # any(isnan.(state.q)) && error("nan in state.q")  # isnan
-  # any(isnan.(state.v)) && error("nan in state.v")  # isnan
-  H = tm.result.massmatrix
-  mass_matrix!(H, state)
-  dynamics_bias!(tm.result, state)
-  configuration_derivative!(tm.result.q̇, state)
-  forceAllElasticIntersections!(m, tm)
-  f_generalized = tm.f_generalized
-  # any(isnan.(f_generalized)) && error("nan in tm.f_gen_cum")  # isnan
-  C = tm.result.dynamicsbias.parent
-  rhs = -C + f_generalized + m.tau_ext
-  tm.result.v̇ .= H \ rhs
-  copyto!(xx, tm.result)
-  return nothing
+    state = tm.state
+    any(isnan.(x)) && error("nan in x")
+    copyto!(tm, x)
+    any(isnan.(state.q)) && error("nan in state.q")  # isnan
+    any(isnan.(state.v)) && error("nan in state.v")  # isnan
+    H = tm.result.massmatrix
+    mass_matrix!(H, state)
+    dynamics_bias!(tm.result, state)
+    configuration_derivative!(tm.result.q̇, state)
+    forceAllElasticIntersections!(m, tm)
+    f_generalized = tm.f_generalized
+    any(isnan.(f_generalized)) && error("nan in tm.f_gen_cum")  # isnan
+    C = tm.result.dynamicsbias.parent
+    rhs = -C + f_generalized + m.tau_ext
+    tm.result.v̇ .= H \ rhs
+    copyto!(xx, tm, tm.result)
+    return nothing
 end
 
 function refreshJacobians!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenario{N,T2}) where {N,T1,T2}
@@ -57,14 +58,25 @@ function forceAllElasticIntersections!(m::MechanismScenario{N,T1}, tm::TypedMech
     for k = 1:length(m.ContactInstructions)
         con_ins_k = m.ContactInstructions[k]
         calcTriTetIntersections!(m, con_ins_k)
-        if 0 != length(m.TT_Cache)
-            refreshBodyBodyCache!(m, tm, con_ins_k)
-            integrateOverContactPatch!(tm.bodyBodyCache, m.TT_Cache)
-            if con_ins_k.BristleFriction == nothing
-                wrench = regularized_friction(m.frame_world, tm.bodyBodyCache)
+        is_intersections = (0 != length(m.TT_Cache))
+        is_bristle = (con_ins_k.BristleFriction != nothing)
+        is_no_wrench = true
+        if is_intersections | is_bristle
+            if is_intersections
+                refreshBodyBodyCache!(m, tm, con_ins_k)
+                integrateOverContactPatch!(tm.bodyBodyCache, m.TT_Cache)
+                if !isempty(tm.bodyBodyCache.TractionCache)
+                    is_no_wrench = false
+                    if is_bristle
+                        wrench = bristle_friction!(m.frame_world, tm, con_ins_k)
+                    else
+                        wrench = regularized_friction(m.frame_world, tm.bodyBodyCache)
+                    end
+                    addGeneralizedForcesThirdLaw!(wrench, tm, con_ins_k)
+                end
             end
-            addGeneralizedForcesThirdLaw!(wrench_zero, tm, con_ins_k)
         end
+        (is_bristle & is_no_wrench) && bristle_friction_no_contact!(tm, con_ins_k)
     end
     return nothing
 end
