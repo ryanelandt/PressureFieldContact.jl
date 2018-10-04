@@ -92,7 +92,9 @@ function calc_T_θ_dA(b::TypedElasticBodyBodyCache{N,T}, τ_θ_s::FreeVector3D, 
     return int_T_θ_dA
 end
 
-function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF, c_ins, frame_c, c_θ, c_r) where {N,T}
+function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFriction, c_ins::ContactInstructions,
+        frame_c::CartesianFrame3D, c_θ::FreeVector3D{SVector{3,T}}, c_r::FreeVector3D{SVector{3,T}}) where {N,T}
+
     λ_r_s, τ_θ_s, r̄_c, p_dA_patch = bristle_no_slip_force_moment(b, frame_c, BF, c_θ, c_r)
     wrench_λ_c = zeroWrench(frame_c, T)
     T_θ_dA = calc_T_θ_dA(b, τ_θ_s, r̄_c)
@@ -123,7 +125,9 @@ function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF, c_ins, fr
     return wrench_λ_w, τ_θ, λ_r
 end
 
-function bristle_no_slip_force_moment(b::TypedElasticBodyBodyCache{N,T}, frame_c, BF::BristleFriction, c_θ, c_r) where {N,T}
+function bristle_no_slip_force_moment(b::TypedElasticBodyBodyCache{N,T}, frame_c::CartesianFrame3D, BF::BristleFriction,
+        c_θ::FreeVector3D{SVector{3,T}}, c_r::FreeVector3D{SVector{3,T}}) where {N,T}
+        
     inv_τ = 1 / BF.τ
     twist_r_c_w = b.twist_tri_tet
     twist_r_c_c = transform(twist_r_c_w, b.x_tet_root)
