@@ -116,6 +116,7 @@ export
     regularized_friction,
     find_contact_pressure_center,
     normal_wrench,
+    bristle_deformation,
     bristle_friction!,
     bristle_friction_no_contact!
 
