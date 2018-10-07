@@ -14,6 +14,10 @@ before_script:
   - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/NumericalTricks.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
   - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/Tri_Tet_Intersections.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
   - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/Binary_BB_Trees.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
+
+  # TODO: remove when default version has principal_value!
+  - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/JuliaRobotics/RigidBodyDynamics.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
+
 # script:
  # - $TESTCMD -e 'import Pkg; Pkg.add(Pkg.PackageSpec(path=pwd())); Pkg.build(Binary_BB_Trees"); Pkg.test("Binary_BB_Trees"; coverage=true)'
 after_success:
