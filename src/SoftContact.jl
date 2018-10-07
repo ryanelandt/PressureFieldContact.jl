@@ -5,6 +5,7 @@ using Rotations: Quat
 using ForwardDiff: Dual
 using RigidBodyDynamics
 using GeometryTypes: HomogenousMesh, Face, Point
+using ColorTypes: RGBA
 using Tri_Tet_Intersections
 using Binary_BB_Trees
 using NumericalTricks

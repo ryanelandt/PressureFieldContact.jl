@@ -4,6 +4,7 @@ RigidBodyDynamics 1.0.2
 GeometryTypes v0.6.2
 Rotations 0.7.1
 ForwardDiff 0.9.0
+ColorTypes 0.7.5
 Tri_Tet_Intersections
 Binary_BB_Trees
 NumericalTricks
