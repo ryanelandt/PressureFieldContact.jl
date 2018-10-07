@@ -97,6 +97,7 @@ export
     MechanismScenario,
 
     # extensions.jl
+    principal_value!,
 
     # contact_algorithms_non_friction.jl
     verify_bristle_ids!,

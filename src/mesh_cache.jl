@@ -44,17 +44,12 @@ struct MeshCache
     end
 end
 
-function asHomogenousMesh(meshCache::MeshCache)
+asHomogenousMesh(meshCache::MeshCache; color=color) = asHomogenousMesh(meshCache, color=RGBA{Float32}(color...))
+asHomogenousMesh(meshCache::MeshCache) = asHomogenousMesh(meshCache::MeshCache, color=nothing)
+function asHomogenousMesh(meshCache::MeshCache; color::Union{Nothing, RGBA{Float32}}=nothing)
     vec_Face = Face{3, Int32}.(meshCache.tri.ind)
     vec_Point = Point{3, Float32}.(meshCache.point)
-    return HomogenousMesh(vec_Point, vec_Face)
-end
-
-asHomogenousMesh(meshCache::MeshCache, color) = asHomogenousMesh(meshCache, RGBA{Float32}(color...))
-function asHomogenousMesh(meshCache::MeshCache, color::RGBA{Float32})
-    vec_Face = Face{3, Int32}.(meshCache.tri.ind)
-    vec_Point = Point{3, Float32}.(meshCache.point)
-    return HomogenousMesh(vec_Point, vec_Face, color)
+    return HomogenousMesh(vertices=vec_Point, faces=vec_Face, color=color)
 end
 
 @RigidBodyDynamics.indextype MeshID
