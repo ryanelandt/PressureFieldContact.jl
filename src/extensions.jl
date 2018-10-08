@@ -18,6 +18,7 @@ function NumericalTricks.soft_clamp(fv::FreeVector3D{SVector{3,T}}, bound::FreeV
     fv_clamp = soft_clamp.(fv.v, abs_bound)
     return FreeVector3D(bound.frame, fv_clamp)
 end
+@inline NumericalTricks.norm_squared(fv::FreeVector3D{SVector{3,T}}) where {T} = norm_squared(fv.v)
 
 ### Tri_Tet_Intersections ###
 Tri_Tet_Intersections.area(p1::Point3D{T}, p2::Point3D{T}, p3::Point3D{T}) where {T} = area(p1.v, p2.v, p3.v)

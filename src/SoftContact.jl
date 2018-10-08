@@ -36,9 +36,9 @@ export
     equiv_volume,
 
     # utility.jl
-    unPad,
-    onePad,
-    zeroPad,
+    # unPad,
+    # onePad,
+    # zeroPad,
     fill_with_nothing!,
     zeroWrench,
     mat_mul_SA_bug_circumvent,

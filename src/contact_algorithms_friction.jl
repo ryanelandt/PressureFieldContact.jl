@@ -79,14 +79,14 @@ function update_bristle_d1!(tm::TypedMechanismScenario{N,T}, bristle_id::Bristle
     return nothing
 end
 
-function calc_λ_θ_s(r_rel_c::FreeVector3D{SVector{3,T}}, τ_θ_s::FreeVector3D{SVector{3,T}}) where {T}
-    return cross(r_rel_c, τ_θ_s) * (-safe_inv_norm_squared(r_rel_c.v))
-end
+# function calc_λ_θ_s(r_rel_c::FreeVector3D{SVector{3,T}}, τ_θ_s::FreeVector3D{SVector{3,T}}) where {T}
+#     return cross(r_rel_c, τ_θ_s) * (-safe_inv_norm_squared(r_rel_c.v))
+# end
 
-function calc_T_θ(r_rel_c::FreeVector3D{SVector{3,T}}, τ_θ_s::FreeVector3D{SVector{3,T}}, p::T) where {T}
-    v2 = cross(r_rel_c, τ_θ_s)
-    return p * dot(v2, v2)
-end
+# function calc_T_θ(r_rel_w::FreeVector3D{SVector{3,T}}, τ_θ_s_w::FreeVector3D{SVector{3,T}}, p::T) where {T}
+#     v2 = cross(r_rel_w, τ_θ_s_w)
+#     return p * dot(v2, v2)
+# end
 
 function calc_T_θ_dA(b::TypedElasticBodyBodyCache{N,T}, τ_θ_s_w::FreeVector3D{SVector{3,T}}, r̄_w::Point3D{SVector{3,T}}) where {N,T}
     @framecheck(τ_θ_s_w.frame, r̄_w.frame)
@@ -95,7 +95,10 @@ function calc_T_θ_dA(b::TypedElasticBodyBodyCache{N,T}, τ_θ_s_w::FreeVector3D
         trac = b.TractionCache[k_trac]
         for k = 1:N
             r_rel_w = trac.r_cart[k] - r̄_w
-            int_T_θ_dA += calc_T_θ(r_rel_w, τ_θ_s_w, trac.p_dA[k])
+            r_cross_τ = cross(r_rel_w, τ_θ_s_w)
+            r_cross_τ_squared = norm_squared(r_cross_τ)
+            int_T_θ_dA += trac.p_dA[k] * r_cross_τ_squared
+            # calc_T_θ(r_rel_w, τ_θ_s_w, trac.p_dA[k])
         end
     end
     return int_T_θ_dA
@@ -107,15 +110,20 @@ function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFr
     λ_r_s_w, τ_θ_s_w, r̄_w, p_dA_patch = bristle_no_slip_force_moment(b, frame_w, BF, c_θ, c_r)
     T_θ_dA = calc_T_θ_dA(b, τ_θ_s_w, r̄_w)
     wrench_λ_r̄_w = zeroWrench(frame_w, T)
+    const_λ_term = λ_r_s_w * safe_scalar_divide(one(T), p_dA_patch)
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         n̂_w = trac.traction_normal
         for k = 1:N
             p = trac.p_dA[k]
             r_rel_w = trac.r_cart[k] - r̄_w
-            W_r = safe_scalar_divide(p, p_dA_patch)
-            W_θ = safe_scalar_divide(calc_T_θ(r_rel_w, τ_θ_s_w, p), T_θ_dA)
-            λ_goal_w = W_r * λ_r_s_w + W_θ * calc_λ_θ_s(r_rel_w, τ_θ_s_w)
+            r_cross_τ = cross(r_rel_w, τ_θ_s_w)
+            term_θ_num = norm_squared(r_cross_τ)
+            term_θ_den = norm_squared(r_rel_w) * T_θ_dA
+            λ_goal_w = const_λ_term - r_cross_τ * safe_scalar_divide(term_θ_num, term_θ_den)
+            # W_r = safe_scalar_divide(p, p_dA_patch)
+            # W_θ = safe_scalar_divide(calc_T_θ(r_rel_w, τ_θ_s_w, p), T_θ_dA)
+            # λ_goal_w = W_r * λ_r_s_w + W_θ * calc_λ_θ_s(r_rel_w, τ_θ_s_w)
             σ_f = vec_sub_vec_proj(λ_goal_w, n̂_w)
             σ̂_f = safe_normalize(σ_f)
             traction_t_w = σ̂_f * p * c_ins.mu_pair
