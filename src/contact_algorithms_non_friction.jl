@@ -125,6 +125,9 @@ function integrateOverContactPatch!(b::TypedElasticBodyBodyCache{N,T}, ttCache::
     mesh_tet = b.mesh_tet
     triTetCache = b.triTetCache
     quadTriCache = triTetCache.quadTriCache
+    x_root_tet = b.x_root_tet
+    x_tet_root = b.x_tet_root
+    x_root_tri = b.x_root_tri
     for k = 1:length(ttCache.vc)
         i_tri, i_tet = ttCache.vc[k]
         p_tri = mesh_tri.point[mesh_tri.tri.ind[i_tri]]
@@ -133,11 +136,11 @@ function integrateOverContactPatch!(b::TypedElasticBodyBodyCache{N,T}, ttCache::
         triTetCache.strain = mesh_tet.tet.strain[i_vert_tet]
         # tet calculation
         A_tet_zeta = MatrixTransform(frame_tet_cs, mesh_tet.FrameID, asMatOnePad(p_tet))
-        triTetCache.A_w_zeta_top = getTop(b.x_root_tet * A_tet_zeta)
-        A_zeta_w = inv(A_tet_zeta) * b.x_tet_root  # NOTE: inv(A_tet_zeta) is **always** Float64
+        triTetCache.A_w_zeta_top = getTop(x_root_tet * A_tet_zeta)
+        A_zeta_w = inv(A_tet_zeta) * x_tet_root  # NOTE: inv(A_tet_zeta) is **always** Float64
         # tri calculation
-        triTetCache.traction_normal = b.x_root_tri * FreeVector3D(mesh_tri.FrameID, -triangleNormal(p_tri))
-        A_zeta_r = A_zeta_w * b.x_root_tri
+        triTetCache.traction_normal = x_root_tri * FreeVector3D(mesh_tri.FrameID, -triangleNormal(p_tri))
+        A_zeta_r = A_zeta_w * x_root_tri
         poly_4D_1 = quadTriCache.clip_poly_4D_1
         poly_4D_2 = quadTriCache.clip_poly_4D_2
         poly_3D = quadTriCache.clip_poly_3D

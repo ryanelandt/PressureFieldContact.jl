@@ -35,6 +35,16 @@ function normal_wrench(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T
         for k = 1:N
             wrench += Wrench(trac.r_cart[k], trac.p_dA[k] * trac.traction_normal)
         end
+        ### Will be faster ###
+        # moment
+        # r₁×p₁n̂ + r₂×p₂n̂ + r₃×p₃n̂
+        # r₁p₁×n̂ + r₂p₂×n̂ + r₃p₃×n̂
+        # (r₁p₁ + r₂p₂ + r₃p₃)×n̂
+        # p = trac.p_dA[k]
+        # r_dot_p = dot(trac.r_cart, p)
+        # sum_p = sum(p)
+        # n̂ = trac.traction_normal
+        # wrench += Wrench(r_dot_p × n̂, sum_p * n̂)
     end
     return wrench
 end

@@ -41,6 +41,7 @@ export
     zeroPad,
     fill_with_nothing!,
     zeroWrench,
+    mat_mul_SA_bug_circumvent,
 
     # matrix_transform.jl
     Point4D,
