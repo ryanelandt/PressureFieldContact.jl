@@ -11,14 +11,14 @@ end
 mutable struct ContactInstructions
     id_tri::MeshID
     id_tet::MeshID
-    frac_epsilon::Float64
+    frac_ϵ::Float64
     frac_linear_weight::Float64
-    mu_pair::Float64
+    μ_pair::Float64
     BristleFriction::Union{Nothing,BristleFriction}
-    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_epsilon::Float64, frac_linear_weight::Float64,
-        mu_pair::Float64, fric_model::Union{Nothing,BristleFriction})
+    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_ϵ::Float64, frac_linear_weight::Float64,
+        μ_pair::Float64, fric_model::Union{Nothing,BristleFriction})
 
-        return new(id_tri, id_tet, frac_epsilon, frac_linear_weight, mu_pair, fric_model)
+        return new(id_tri, id_tet, frac_ϵ, frac_linear_weight, μ_pair, fric_model)
     end
 end
 
@@ -52,18 +52,18 @@ end
 
 ### Volume ###
 function add_body_volume_mesh!(ts::TempContactStruct, name::String, point::Vector{SVector{3,Float64}},
-        tri_ind::Vector{SVector{3,Int64}}, tet_ind::Vector{SVector{4,Int64}}, strain::Vector{Float64},
+        tri_ind::Vector{SVector{3,Int64}}, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
         contact_prop::ContactProperties, inertia_prop::InertiaProperties, evaluated_joint_type_in::JT) where {JT<:JointType}
 
     body = add_body_volume!(ts.mechanism, name, point, tet_ind, inertia_prop, evaluated_joint_type_in)
-    add_volume_mesh!(ts, body, name, point, tri_ind, tet_ind, strain, contact_prop, inertia_prop)
+    add_volume_mesh!(ts, body, name, point, tri_ind, tet_ind, ϵ, contact_prop, inertia_prop)
 end
 
 function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, point::Vector{SVector{3,Float64}},
-        tri_ind::Vector{SVector{3,Int64}}, tet_ind::Vector{SVector{4,Int64}}, strain::Vector{Float64},
+        tri_ind::Vector{SVector{3,Int64}}, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
         contact_prop::ContactProperties, inertia_prop::Union{Nothing,InertiaProperties}=nothing)
 
-    mesh = MeshCache(point, name, tri_ind, tet_ind, strain, contact_prop, body, inertia_prop)
+    mesh = MeshCache(point, name, tri_ind, tet_ind, ϵ, contact_prop, body, inertia_prop)
     addMesh!(ts, mesh)
 end
 
@@ -71,7 +71,7 @@ function add_body_volume!(mechanism::Mechanism, name::String, point::Vector{SVec
         inertia_prop::InertiaProperties, evaluated_joint_type_in::JT) where {JT<:JointType}
 
     rho = inertia_prop.rho
-    (inertia_prop.thickness == nothing) || error("assumed thickness is something but should be nothing")
+    (inertia_prop.d == nothing) || error("assumed thickness is something but should be nothing")
     I3, com, mass, mesh_vol = makeInertiaTensor(point, tet_ind, rho)
     return add_body_from_inertia!(mechanism, name, I3, com, mass, evaluated_joint_type_in)
 end
@@ -95,9 +95,9 @@ function add_body_surface!(mechanism::Mechanism, name::String, point::Vector{SVe
         inertia_prop::InertiaProperties, evaluated_joint_type_in::JT) where {JT<:JointType}
 
     rho = inertia_prop.rho
-    thickness = inertia_prop.thickness
-    (thickness == nothing) && error("assumed thickness is nothing")
-    I3, com, mass, mesh_vol = makeInertiaTensor(point, tri_ind, rho, thickness)
+    d = inertia_prop.d
+    (d == nothing) && error("assumed thickness is nothing")
+    I3, com, mass, mesh_vol = makeInertiaTensor(point, tri_ind, rho, d)
     return add_body_from_inertia!(mechanism, name, I3, com, mass, evaluated_joint_type_in)
 end
 
@@ -135,19 +135,19 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, name_tri::String, name
     (mesh_cache_tet.tet == nothing) && error("compliant mesh named $name_tet has no volume mesh")
     mat_tet = mesh_cache_tet.tet.contact_prop
     if mesh_cache_tri.tet == nothing
-        mu = mat_tet.mu
-        frac_epsilon = 1.0
+        μ = mat_tet.μ
+        frac_ϵ = 1.0
     else
         mat_tri = mesh_cache_tri.contact_prop
-        mu = calcMutualMu(mat_tri, mat_tet)
+        μ = calcMutualMu(mat_tri, mat_tet)
         hC_tri = calculateExtrensicCompliance(mat_tri)
         hC_tet = calculateExtrensicCompliance(mat_tet)
         (hC_tet == 0.0) && error("compliance f tet mesh is rigid because its compliance is zero")
-        frac_epsilon = hC_tet / (hC_tri + hC_tet)
+        frac_ϵ = hC_tet / (hC_tri + hC_tet)
     end
-    (0.0 <= mu <= 3.0) || error("mu our of range")
+    (0.0 <= μ <= 3.0) || error("mu our of range")
     frac_linear_weight = 1.0
-    new_contact = ContactInstructions(mesh_id_tri, mesh_id_tet, frac_epsilon, frac_linear_weight, mu, friction_model)
+    new_contact = ContactInstructions(mesh_id_tri, mesh_id_tet, frac_ϵ, frac_linear_weight, μ, friction_model)
     push!(ts.ContactInstructions, new_contact)
     return nothing
 end

@@ -18,7 +18,7 @@ mutable struct TypedQuadTriCache{T}
     clip_poly_4D_2::ClippedPolygon{4,T}
     clip_poly_3D::ClippedPolygon{3,T}
     area_quad_k::T
-    A_zeta_phi::MatrixTransform{4,3,T,12}
+    A_ζ_ϕ::MatrixTransform{4,3,T,12}
     function TypedQuadTriCache{T}(frame_world::CartesianFrame3D) where {T}
         clip_poly_4D_1 = ClippedPolygon{4,T}(frame_tet_cs)
         clip_poly_4D_2 = ClippedPolygon{4,T}(frame_tet_cs)
@@ -29,10 +29,10 @@ end
 
 mutable struct TypedTriTetCache{T}
     quadTriCache::TypedQuadTriCache{T}
-    strain::SVector{4,Float64}
-    A_w_zeta_top::MatrixTransform{3,4,T,12}
+    ϵ::SVector{4,Float64}
+    A_w_ζ_top::MatrixTransform{3,4,T,12}
     traction_normal::FreeVector3D{SVector{3,T}}
-    centroid_zeta::Point4D{SVector{4,T}}
+    centroid_ζ::Point4D{SVector{4,T}}
     centroid_w::Point3D{SVector{3,T}}
     TypedTriTetCache{T}(frame_world::CartesianFrame3D) where {T} = new(TypedQuadTriCache{T}(frame_world))
 end
@@ -47,11 +47,11 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     x_root_tet::Transform3D{T}
     x_tet_root::Transform3D{T}
     twist_tri_tet::Twist{T}
-    frac_epsilon::Float64
-    hc_velocity_damping::Float64
-    mu::Float64
-    E_effective::Float64
-    inv_thickness::Float64
+    frac_ϵ::Float64
+    χ::Float64
+    μ::Float64
+    Ē::Float64
+    d⁻¹::Float64
     function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
         triTetCache = TypedTriTetCache{T}(frame_world)
         trac_cache = VectorCache(TractionCache{N,T}(frame_world))
@@ -115,7 +115,7 @@ struct MechanismScenario{N,T}
     bristle_ids::Base.OneTo{BristleID}
     frame_world::CartesianFrame3D
     TT_Cache::TT_Cache
-    tau_ext::Vector{Float64}
+    τ_ext::Vector{Float64}
     float::TypedMechanismScenario{N,Float64}
     dual::TypedMechanismScenario{N,T}
     path::RigidBodyDynamics.CustomCollections.IndexDict{BodyID,Base.OneTo{BodyID},Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}}
@@ -133,13 +133,13 @@ struct MechanismScenario{N,T}
         n_dof = num_positions(mechanism) + num_velocities(mechanism) + 6 * n_bristle_pairs
         T = Dual{Float64,Float64,n_dof}
         frame_world = root_frame(mechanism)
-        tau_ext = zeros(Float64, num_positions(mechanism))
+        τ_ext = zeros(Float64, num_positions(mechanism))
         mesh_cache = ts.MeshCache
         cache_path = makePaths(mechanism, mesh_cache, body_ids)
         cache_float = TypedMechanismScenario{N,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         cache_dual = TypedMechanismScenario{N,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         vec_instructions = ts.ContactInstructions
-        return new{N,T}(body_ids, mesh_ids, bristle_ids, frame_world, TT_Cache(), tau_ext, cache_float, cache_dual, cache_path, mesh_cache, vec_instructions, de)
+        return new{N,T}(body_ids, mesh_ids, bristle_ids, frame_world, TT_Cache(), τ_ext, cache_float, cache_dual, cache_path, mesh_cache, vec_instructions, de)
     end
 end
 

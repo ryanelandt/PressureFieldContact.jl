@@ -5,8 +5,8 @@ function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCa
         for k = 1:N
             cart_vel_crw_t = trac.v_cart_t[k]
             mag_vel_t  = norm(cart_vel_crw_t.v)
-            mu_reg     = b.mu * fastSigmoid(mag_vel_t)
-            traction_k = trac.p_dA[k] * (trac.traction_normal - mu_reg * safe_normalize(cart_vel_crw_t))
+            μ_reg     = b.μ * fastSigmoid(mag_vel_t)
+            traction_k = trac.p_dA[k] * (trac.traction_normal - μ_reg * safe_normalize(cart_vel_crw_t))
             wrench += Wrench(trac.r_cart[k], traction_k)
         end
     end
@@ -126,7 +126,7 @@ function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFr
             # λ_goal_w = W_r * λ_r_s_w + W_θ * calc_λ_θ_s(r_rel_w, τ_θ_s_w)
             σ_f = vec_sub_vec_proj(λ_goal_w, n̂_w)
             σ̂_f = safe_normalize(σ_f)
-            traction_t_w = σ̂_f * p * c_ins.mu_pair
+            traction_t_w = σ̂_f * p * c_ins.μ_pair
             wrench_λ_r̄_w += Wrench(cross(r_rel_w, traction_t_w), traction_t_w)
         end
     end

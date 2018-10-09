@@ -28,10 +28,10 @@ function Tri_Tet_Intersections.add!(c::ClippedPolygon{4,T}, p::Point4D{SVector{4
     add!(c, p.v)
     return nothing
 end
-function Tri_Tet_Intersections.tet_clip_poly_to_cartesian!(poly_3D::ClippedPolygon{3,T}, poly_4D_1::ClippedPolygon{4,T}, A_w_zeta_top::MatrixTransform) where{T}
-    @framecheck(poly_4D_1.frame, A_w_zeta_top.from)
-    @framecheck(poly_3D.frame, A_w_zeta_top.to)
-    tet_clip_poly_to_cartesian!(poly_3D, poly_4D_1, A_w_zeta_top.mat)
+function Tri_Tet_Intersections.tet_clip_poly_to_cartesian!(poly_3D::ClippedPolygon{3,T}, poly_4D_1::ClippedPolygon{4,T}, A_w_ζ_top::MatrixTransform) where{T}
+    @framecheck(poly_4D_1.frame, A_w_ζ_top.from)
+    @framecheck(poly_3D.frame, A_w_ζ_top.to)
+    tet_clip_poly_to_cartesian!(poly_3D, poly_4D_1, A_w_ζ_top.mat)
     return nothing
 end
 
