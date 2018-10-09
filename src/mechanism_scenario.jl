@@ -1,15 +1,55 @@
 
-mutable struct TractionCache{N,T}
+# mutable struct TractionCache{N,T}
+#     traction_normal::FreeVector3D{SVector{3,T}}
+#     r_cart::MVector{N,Point3D{SVector{3,T}}}
+#     v_cart_t::MVector{N,FreeVector3D{SVector{3,T}}}
+#     p_dA::MVector{N,T}
+#     function TractionCache{N,T}(frame::CartesianFrame3D) where {N,T}
+#         traction_normal = FreeVector3D(frame, SVector{3, T}(NaN .+ zeros(3)))
+#         r_cart = MVector{N,Point3D{SVector{3,Float64}}}([Point3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
+#         v_cart_t = MVector{N,FreeVector3D{SVector{3,Float64}}}([FreeVector3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
+#         p_dA = MVector{N, T}(NaN .+ zeros(N))
+#         return new(traction_normal, r_cart, v_cart_t, p_dA)
+#     end
+# end
+
+# struct TractionCache{N,T}
+#     traction_normal::FreeVector3D{SVector{3,T}}
+#     r_cart::NTuple{N,Point3D{SVector{3,T}}}
+#     v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
+#     p_dA::NTuple{N,T}
+#     function TractionCache{N,T}(traction_normal::FreeVector3D{SVector{3,T}}, r_cart::NTuple{N,Point3D{SVector{3,T}}},
+#                                 v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}, p_dA::NTuple{N,T}) where {N,T}
+#
+#         # frame::CartesianFrame3D) where {N,T}
+#         # traction_normal = FreeVector3D(frame, SVector{3, T}(NaN .+ zeros(3)))
+#         # r_cart = NTuple{N,Point3D{SVector{3,Float64}}}([Point3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
+#         # v_cart_t = NTuple{N,FreeVector3D{SVector{3,Float64}}}([FreeVector3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
+#         # p_dA = NTuple{N, T}(NaN .+ zeros(N))
+#         return new(traction_normal, r_cart, v_cart_t, p_dA)
+#     end
+# end
+
+
+
+struct TractionCache{N,T}
     traction_normal::FreeVector3D{SVector{3,T}}
-    r_cart::MVector{N,Point3D{SVector{3,T}}}
-    v_cart_t::MVector{N,FreeVector3D{SVector{3,T}}}
-    p_dA::MVector{N,T}
-    function TractionCache{N,T}(frame::CartesianFrame3D) where {N,T}
+    r_cart::NTuple{N,Point3D{SVector{3,T}}}
+    v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
+    p_dA::NTuple{N,T}
+    function TractionCache(traction_normal::FreeVector3D{SVector{N,T}}, r_cart::NTuple{N,Point3D{SVector{N,T}}},
+                                v_cart_t::NTuple{N,FreeVector3D{SVector{N,T}}}, p_dA::NTuple{N,T}) where {N,T}
+
+        return new{N,T}(traction_normal, r_cart, v_cart_t, p_dA)
+    end
+    function TractionCache(N, T)  # TODO: delete this when vector cache only works for immutables
+        frame = frame_tet_cs
+
         traction_normal = FreeVector3D(frame, SVector{3, T}(NaN .+ zeros(3)))
-        r_cart = MVector{N,Point3D{SVector{3,Float64}}}([Point3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
-        v_cart_t = MVector{N,FreeVector3D{SVector{3,Float64}}}([FreeVector3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
-        p_dA = MVector{N, T}(NaN .+ zeros(N))
-        return new(traction_normal, r_cart, v_cart_t, p_dA)
+        r_cart = NTuple{N,Point3D{SVector{3,T}}}([Point3D(frame, SVector{3,T}(NaN, NaN, NaN)) for k = 1:N])
+        v_cart_t = NTuple{N,FreeVector3D{SVector{3,T}}}([FreeVector3D(frame, SVector{3,T}(NaN, NaN, NaN)) for k = 1:N])
+        p_dA = NTuple{N, T}(NaN .+ zeros(N))
+        return new{N,T}(traction_normal, r_cart, v_cart_t, p_dA)
     end
 end
 
@@ -54,7 +94,9 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     d⁻¹::Float64
     function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
         triTetCache = TypedTriTetCache{T}(frame_world)
-        trac_cache = VectorCache(TractionCache{N,T}(frame_world))
+        # trac_cache = VectorCache(TractionCache{N,T}(frame_world))
+        tc = TractionCache(N, T)
+        trac_cache = VectorCache(tc)
         return new{N,T}(quad, triTetCache, trac_cache)
     end
 end

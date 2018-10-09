@@ -16,6 +16,7 @@ end
 function find_contact_pressure_center(b::TypedElasticBodyBodyCache{N,T}) where {N,T}
     int_p_dA = zero(T)
     int_p_r_dA = zeros(SVector{3,T})
+    @inbounds begin
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         for k = 1:N
@@ -24,12 +25,14 @@ function find_contact_pressure_center(b::TypedElasticBodyBodyCache{N,T}) where {
             int_p_r_dA += p * trac.r_cart[k].v
         end
     end
+    end
     frame = b.TractionCache[1].r_cart[1].frame
     return Point3D(frame, int_p_r_dA / int_p_dA ), int_p_dA
 end
 
 function normal_wrench(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
     wrench = zeroWrench(frame, T)
+    @inbounds begin
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         for k = 1:N
@@ -45,6 +48,7 @@ function normal_wrench(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T
         # sum_p = sum(p)
         # n̂ = trac.traction_normal
         # wrench += Wrench(r_dot_p × n̂, sum_p * n̂)
+    end
     end
     return wrench
 end
@@ -82,6 +86,7 @@ end
 function calc_T_θ_dA(b::TypedElasticBodyBodyCache{N,T}, τ_θ_s_w::FreeVector3D{SVector{3,T}}, r̄_w::Point3D{SVector{3,T}}) where {N,T}
     @framecheck(τ_θ_s_w.frame, r̄_w.frame)
     int_T_θ_dA = zero(T)
+    @inbounds begin
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         for k = 1:N
@@ -90,6 +95,7 @@ function calc_T_θ_dA(b::TypedElasticBodyBodyCache{N,T}, τ_θ_s_w::FreeVector3D
             r_cross_τ_squared = norm_squared(r_cross_τ)
             int_T_θ_dA += trac.p_dA[k] * r_cross_τ_squared
         end
+    end
     end
     return int_T_θ_dA
 end
@@ -101,6 +107,7 @@ function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFr
     T_θ_dA = calc_T_θ_dA(b, τ_θ_s_w, r̄_w)
     wrench_λ_r̄_w = zeroWrench(frame_w, T)
     const_λ_term = λ_r_s_w * safe_scalar_divide(one(T), p_dA_patch)
+    @inbounds begin
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         n̂_w = trac.traction_normal
@@ -117,6 +124,7 @@ function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFr
             wrench_λ_r̄_w += Wrench(cross(r_rel_w, traction_t_w), traction_t_w)
         end
     end
+    end 
 
     λ_r = FreeVector3D(frame_w, linear(wrench_λ_r̄_w))
     τ_θ = FreeVector3D(frame_w, angular(wrench_λ_r̄_w))
