@@ -142,3 +142,7 @@ struct MechanismScenario{N,T}
         return new{N,T}(body_ids, mesh_ids, bristle_ids, frame_world, TT_Cache(), tau_ext, cache_float, cache_dual, cache_path, mesh_cache, vec_instructions, de)
     end
 end
+
+num_partials(m::MechanismScenario{N, Dual{Float64,Float64,N_partials}}) where {N, N_partials} = N_partials
+
+type_dual(m::MechanismScenario{N,T}) where {N,T} = T

@@ -6,7 +6,9 @@ using ForwardDiff: Dual
 using RigidBodyDynamics
 using GeometryTypes: HomogenousMesh, Face, Point
 using ColorTypes: RGBA
+using MeshCatMechanisms
 using Tri_Tet_Intersections
+using CoordinateTransformations: Translation
 using Binary_BB_Trees
 using NumericalTricks
 using LinearAlgebra
@@ -25,6 +27,7 @@ include("mechanism_scenario.jl")
 include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
 include("contact_algorithms_friction.jl")
+include("vis_meshcat.jl")
 
 export
     frame_tet_cs,
@@ -39,6 +42,8 @@ export
     # unPad,
     # onePad,
     # zeroPad,
+    num_partials,
+    type_dual,
     fill_with_nothing!,
     zeroWrench,
     mat_mul_SA_bug_circumvent,
@@ -96,6 +101,8 @@ export
     TypedMechanismScenario,
     makePaths,
     MechanismScenario,
+    num_partials,
+    type_dual,
 
     # extensions.jl
     principal_value!,
@@ -121,6 +128,9 @@ export
     normal_wrench,
     bristle_deformation,
     bristle_friction!,
-    bristle_friction_no_contact!
+    bristle_friction_no_contact!,
+
+    # vis_meshcat.jl
+    set_body_mesh_visual!
 
 end
