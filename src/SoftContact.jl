@@ -39,9 +39,6 @@ export
     equiv_volume,
 
     # utility.jl
-    # unPad,
-    # onePad,
-    # zeroPad,
     num_partials,
     type_dual,
     fill_with_nothing!,
