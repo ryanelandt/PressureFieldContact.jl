@@ -90,6 +90,15 @@ function calc_T_θ_dA(b::TypedElasticBodyBodyCache{N,T}, τ_θ_s_w::FreeVector3D
     return int_T_θ_dA
 end
 
+function notch_function(x::T, k=0.05) where {T}
+    fact_k = pi / k
+    if abs(fact_k * x) < Float64(pi)
+        return 0.5 * (1 - cos(fact_k * x))
+    else
+        return one(T)
+    end
+end
+
 function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFriction, c_ins::ContactInstructions,
     frame_w::CartesianFrame3D, c_θ::FreeVector3D{SVector{3,T}}, c_r::FreeVector3D{SVector{3,T}}) where {N,T}
 
@@ -109,7 +118,11 @@ function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFr
             term_θ_den = norm_squared(r_rel_w) * T_θ_dA
             λ_goal_w = const_λ_term - r_cross_τ * safe_scalar_divide(term_θ_num, term_θ_den)
             σ_f = vec_sub_vec_proj(λ_goal_w, n̂_w)
-            σ̂_f = safe_normalize(σ_f)
+
+            notch_ratio = safe_scalar_divide(norm_squared(σ_f), norm_squared(λ_goal_w))
+            notch_factor = notch_function(notch_ratio)
+
+            σ̂_f = safe_normalize(σ_f) * notch_factor
             traction_t_w = σ̂_f * p * c_ins.μ_pair
             wrench_λ_r̄_w += Wrench(cross(r_rel_w, traction_t_w), traction_t_w)
         end

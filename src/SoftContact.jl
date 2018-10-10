@@ -12,6 +12,7 @@ using CoordinateTransformations: Translation
 using Binary_BB_Trees
 using NumericalTricks
 using LinearAlgebra
+using Radau
 
 const frame_tet_cs = CartesianFrame3D("tet_cs")
 const frame_tri_cs = CartesianFrame3D("tri_cs")
@@ -28,6 +29,7 @@ include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
 include("contact_algorithms_friction.jl")
 include("vis_meshcat.jl")
+include("example_integrator.jl")
 
 export
     frame_tet_cs,
@@ -130,6 +132,10 @@ export
     bristle_friction_no_contact!,
 
     # vis_meshcat.jl
-    set_body_mesh_visual!
+    set_body_mesh_visual!,
+    play_recorded_data,
+
+    # example_integrator.jl
+    integrate_scenario_radau
 
 end

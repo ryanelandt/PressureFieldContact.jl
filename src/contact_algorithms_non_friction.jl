@@ -136,7 +136,6 @@ function integrateOverContactPatch!(b::TypedElasticBodyBodyCache{N,T}, ttCache::
         triTetCache.ϵ = mesh_tet.tet.ϵ[i_vert_tet]
         # tet calculation
         A_tet_ζ = MatrixTransform(frame_tet_cs, mesh_tet.FrameID, asMatOnePad(p_tet))
-        # triTetCache.A_w_ζ_top = getTop(x_root_tet * A_tet_ζ)
         A_w_ζ_top = getTop(x_root_tet * A_tet_ζ)
         A_ζ_w = inv(A_tet_ζ) * x_tet_root  # NOTE: inv(A_tet_ζ) is **always** Float64
         # tri calculation
@@ -151,7 +150,6 @@ function integrateOverContactPatch!(b::TypedElasticBodyBodyCache{N,T}, ttCache::
         end
         modularTriTetClip(poly_4D_1, poly_4D_2)
         if 3 <= poly_4D_1.i  ### Clip ###
-            # tet_clip_poly_to_cartesian!(poly_3D, poly_4D_1, triTetCache.A_w_ζ_top)
             tet_clip_poly_to_cartesian!(poly_3D, poly_4D_1, A_w_ζ_top)
             poly_area, centroid_w_no_frame = centroid(poly_3D)
             triTetCache.centroid_w = Point3D(poly_3D.frame, centroid_w_no_frame)  # TODO: add to Tri_Tet_Intersections
@@ -176,7 +174,6 @@ function intersectionTriangulation!(b::TypedElasticBodyBodyCache{N,T}, A_w_ζ_to
     for k_cent_tri = 1:n_vertices
         ζ_1 = ζ_2
         ζ_2 = getPoint(poly_4D, k_cent_tri)
-        # quadTriCache.A_ζ_ϕ = hcat(ζ_1, ζ_2, triTetCache.centroid_ζ)
         A_ζ_ϕ = hcat(ζ_1, ζ_2, triTetCache.centroid_ζ)
 
         vert_tri_1 = vert_tri_2
@@ -187,66 +184,21 @@ function intersectionTriangulation!(b::TypedElasticBodyBodyCache{N,T}, A_w_ζ_to
     return nothing
 end
 
-# function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-#   trac_now = returnNext(b.TractionCache)
-#   trac_now.traction_normal = b.triTetCache.traction_normal
-#   for k = 1:N
-#     fillTractionCacheInnerLoop!(k, trac_now, b)
-#   end
-#   all(trac_now.p_dA .== 0.0) && (b.TractionCache.ind_fill -= 1)  # pressure was zero at all points
-#   return nothing
-# end
-#
-# function fillTractionCacheInnerLoop!(k::Int64, trac_now::TractionCache{N,T}, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-#     triTetCache = b.triTetCache
-#     quadTriCache = triTetCache.quadTriCache
-#
-#     quad_point_ϕ = Point3D(frame_tri_cs, b.quad.zeta[k])
-#     quad_point_ζ = quadTriCache.A_ζ_ϕ * quad_point_ϕ
-#     p_cart_qp = triTetCache.A_w_ζ_top * quad_point_ζ
-#     ϵ_quad = b.frac_ϵ * dot(triTetCache.ϵ, quad_point_ζ.v)
-#     cart_vel_crw_t, signed_mag_vel_n = calcTangentialVelocity(b.twist_tri_tet, p_cart_qp, triTetCache.traction_normal)
-#     ϵ_dot = b.frac_ϵ * signed_mag_vel_n * b.d⁻¹  # ϵ_dot ≈ z_dot / thickness because the rigid body provides the normal and is fixed
-#     damp_term = fastSoftPlus(1.0 - b.χ * ϵ_dot)
-#     p = -ϵ_quad * damp_term
-#
-#     trac_now.r_cart[k]   = p_cart_qp
-#     trac_now.v_cart_t[k] = cart_vel_crw_t
-#     trac_now.p_dA[k]     = p * b.quad.w[k] * quadTriCache.area_quad_k * b.Ē
-#     return nothing
-# end
-
-# struct TractionCache{N,T}
-#     traction_normal::FreeVector3D{SVector{3,T}}
-#     r_cart::NTuple{N,Point3D{SVector{3,T}}}
-#     v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
-#     p_dA::NTuple{N,T}
-#     function TractionCache{N,T}(frame::CartesianFrame3D) where {N,T}
-#         traction_normal = FreeVector3D(frame, SVector{3, T}(NaN .+ zeros(3)))
-#         r_cart = NTuple{N,Point3D{SVector{3,Float64}}}([Point3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
-#         v_cart_t = NTuple{N,FreeVector3D{SVector{3,Float64}}}([FreeVector3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
-#         p_dA = NTuple{N, T}(NaN .+ zeros(N))
-#         return new(traction_normal, r_cart, v_cart_t, p_dA)
-#     end
-# end
-
-
-# struct TractionCache{N,T}
-#     traction_normal::FreeVector3D{SVector{3,T}}
-#     r_cart::NTuple{N,Point3D{SVector{3,T}}}
-#     v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
-#     p_dA::NTuple{N,T}
-#     function TractionCache{N,T}(traction_normal::FreeVector3D{SVector{3,T}}, r_cart::NTuple{N,Point3D{SVector{3,T}}},
-#                                 v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}, p_dA::NTuple{N,T})
-#
-#        return new(traction_normal, r_cart, v_cart_t, p_dA)
-#     end
-# end
-
+# TODO: create fillTractionCacheForTriangle! with a macro
+function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{1,T}, A_ζ_ϕ, A_w_ζ_top) where {T}
+    traction_normal = b.triTetCache.traction_normal
+    r_cart_1, v_cart_t_1, p_dA_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ_top)
+    p_dA = (p_dA_1, )
+    if sum(p_dA) != 0.0
+        r_cart = (r_cart_1, )
+        v_cart_t = (v_cart_t_1, )
+        trac_cache = TractionCache(traction_normal, r_cart, v_cart_t, p_dA)
+        addCacheItem!(b.TractionCache, trac_cache)
+    end
+    return nothing
+end
 
 function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, A_ζ_ϕ, A_w_ζ_top) where {T}
-  # trac_now = returnNext(b.TractionCache)
-  # trac_now.traction_normal =
   traction_normal = b.triTetCache.traction_normal
   r_cart_1, v_cart_t_1, p_dA_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ_top)
   r_cart_2, v_cart_t_2, p_dA_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ_top)
@@ -258,11 +210,6 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, A_ζ_�
       trac_cache = TractionCache(traction_normal, r_cart, v_cart_t, p_dA)
       addCacheItem!(b.TractionCache, trac_cache)
   end
-
-  # for k = 1:N
-    # fillTractionCacheInnerLoop!(k, trac_now, b)
-  # end
-  # all(trac_now.p_dA .== 0.0) && (b.TractionCache.ind_fill -= 1)  # pressure was zero at all points
   return nothing
 end
 
@@ -271,19 +218,13 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
     quadTriCache = triTetCache.quadTriCache
 
     quad_point_ϕ = Point3D(frame_tri_cs, b.quad.zeta[k])
-    # quad_point_ζ = quadTriCache.A_ζ_ϕ * quad_point_ϕ
-    # p_cart_qp = triTetCache.A_w_ζ_top * quad_point_ζ
     quad_point_ζ = A_ζ_ϕ * quad_point_ϕ
     p_cart_qp = A_w_ζ_top * quad_point_ζ
-    #
     ϵ_quad = b.frac_ϵ * dot(triTetCache.ϵ, quad_point_ζ.v)
     cart_vel_crw_t, signed_mag_vel_n = calcTangentialVelocity(b.twist_tri_tet, p_cart_qp, triTetCache.traction_normal)
     ϵ_dot = b.frac_ϵ * signed_mag_vel_n * b.d⁻¹  # ϵ_dot ≈ z_dot / thickness because the rigid body provides the normal and is fixed
     damp_term = fastSoftPlus(1.0 - b.χ * ϵ_dot)
     p = -ϵ_quad * damp_term
-    # trac_now.r_cart[k]   = p_cart_qp
-    # trac_now.v_cart_t[k] = cart_vel_crw_t
-    # trac_now.p_dA[k]     = p * b.quad.w[k] * quadTriCache.area_quad_k * b.Ē
     p_dA = p * b.quad.w[k] * quadTriCache.area_quad_k * b.Ē
     return p_cart_qp, cart_vel_crw_t, p_dA
 end

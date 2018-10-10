@@ -1,44 +1,11 @@
 
-# mutable struct TractionCache{N,T}
-#     traction_normal::FreeVector3D{SVector{3,T}}
-#     r_cart::MVector{N,Point3D{SVector{3,T}}}
-#     v_cart_t::MVector{N,FreeVector3D{SVector{3,T}}}
-#     p_dA::MVector{N,T}
-#     function TractionCache{N,T}(frame::CartesianFrame3D) where {N,T}
-#         traction_normal = FreeVector3D(frame, SVector{3, T}(NaN .+ zeros(3)))
-#         r_cart = MVector{N,Point3D{SVector{3,Float64}}}([Point3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
-#         v_cart_t = MVector{N,FreeVector3D{SVector{3,Float64}}}([FreeVector3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
-#         p_dA = MVector{N, T}(NaN .+ zeros(N))
-#         return new(traction_normal, r_cart, v_cart_t, p_dA)
-#     end
-# end
-
-# struct TractionCache{N,T}
-#     traction_normal::FreeVector3D{SVector{3,T}}
-#     r_cart::NTuple{N,Point3D{SVector{3,T}}}
-#     v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
-#     p_dA::NTuple{N,T}
-#     function TractionCache{N,T}(traction_normal::FreeVector3D{SVector{3,T}}, r_cart::NTuple{N,Point3D{SVector{3,T}}},
-#                                 v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}, p_dA::NTuple{N,T}) where {N,T}
-#
-#         # frame::CartesianFrame3D) where {N,T}
-#         # traction_normal = FreeVector3D(frame, SVector{3, T}(NaN .+ zeros(3)))
-#         # r_cart = NTuple{N,Point3D{SVector{3,Float64}}}([Point3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
-#         # v_cart_t = NTuple{N,FreeVector3D{SVector{3,Float64}}}([FreeVector3D(frame, SVector{3,Float64}(NaN, NaN, NaN)) for k = 1:3])
-#         # p_dA = NTuple{N, T}(NaN .+ zeros(N))
-#         return new(traction_normal, r_cart, v_cart_t, p_dA)
-#     end
-# end
-
-
-
 struct TractionCache{N,T}
     traction_normal::FreeVector3D{SVector{3,T}}
     r_cart::NTuple{N,Point3D{SVector{3,T}}}
     v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
     p_dA::NTuple{N,T}
-    function TractionCache(traction_normal::FreeVector3D{SVector{N,T}}, r_cart::NTuple{N,Point3D{SVector{N,T}}},
-                                v_cart_t::NTuple{N,FreeVector3D{SVector{N,T}}}, p_dA::NTuple{N,T}) where {N,T}
+    function TractionCache(traction_normal::FreeVector3D{SVector{3,T}}, r_cart::NTuple{N,Point3D{SVector{3,T}}},
+                                v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}, p_dA::NTuple{N,T}) where {N,T}
 
         return new{N,T}(traction_normal, r_cart, v_cart_t, p_dA)
     end
@@ -48,7 +15,7 @@ struct TractionCache{N,T}
         traction_normal = FreeVector3D(frame, SVector{3, T}(NaN .+ zeros(3)))
         r_cart = NTuple{N,Point3D{SVector{3,T}}}([Point3D(frame, SVector{3,T}(NaN, NaN, NaN)) for k = 1:N])
         v_cart_t = NTuple{N,FreeVector3D{SVector{3,T}}}([FreeVector3D(frame, SVector{3,T}(NaN, NaN, NaN)) for k = 1:N])
-        p_dA = NTuple{N, T}(NaN .+ zeros(N))
+        p_dA = NTuple{N,T}(NaN .+ zeros(N))
         return new{N,T}(traction_normal, r_cart, v_cart_t, p_dA)
     end
 end
@@ -58,7 +25,7 @@ mutable struct TypedQuadTriCache{T}
     clip_poly_4D_2::ClippedPolygon{4,T}
     clip_poly_3D::ClippedPolygon{3,T}
     area_quad_k::T
-    A_ζ_ϕ::MatrixTransform{4,3,T,12}
+    # A_ζ_ϕ::MatrixTransform{4,3,T,12}
     function TypedQuadTriCache{T}(frame_world::CartesianFrame3D) where {T}
         clip_poly_4D_1 = ClippedPolygon{4,T}(frame_tet_cs)
         clip_poly_4D_2 = ClippedPolygon{4,T}(frame_tet_cs)
@@ -70,7 +37,7 @@ end
 mutable struct TypedTriTetCache{T}
     quadTriCache::TypedQuadTriCache{T}
     ϵ::SVector{4,Float64}
-    A_w_ζ_top::MatrixTransform{3,4,T,12}
+    # A_w_ζ_top::MatrixTransform{3,4,T,12}
     traction_normal::FreeVector3D{SVector{3,T}}
     centroid_ζ::Point4D{SVector{4,T}}
     centroid_w::Point3D{SVector{3,T}}
@@ -94,7 +61,6 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     d⁻¹::Float64
     function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
         triTetCache = TypedTriTetCache{T}(frame_world)
-        # trac_cache = VectorCache(TractionCache{N,T}(frame_world))
         tc = TractionCache(N, T)
         trac_cache = VectorCache(tc)
         return new{N,T}(quad, triTetCache, trac_cache)
@@ -164,16 +130,23 @@ struct MechanismScenario{N,T}
     MeshCache::RigidBodyDynamics.CustomCollections.CacheIndexDict{MeshID,Base.OneTo{MeshID},MeshCache}
     ContactInstructions::Vector{ContactInstructions}
     de::Function
-    function MechanismScenario(ts::TempContactStruct, de::Function)
-        quad = getTriQuadRule(2)  # TODO: move somewhere else
+    function MechanismScenario(ts::TempContactStruct, de::Function; n_quad_rule::Int64=2)
+        (1 <= n_quad_rule <= 2) || error("only quadrature rules 1 (first order) and 2 (second? order) are currently implemented")
+
+        quad = getTriQuadRule(n_quad_rule)
         N = length(quad.w)
         mechanism = ts.mechanism
         body_ids = Base.OneTo(last(bodies(mechanism)).id)
         mesh_ids = ts.mesh_ids
         bristle_ids = ts.bristle_ids
         n_bristle_pairs = length(bristle_ids)
-        n_dof = num_positions(mechanism) + num_velocities(mechanism) + 6 * n_bristle_pairs
-        T = Dual{Float64,Float64,n_dof}
+
+        n_positions = num_positions(mechanism)
+        n_velocities = num_velocities(mechanism)
+        (n_positions == n_velocities) || error("n_positions ($n_positions) and n_velocities ($n_velocities) are different. Replace QuaternionFloating joints with SPQuatFloating joints.")
+
+        n_dof = n_positions + n_velocities + 6 * n_bristle_pairs
+        T = Dual{Nothing,Float64,n_dof}
         frame_world = root_frame(mechanism)
         τ_ext = zeros(Float64, num_positions(mechanism))
         mesh_cache = ts.MeshCache
@@ -185,6 +158,6 @@ struct MechanismScenario{N,T}
     end
 end
 
-num_partials(m::MechanismScenario{N, Dual{Float64,Float64,N_partials}}) where {N, N_partials} = N_partials
+num_partials(m::MechanismScenario{N, Dual{Nothing,Float64,N_partials}}) where {N, N_partials} = N_partials
 
 type_dual(m::MechanismScenario{N,T}) where {N,T} = T
