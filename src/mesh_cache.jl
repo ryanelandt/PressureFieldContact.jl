@@ -1,11 +1,9 @@
 struct SimplexTree{N}
     tree::bin_BB_Tree{AABB}
     ind::Vector{SVector{N,Int64}}
-    # function SimplexTree(point::Vector{SVector{3,Float64}}, ind::Vector{SVector{3,Int64}})
-    #     tree = triTetMeshToTreeAABB(point, ind)
-    function SimplexTree(h_mesh::HomogenousMesh)  # point::Vector{SVector{3,Float64}}, ind::Vector{SVector{3,Int64}})
-
-        point, ind = extract_HomogenousMesh_face_vertices(h_mesh)
+    function SimplexTree(h_mesh::HomogenousMesh)
+        point = get_h_mesh_vertices(h_mesh)
+        ind = get_h_mesh_faces(h_mesh)
         tree = triTetMeshToTreeAABB(point, ind)
         return new{3}(tree, ind)
     end
@@ -18,10 +16,10 @@ end
 struct TetMesh
     tet::SimplexTree{4}
     ϵ::Vector{Float64}
-    contact_prop::ContactProperties
-    function TetMesh(point::Vector{SVector{3,Float64}}, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64}, contact_prop::ContactProperties)
+    c_prop::ContactProperties
+    function TetMesh(point::Vector{SVector{3,Float64}}, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64}, c_prop::ContactProperties)
         tet_simp_tree = SimplexTree(point, tet_ind)
-        return new(tet_simp_tree, ϵ, contact_prop)
+        return new(tet_simp_tree, ϵ, c_prop)
     end
 end
 
@@ -34,12 +32,11 @@ struct MeshCache
     tri::SimplexTree{3}
     tet::Union{Nothing, TetMesh}
 
-    function MeshCache(name::String, h_mesh::HomogenousMesh, tet_ind::Vector{SVector{4,Int64}},
-        ϵ::Vector{Float64}, contact_prop::ContactProperties, body::RigidBody{Float64}, inertia_prop::Union{Nothing, InertiaProperties}=nothing)
+    function MeshCache(name::String, h_mesh::HomogenousMesh, tet_mesh::TetMesh, body::RigidBody{Float64},
+            inertia_prop::Union{Nothing, InertiaProperties}=nothing)
 
         point, tri_ind = extract_HomogenousMesh_face_vertices(h_mesh)
         tri_simp_tree = SimplexTree(h_mesh)
-        tet_mesh = TetMesh(point, tet_ind, ϵ, contact_prop)
         return new(point, name, BodyID(body), default_frame(body), inertia_prop, tri_simp_tree, tet_mesh)
     end
 

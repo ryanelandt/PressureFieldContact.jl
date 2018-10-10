@@ -105,7 +105,7 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     empty!(b.TractionCache)
     refreshBodyBodyTransform!(m, tm, con_ins_k)
 
-    mat_tet = b.mesh_tet.tet.contact_prop
+    mat_tet = b.mesh_tet.tet.c_prop
     twist_root_tri = twist_wrt_world(tm.state, b.mesh_tri.BodyID)
     twist_root_tet = twist_wrt_world(tm.state, b.mesh_tet.BodyID)
 

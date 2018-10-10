@@ -58,6 +58,7 @@ export
     calcMutualMu,
 
     # mesh_cache.jl
+    TetMesh,
     asHomogenousMesh,
     MeshID,
     MeshDict,

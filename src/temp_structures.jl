@@ -51,25 +51,24 @@ function addMesh!(ts::TempContactStruct, mesh::MeshCache)
 end
 
 ### Volume ###
-function add_body_volume_mesh!(ts::TempContactStruct, name::String, h_mesh::HomogenousMesh,
-        tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
-        contact_prop::ContactProperties, inertia_prop::InertiaProperties, evaluated_joint_type_in::JT) where {JT<:JointType}
+function add_body_volume_mesh!(ts::TempContactStruct, name::String, h_mesh::HomogenousMesh, tet_mesh::TetMesh,
+        inertia_prop::InertiaProperties, evaluated_joint_type_in::JT) where {JT<:JointType}
 
-    body = add_body_volume!(ts.mechanism, name, h_mesh, tet_ind, inertia_prop, evaluated_joint_type_in)
-    add_volume_mesh!(ts, body, name, h_mesh, tet_ind, ϵ, contact_prop, inertia_prop)
+    body = add_body_volume!(ts.mechanism, name, h_mesh, tet_mesh, inertia_prop, evaluated_joint_type_in)
+    add_volume_mesh!(ts, body, name, h_mesh, tet_mesh, inertia_prop)
 end
 
-function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String,
-        h_mesh::HomogenousMesh, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
-        contact_prop::ContactProperties, inertia_prop::Union{Nothing,InertiaProperties}=nothing)
+function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, h_mesh::HomogenousMesh,
+        tet_mesh::TetMesh, inertia_prop::Union{Nothing,InertiaProperties}=nothing)
 
-    mesh = MeshCache(name, h_mesh, tet_ind, ϵ, contact_prop, body, inertia_prop)
+    mesh = MeshCache(name, h_mesh, tet_mesh, body, inertia_prop)
     addMesh!(ts, mesh)
 end
 
-function add_body_volume!(mechanism::Mechanism, name::String, h_mesh::HomogenousMesh, tet_ind::Vector{SVector{4,Int64}},
+function add_body_volume!(mechanism::Mechanism, name::String, h_mesh::HomogenousMesh, tet_mesh::TetMesh,
         inertia_prop::InertiaProperties, evaluated_joint_type_in::JT) where {JT<:JointType}
 
+    tet_ind = tet_mesh.tet.ind
     point = get_h_mesh_vertices(h_mesh)
     rho = inertia_prop.rho
     (inertia_prop.d == nothing) || error("assumed thickness is something but should be nothing")
@@ -79,21 +78,21 @@ end
 
 ### Surface ###
 function add_body_surface_mesh!(ts::TempContactStruct, name::String, h_mesh::HomogenousMesh,
-    inertia_prop::InertiaProperties, evaluated_joint_type_in)
+        inertia_prop::InertiaProperties, evaluated_joint_type_in)
 
     body = add_body_surface!(ts.mechanism, name, h_mesh, inertia_prop, evaluated_joint_type_in)
     add_surface_mesh!(ts, body, name, h_mesh, inertia_prop)
 end
 
-function add_surface_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String,
-        h_mesh::HomogenousMesh, inertia_prop::Union{Nothing, InertiaProperties}=nothing)
+function add_surface_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, h_mesh::HomogenousMesh,
+        inertia_prop::Union{Nothing, InertiaProperties}=nothing)
 
     mesh = MeshCache(name, h_mesh, body, inertia_prop)
     addMesh!(ts, mesh)
 end
 
-function add_body_surface!(mechanism::Mechanism, name::String, h_mesh::HomogenousMesh,
-        inertia_prop::InertiaProperties, evaluated_joint_type_in::JT) where {JT<:JointType}
+function add_body_surface!(mechanism::Mechanism, name::String, h_mesh::HomogenousMesh, inertia_prop::InertiaProperties,
+        evaluated_joint_type_in::JT) where {JT<:JointType}
 
     point, tri_ind = extract_HomogenousMesh_face_vertices(h_mesh)
 
@@ -136,12 +135,12 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, name_tri::String, name
     mesh_cache_tri = ts.MeshCache[mesh_id_tri]
     mesh_cache_tet = ts.MeshCache[mesh_id_tet]
     (mesh_cache_tet.tet == nothing) && error("compliant mesh named $name_tet has no volume mesh")
-    mat_tet = mesh_cache_tet.tet.contact_prop
+    mat_tet = mesh_cache_tet.tet.c_prop
     if mesh_cache_tri.tet == nothing
         μ = mat_tet.μ
         frac_ϵ = 1.0
     else
-        mat_tri = mesh_cache_tri.contact_prop
+        mat_tri = mesh_cache_tri.c_prop
         μ = calcMutualMu(mat_tri, mat_tet)
         hC_tri = calculateExtrensicCompliance(mat_tri)
         hC_tet = calculateExtrensicCompliance(mat_tet)
