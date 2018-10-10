@@ -44,6 +44,7 @@ export
     fill_with_nothing!,
     zeroWrench,
     mat_mul_SA_bug_circumvent,
+    add_h_mesh_color,
 
     # matrix_transform.jl
     Point4D,

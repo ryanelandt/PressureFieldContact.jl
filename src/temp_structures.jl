@@ -51,25 +51,26 @@ function addMesh!(ts::TempContactStruct, mesh::MeshCache)
 end
 
 ### Volume ###
-function add_body_volume_mesh!(ts::TempContactStruct, name::String, point::Vector{SVector{3,Float64}},
-        tri_ind::Vector{SVector{3,Int64}}, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
+function add_body_volume_mesh!(ts::TempContactStruct, name::String, h_mesh::HomogenousMesh,
+        tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
         contact_prop::ContactProperties, inertia_prop::InertiaProperties, evaluated_joint_type_in::JT) where {JT<:JointType}
 
-    body = add_body_volume!(ts.mechanism, name, point, tet_ind, inertia_prop, evaluated_joint_type_in)
-    add_volume_mesh!(ts, body, name, point, tri_ind, tet_ind, ϵ, contact_prop, inertia_prop)
+    body = add_body_volume!(ts.mechanism, name, h_mesh, tet_ind, inertia_prop, evaluated_joint_type_in)
+    add_volume_mesh!(ts, body, name, h_mesh, tet_ind, ϵ, contact_prop, inertia_prop)
 end
 
-function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, point::Vector{SVector{3,Float64}},
-        tri_ind::Vector{SVector{3,Int64}}, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
+function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String,
+        h_mesh::HomogenousMesh, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
         contact_prop::ContactProperties, inertia_prop::Union{Nothing,InertiaProperties}=nothing)
 
-    mesh = MeshCache(point, name, tri_ind, tet_ind, ϵ, contact_prop, body, inertia_prop)
+    mesh = MeshCache(name, h_mesh, tet_ind, ϵ, contact_prop, body, inertia_prop)
     addMesh!(ts, mesh)
 end
 
-function add_body_volume!(mechanism::Mechanism, name::String, point::Vector{SVector{3,Float64}}, tet_ind::Vector{SVector{4,Int64}},
+function add_body_volume!(mechanism::Mechanism, name::String, h_mesh::HomogenousMesh, tet_ind::Vector{SVector{4,Int64}},
         inertia_prop::InertiaProperties, evaluated_joint_type_in::JT) where {JT<:JointType}
 
+    point = get_h_mesh_vertices(h_mesh)
     rho = inertia_prop.rho
     (inertia_prop.d == nothing) || error("assumed thickness is something but should be nothing")
     I3, com, mass, mesh_vol = makeInertiaTensor(point, tet_ind, rho)
@@ -77,22 +78,24 @@ function add_body_volume!(mechanism::Mechanism, name::String, point::Vector{SVec
 end
 
 ### Surface ###
-function add_body_surface_mesh!(ts::TempContactStruct, name::String, point::Vector{SVector{3,Float64}},
-        tri_ind::Vector{SVector{3,Int64}}, inertia_prop::InertiaProperties, evaluated_joint_type_in)
+function add_body_surface_mesh!(ts::TempContactStruct, name::String, h_mesh::HomogenousMesh,
+    inertia_prop::InertiaProperties, evaluated_joint_type_in)
 
-    body = add_body_surface!(ts.mechanism, name, point, tri_ind, inertia_prop, evaluated_joint_type_in)
-    add_surface_mesh!(ts, body, name, point, tri_ind, inertia_prop)
+    body = add_body_surface!(ts.mechanism, name, h_mesh, inertia_prop, evaluated_joint_type_in)
+    add_surface_mesh!(ts, body, name, h_mesh, inertia_prop)
 end
 
-function add_surface_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, point::Vector{SVector{3,Float64}},
-        tri_ind::Vector{SVector{3,Int64}}, inertia_prop::Union{Nothing, InertiaProperties}=nothing)
+function add_surface_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String,
+        h_mesh::HomogenousMesh, inertia_prop::Union{Nothing, InertiaProperties}=nothing)
 
-    mesh = MeshCache(point, name, tri_ind, body, inertia_prop)
+    mesh = MeshCache(name, h_mesh, body, inertia_prop)
     addMesh!(ts, mesh)
 end
 
-function add_body_surface!(mechanism::Mechanism, name::String, point::Vector{SVector{3,Float64}}, tri_ind::Vector{SVector{3,Int64}},
+function add_body_surface!(mechanism::Mechanism, name::String, h_mesh::HomogenousMesh,
         inertia_prop::InertiaProperties, evaluated_joint_type_in::JT) where {JT<:JointType}
+
+    point, tri_ind = extract_HomogenousMesh_face_vertices(h_mesh)
 
     rho = inertia_prop.rho
     d = inertia_prop.d

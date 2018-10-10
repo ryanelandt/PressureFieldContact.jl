@@ -1,7 +1,11 @@
 struct SimplexTree{N}
     tree::bin_BB_Tree{AABB}
     ind::Vector{SVector{N,Int64}}
-    function SimplexTree(point::Vector{SVector{3,Float64}}, ind::Vector{SVector{3,Int64}})
+    # function SimplexTree(point::Vector{SVector{3,Float64}}, ind::Vector{SVector{3,Int64}})
+    #     tree = triTetMeshToTreeAABB(point, ind)
+    function SimplexTree(h_mesh::HomogenousMesh)  # point::Vector{SVector{3,Float64}}, ind::Vector{SVector{3,Int64}})
+
+        point, ind = extract_HomogenousMesh_face_vertices(h_mesh)
         tree = triTetMeshToTreeAABB(point, ind)
         return new{3}(tree, ind)
     end
@@ -30,16 +34,18 @@ struct MeshCache
     tri::SimplexTree{3}
     tet::Union{Nothing, TetMesh}
 
-    function MeshCache(point::Vector{SVector{3,Float64}}, name::String, tri_ind::Vector{SVector{3,Int64}}, tet_ind::Vector{SVector{4,Int64}},
+    function MeshCache(name::String, h_mesh::HomogenousMesh, tet_ind::Vector{SVector{4,Int64}},
         ϵ::Vector{Float64}, contact_prop::ContactProperties, body::RigidBody{Float64}, inertia_prop::Union{Nothing, InertiaProperties}=nothing)
 
-        tri_simp_tree = SimplexTree(point, tri_ind)
+        point, tri_ind = extract_HomogenousMesh_face_vertices(h_mesh)
+        tri_simp_tree = SimplexTree(h_mesh)
         tet_mesh = TetMesh(point, tet_ind, ϵ, contact_prop)
         return new(point, name, BodyID(body), default_frame(body), inertia_prop, tri_simp_tree, tet_mesh)
     end
 
-    function MeshCache(point::Vector{SVector{3,Float64}}, name::String, tri_ind::Vector{SVector{3,Int64}}, body::RigidBody{Float64}, inertia_prop::Union{Nothing, InertiaProperties}=nothing)
-        tri_simp_tree = SimplexTree(point, tri_ind)
+    function MeshCache(name::String, h_mesh::HomogenousMesh, body::RigidBody{Float64}, inertia_prop::Union{Nothing, InertiaProperties}=nothing)
+        tri_simp_tree = SimplexTree(h_mesh)
+        point = get_h_mesh_vertices(h_mesh)
         return new(point, name, BodyID(body), default_frame(body), inertia_prop, tri_simp_tree, nothing)
     end
 end
