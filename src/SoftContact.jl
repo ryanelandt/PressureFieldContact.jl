@@ -104,6 +104,7 @@ export
     MechanismScenario,
     num_partials,
     type_dual,
+    get_state,
 
     # extensions.jl
     principal_value!,

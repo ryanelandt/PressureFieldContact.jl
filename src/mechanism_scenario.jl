@@ -159,3 +159,9 @@ end
 num_partials(m::MechanismScenario{N, Dual{Nothing,Float64,N_partials}}) where {N, N_partials} = N_partials
 
 type_dual(m::MechanismScenario{N,T}) where {N,T} = T
+
+function get_state(mech_scen::MechanismScenario)
+    x = zeros(num_partials(mech_scen))
+    copyto!(x, mech_scen.float)
+    return x
+end
