@@ -4,7 +4,11 @@ struct SimplexTree{N}
     function SimplexTree(h_mesh::HomogenousMesh)
         point = get_h_mesh_vertices(h_mesh)
         ind = get_h_mesh_faces(h_mesh)
-        tree = triTetMeshToTreeAABB(point, ind)
+        if length(ind) == 1
+            tree = bin_BB_Tree{AABB}(1, svSvToAABB(point[ind[1]]))
+        else
+            tree = triTetMeshToTreeAABB(point, ind)
+        end
         return new{3}(tree, ind)
     end
     function SimplexTree(point::Vector{SVector{3,Float64}}, ind::Vector{SVector{4,Int64}})

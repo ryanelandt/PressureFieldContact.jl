@@ -1,9 +1,10 @@
 
 function create_surface_half_plane(plane_w::Float64=1.0)
-    R_z = RotZ(2*pi/3)
-    v1 = SVector{3,Float64}(1.0, 0.0, 0.0) * plane_w
-    v2 = R_z * v1
-    v3 = R_z * v2
+    # R_z = RotZ(2*pi/3)
+    # v1 = SVector{3,Float64}(1.0, 0.0, 0.0) * plane_w
+    # v2 = R_z * v1
+    # v3 = R_z * v2
+    v1, v2, v3 = [SVector{3,Float64}(cos(theta), sin(theta), 0.0) for theta = (0.0, 2*pi/3, 4*pi/3)]
     v4 = SVector{3,Float64}(0.0, 0.0, -1.0) * plane_w
     plane_vertices = [v1, v2, v3, v4]
     plane_tri_ind = [SVector{3,Int64}(1,2,3)]
