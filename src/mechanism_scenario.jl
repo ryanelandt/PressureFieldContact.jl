@@ -25,7 +25,6 @@ mutable struct TypedQuadTriCache{T}
     clip_poly_4D_2::ClippedPolygon{4,T}
     clip_poly_3D::ClippedPolygon{3,T}
     area_quad_k::T
-    # A_ζ_ϕ::MatrixTransform{4,3,T,12}
     function TypedQuadTriCache{T}(frame_world::CartesianFrame3D) where {T}
         clip_poly_4D_1 = ClippedPolygon{4,T}(frame_tet_cs)
         clip_poly_4D_2 = ClippedPolygon{4,T}(frame_tet_cs)
@@ -37,7 +36,6 @@ end
 mutable struct TypedTriTetCache{T}
     quadTriCache::TypedQuadTriCache{T}
     ϵ::SVector{4,Float64}
-    # A_w_ζ_top::MatrixTransform{3,4,T,12}
     traction_normal::FreeVector3D{SVector{3,T}}
     centroid_ζ::Point4D{SVector{4,T}}
     centroid_w::Point3D{SVector{3,T}}
@@ -98,8 +96,8 @@ struct TypedMechanismScenario{N,T}
         bodyBodyCache = TypedElasticBodyBodyCache{N,T}(frame_world, quad)
         v_jac = makeJacobian(v_path, state, body_ids)
         n_dof_bristle = 6 * n_bristle_pairs
-        s = SegmentedVector{BristleID}(Vector{T}(undef, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
-        ṡ = SegmentedVector{BristleID}(Vector{T}(undef, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
+        s = SegmentedVector{BristleID}(zeros(T, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
+        ṡ = SegmentedVector{BristleID}(zeros(T, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
         return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac)
     end
 end
