@@ -28,6 +28,7 @@ include("mechanism_scenario.jl")
 include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
 include("contact_algorithms_friction.jl")
+include("primitive_meshes.jl")
 include("vis_meshcat.jl")
 include("example_integrator.jl")
 
@@ -131,6 +132,12 @@ export
     bristle_deformation,
     bristle_friction!,
     bristle_friction_no_contact!,
+
+    # primitive_meshes.jl
+    create_surface_half_plane,
+    create_volume_half_plane,
+    create_surface_box,
+    create_volume_box,
 
     # vis_meshcat.jl
     set_body_mesh_visual!,
