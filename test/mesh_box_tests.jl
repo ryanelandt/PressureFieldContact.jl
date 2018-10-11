@@ -1,4 +1,4 @@
-unit_cube_points = basicBoxPoints()
+unit_cube_points = SoftContact.basicBoxPoints()
 
 @testset "unit cube" begin
     @test unit_cube_points[1] == SVector{3,Float64}(-1.0, -1.0, -1.0)
@@ -12,7 +12,7 @@ unit_cube_points = basicBoxPoints()
 end
 
 @testset "orientation: cube face / triangle" begin
-    i_box_faces = outputOrientedBoxFaces()
+    i_box_faces = SoftContact.outputOrientedBoxFaces()
     tup_dir = (
         SVector{3,Float64}(-1.0,  0.0,  0.0),
         SVector{3,Float64}(+1.0,  0.0,  0.0),
@@ -23,7 +23,7 @@ end
     )
     for (k, dir_k) = enumerate(tup_dir)
         v_tri = Vector{SVector{3,SVector{3,Float64}}}()
-        Binary_BB_Trees.twoTriangles!(v_tri, unit_cube_points[i_box_faces[k]])
+        SoftContact.twoTriangles!(v_tri, unit_cube_points[i_box_faces[k]])
         tri_1 = v_tri[1]
         tri_2 = v_tri[2]
         @test dir_k ≈ triangleNormal(tri_2)
