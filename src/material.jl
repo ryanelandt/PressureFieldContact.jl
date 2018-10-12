@@ -8,7 +8,7 @@ struct ContactProperties
         (0.0 <= μ <= 3.0) || error("mu in unexpected range.")
         (0.001 <= d <= 1.0) || error("thickness in unexpected range.")
         d⁻¹ = 1 / d
-        (0.3 <= χ <= 5.0) || error("hc_velocity_damping in unexpected range.")
+        (0.001 <= χ <= 5.0) || error("hc_velocity_damping in unexpected range.")
         return new(Ē, μ, d⁻¹, χ)
     end
 end
