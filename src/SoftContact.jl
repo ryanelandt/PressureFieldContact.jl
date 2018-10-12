@@ -1,7 +1,7 @@
 module SoftContact
 
 using StaticArrays
-using Rotations: Quat
+using Rotations: Quat, Rotation, SPQuat
 using ForwardDiff: Dual
 using RigidBodyDynamics
 using GeometryTypes: HomogenousMesh, Face, Point
@@ -106,6 +106,7 @@ export
     num_partials,
     type_dual,
     get_state,
+    set_state_spq!,
 
     # extensions.jl
     principal_value!,

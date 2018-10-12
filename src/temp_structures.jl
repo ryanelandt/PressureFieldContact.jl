@@ -54,8 +54,9 @@ end
 function add_body_volume_mesh!(ts::TempContactStruct, name::String, h_mesh::HomogenousMesh, tet_mesh::TetMesh,
         inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}()) where {JT<:JointType}
 
-    body = add_body_volume!(ts.mechanism, name, h_mesh, tet_mesh, inertia_prop, joint=joint)
+    body, joint = add_body_volume!(ts.mechanism, name, h_mesh, tet_mesh, inertia_prop, joint=joint)
     add_volume_mesh!(ts, body, name, h_mesh, tet_mesh, inertia_prop)
+    return joint
 end
 
 function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, h_mesh::HomogenousMesh,
@@ -80,8 +81,9 @@ end
 function add_body_surface_mesh!(ts::TempContactStruct, name::String, h_mesh::HomogenousMesh,
         inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}()) where {JT<:JointType}
 
-    body = add_body_surface!(ts.mechanism, name, h_mesh, inertia_prop, joint=joint)
+    body, joint = add_body_surface!(ts.mechanism, name, h_mesh, inertia_prop, joint=joint)
     add_surface_mesh!(ts, body, name, h_mesh, inertia_prop)
+    return joint
 end
 
 function add_surface_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, h_mesh::HomogenousMesh,
@@ -108,7 +110,7 @@ function add_body_from_inertia!(mechanism::Mechanism, name::String, I3, com, mas
     body_parent = root_body(mechanism)
     j_parent_child, x_parent_child = outputJointTransform_ParentChild(body_parent, body_child, joint, SVector{3,Float64}(0,0,0))
     attach!(mechanism, body_parent, body_child, j_parent_child, joint_pose=x_parent_child)
-    return body_child
+    return body_child, j_parent_child
 end
 
 function findmesh(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this function more elegant
