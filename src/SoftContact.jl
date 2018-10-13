@@ -14,8 +14,11 @@ using NumericalTricks
 using LinearAlgebra
 using Radau
 
-const frame_tet_cs = CartesianFrame3D("tet_cs")
-const frame_tri_cs = CartesianFrame3D("tri_cs")
+const FRAME_ζ¹ = CartesianFrame3D("FRAME_ζ¹")
+const FRAME_ζ² = CartesianFrame3D("FRAME_ζ²")
+const FRAME_ϕ = CartesianFrame3D("FRAME_ϕ")
+# const frame_tet_cs = CartesianFrame3D("tet_cs")
+# const frame_tri_cs = CartesianFrame3D("tri_cs")
 
 include("mesh_inertia.jl")
 include("utility.jl")
@@ -27,14 +30,16 @@ include("temp_structures.jl")
 include("mechanism_scenario.jl")
 include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
+include("contact_algorithms_non_friction_replace.jl")
 include("contact_algorithms_friction.jl")
 include("primitive_meshes.jl")
 include("vis_meshcat.jl")
 include("example_integrator.jl")
 
 export
-    frame_tet_cs,
-    frame_tri_cs,
+    FRAME_ζ¹,
+    FRAME_ζ²,
+    FRAME_ϕ,
 
     # mesh_inertia.jl
     makeInertiaTensor,
@@ -125,6 +130,10 @@ export
     calcTangentialVelocity,
     addGeneralizedForcesThirdLaw!,
     addGeneralizedForcesExternal!,
+
+    # contact_algorithms_non_friction_replace.jl
+    triangle_vertices,
+    tetrahedron_vertices_ϵ,
 
     # contact_algorithms_friction.jl
     regularized_friction,
