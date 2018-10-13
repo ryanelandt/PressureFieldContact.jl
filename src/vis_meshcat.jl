@@ -17,6 +17,12 @@ function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismSc
     return nothing
 end
 
+function HomogenousMesh_32(h_mesh::HomogenousMesh; color=RGBA{Float32}(0.5, 0.5, 0.5, 1.0))
+    vertices = get_h_mesh_vertices_32(h_mesh)
+    faces = get_h_mesh_faces_32(h_mesh)
+    return HomogenousMesh(vertices=vertices, faces=faces, color=color)
+end
+
 function play_recorded_data(mvis::MechanismVisualizer, mech_scen::MechanismScenario, data_time::Vector{Float64}, data_state::Matrix{Float64};
         dt::Float64=1/60, slowdown::Float64=1.0)
 

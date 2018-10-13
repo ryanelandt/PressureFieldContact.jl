@@ -66,9 +66,10 @@ end
 ### Add meshes to visualizer
 mvis = MechanismVisualizer(my_mechanism, vis)
 color_pad = RGBA{Float32}(1.0, 0.792, 0.588, 1.0)
-lo_h_mesh_32 = HomogenousMesh(vertices=get_h_mesh_vertices_32(lo_h_mesh),
-                              faces=get_h_mesh_faces_32(lo_h_mesh),
-                              color=color_pad)
+lo_h_mesh_32 = HomogenousMesh_32(lo_h_mesh, color=color_pad)
+# lo_h_mesh_32 = HomogenousMesh(vertices=get_h_mesh_vertices_32(lo_h_mesh),
+                              # faces=get_h_mesh_faces_32(lo_h_mesh),
+                              # color=color_pad)
 setobject!(vis, lo_h_mesh_32)
 set_body_mesh_visual!(mvis, mech_scen, "spoon", [0.5, 0.5, 0.5, 1.0])
 set_body_mesh_visual!(mvis, mech_scen, up_name, color_pad)

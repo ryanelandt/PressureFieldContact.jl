@@ -142,6 +142,7 @@ export
 
     # vis_meshcat.jl
     set_body_mesh_visual!,
+    HomogenousMesh_32,
     play_recorded_data,
 
     # example_integrator.jl
