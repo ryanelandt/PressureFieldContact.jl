@@ -78,11 +78,13 @@ struct TypedMechanismScenario{N,T}
             v_jac = RigidBodyDynamics.BodyCacheDict{Union{Nothing,GeometricJacobian{Array{T,2}}}}(body_ids)
             fill_with_nothing!(v_jac)
             for (body_id_k, path_k) = v_path
-                if body_id_k != BodyID(root_body(state.mechanism))
-                    new_jac = geometric_jacobian(state, path_k)
-                    new_jac.linear .= NaN
-                    new_jac.angular .= NaN
-                    v_jac[body_id_k] = new_jac
+                if path_k != nothing  # body has no meshes attached to it
+                    if body_id_k != BodyID(root_body(state.mechanism))
+                        new_jac = geometric_jacobian(state, path_k)
+                        new_jac.linear .= NaN
+                        new_jac.angular .= NaN
+                        v_jac[body_id_k] = new_jac
+                    end
                 end
             end
             return v_jac

@@ -56,7 +56,7 @@ function add_body_volume_mesh!(ts::TempContactStruct, name::String, h_mesh::Homo
 
     body, joint = add_body_volume!(ts.mechanism, name, h_mesh, tet_mesh, inertia_prop, joint=joint)
     add_volume_mesh!(ts, body, name, h_mesh, tet_mesh, inertia_prop)
-    return joint
+    return body, joint
 end
 
 function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, h_mesh::HomogenousMesh,
@@ -83,7 +83,7 @@ function add_body_surface_mesh!(ts::TempContactStruct, name::String, h_mesh::Hom
 
     body, joint = add_body_surface!(ts.mechanism, name, h_mesh, inertia_prop, joint=joint)
     add_surface_mesh!(ts, body, name, h_mesh, inertia_prop)
-    return joint
+    return body, joint
 end
 
 function add_surface_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, h_mesh::HomogenousMesh,
