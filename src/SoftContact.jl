@@ -136,6 +136,7 @@ export
     triangle_vertices,
     tetrahedron_vertices_ϵ,
     calc_ζ_transforms,
+    find_plane_tet,
 
     # contact_algorithms_friction.jl
     regularized_friction,
