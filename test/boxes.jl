@@ -32,22 +32,22 @@ add_volume_mesh!(ts, root_body(my_mechanism), plane_name, plane_h_mesh, plane_te
 ### Box 1
 box_1_name = "box_1"
 box_1_h_mesh = create_surface_box(box_rad)
-box_1_joint = add_body_surface_mesh!(ts, box_1_name, box_1_h_mesh, InertiaProperties(rho=400.0, d=box_shell))
+_, box_1_joint = add_body_surface_mesh!(ts, box_1_name, box_1_h_mesh, InertiaProperties(rho=400.0, d=box_shell))
 
 ### Box 2
 box_2_name = "box_2"
 box_2_h_mesh, box_2_tet_mesh = create_volume_box(box_rad, χ=0.03)
-box_2_joint = add_body_volume_mesh!(ts, box_2_name, box_2_h_mesh, box_2_tet_mesh, InertiaProperties(rho=400.0))
+_, box_2_joint = add_body_volume_mesh!(ts, box_2_name, box_2_h_mesh, box_2_tet_mesh, InertiaProperties(rho=400.0))
 
 ### Box 3
 box_3_name = "box_3"
 box_3_h_mesh = create_surface_box(box_rad)
-box_3_joint = add_body_surface_mesh!(ts, box_3_name, box_3_h_mesh, InertiaProperties(rho=400.0, d=box_shell))
+_, box_3_joint = add_body_surface_mesh!(ts, box_3_name, box_3_h_mesh, InertiaProperties(rho=400.0, d=box_shell))
 
 ### Box 2
 box_4_name = "box_4"
 box_4_h_mesh, box_4_tet_mesh = create_volume_box(box_rad, χ=0.03)
-box_4_joint = add_body_volume_mesh!(ts, box_4_name, box_4_h_mesh, box_4_tet_mesh, InertiaProperties(rho=400.0))
+_, box_4_joint = add_body_volume_mesh!(ts, box_4_name, box_4_h_mesh, box_4_tet_mesh, InertiaProperties(rho=400.0))
 
 ### Friction pairs
 add_pair_rigid_compliant_regularize!(ts, box_1_name, plane_name)

@@ -31,14 +31,14 @@ add_volume_mesh!(ts, root_body(my_mechanism), lo_name, lo_h_mesh, lo_tet_mesh)
 up_name = "box_up"
 up_joint = Prismatic(SVector{3,Float64}(0.0, 0.0, 1.0))
 up_h_mesh, up_tet_mesh = create_volume_box(rad_box)
-up_joint = add_body_volume_mesh!(ts, up_name, up_h_mesh, up_tet_mesh, InertiaProperties(rho=500.0), joint=up_joint)
+_, up_joint = add_body_volume_mesh!(ts, up_name, up_h_mesh, up_tet_mesh, InertiaProperties(rho=500.0), joint=up_joint)
 
 ### Spoon
 mesh_spoon = load(spoon_path)
 scale_HomogenousMesh!(mesh_spoon, 0.01)  # make 0.01 of origional size or spoon will be HUGE
 # assume that the spoon in a shell of this density and thickness (d) for the purposes of inertia tensor calculation
 spoon_i_prop = InertiaProperties(rho=900.0, d=0.0025)
-spoon_joint = add_body_surface_mesh!(ts, "spoon", mesh_spoon, spoon_i_prop)  # adds body and calculates inertia from the surface mesh
+_, spoon_joint = add_body_surface_mesh!(ts, "spoon", mesh_spoon, spoon_i_prop)  # adds body and calculates inertia from the surface mesh
 
 ### Friction pairs
 add_pair_rigid_compliant_bristle_tune_tri!(ts, "spoon", up_name)
