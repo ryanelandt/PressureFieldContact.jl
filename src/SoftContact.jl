@@ -72,6 +72,7 @@ export
     MeshDict,
     MeshCacheDict,
     MeshCache,
+    is_compliant,
 
     # mesh_body_utility.jl
     newBodyFromInertia,
@@ -134,6 +135,7 @@ export
     # contact_algorithms_non_friction_replace.jl
     triangle_vertices,
     tetrahedron_vertices_ϵ,
+    calc_ζ_transforms,
 
     # contact_algorithms_friction.jl
     regularized_friction,

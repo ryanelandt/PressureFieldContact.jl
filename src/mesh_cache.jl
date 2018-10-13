@@ -51,6 +51,8 @@ struct MeshCache
     end
 end
 
+is_compliant(m::MeshCache) = (m.tet == nothing)
+
 function asHomogenousMesh(meshCache::MeshCache; color::Union{Nothing, RGBA{Float32}}=nothing)
     vec_Face = Face{3, Int32}.(meshCache.tri.ind)
     vec_Point = Point{3, Float32}.(meshCache.point)

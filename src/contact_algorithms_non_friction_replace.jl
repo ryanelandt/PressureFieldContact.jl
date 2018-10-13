@@ -11,3 +11,10 @@ function tetrahedron_vertices_ϵ(i_tet::Int64, m::MeshCache)
     cart_vert = m.point[ind_vert]
     return cart_vert, ϵ
 end
+
+function calc_ζ_transforms(frame_ζ::CartesianFrame3D, frame_r ::CartesianFrame3D, p_tet, x_r_w, x_w_r)
+    x_r_ζ = MatrixTransform(frame_ζ, frame_r, asMatOnePad(p_tet))
+    x_w_ζ_top = getTop(x_w_r * x_r_ζ)
+    x_ζ_w = inv(x_r_ζ) * x_r_w  # NOTE: inv(A_r¹_ζ) is **always** Float64
+    return x_w_ζ_top, x_ζ_w
+end
