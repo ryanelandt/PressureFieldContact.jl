@@ -143,7 +143,7 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, name_tri::String, name
         frac_ϵ = 1.0
     else
         mat_tri = mesh_cache_tri.c_prop
-        μ = calcMutualMu(mat_tri, mat_tet)
+        μ = calc_mutual_μ(mat_tri, mat_tet)
         hC_tri = calculateExtrensicCompliance(mat_tri)
         hC_tet = calculateExtrensicCompliance(mat_tet)
         (hC_tet == 0.0) && error("compliance f tet mesh is rigid because its compliance is zero")

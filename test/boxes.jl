@@ -76,9 +76,6 @@ color_green = RGBA{Float32}(0.0, 1.0, 0.0, 1.0)
 color_blue  = RGBA{Float32}(0.0, 0.0, 1.0, 1.0)
 mvis = MechanismVisualizer(my_mechanism, vis)
 lo_h_mesh_32 = HomogenousMesh_32(plane_h_mesh, color=color_gray)
-# lo_h_mesh_32 = HomogenousMesh(vertices=get_h_mesh_vertices_32(plane_h_mesh),
-#                               faces=get_h_mesh_faces_32(plane_h_mesh),
-#                               color=color_gray)
 setobject!(vis, lo_h_mesh_32)
 set_body_mesh_visual!(mvis, mech_scen, box_1_name, color_red)
 set_body_mesh_visual!(mvis, mech_scen, box_2_name, color_blue)

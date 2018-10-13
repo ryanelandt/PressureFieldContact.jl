@@ -1,9 +1,5 @@
 
 function create_surface_half_plane(plane_w::Float64=1.0)
-    # R_z = RotZ(2*pi/3)
-    # v1 = SVector{3,Float64}(1.0, 0.0, 0.0) * plane_w
-    # v2 = R_z * v1
-    # v3 = R_z * v2
     v1, v2, v3 = [SVector{3,Float64}(cos(theta), sin(theta), 0.0) for theta = (0.0, 2*pi/3, 4*pi/3)]
     v4 = SVector{3,Float64}(0.0, 0.0, -1.0) * plane_w
     plane_vertices = [v1, v2, v3, v4]
@@ -128,26 +124,3 @@ function twoTriangles!(v_tri, i_in)
     push!(v_tri, i_in[SVector{3, Int64}(1,4,2)])
     return nothing
 end
-
-# function outputBoxVolMesh(;center::SVector{3,Float64}=SVector{3,Float64}(0,0,0),
-#                           fill_frac::SVector{3,Float64}=SVector{3,Float64}(1,1,1),
-#                           rad::SVector{3,Float64}=SVector{3,Float64}(1,1,1))
-#
-#     all(0.01 .<= fill_frac .<= 1.0) || error("foam depth needs to be between 0.01 and 1.0 of box radius")
-#     rad_inner = rad .* (1 .- fill_frac)
-#     points_16 = vcat(sizeCenterBoxPoints(rad, center), sizeCenterBoxPoints(rad_inner, center))
-#     dict_points = determineUniquePoints(points_16)
-#     vec_nondegenerate_tet = Vector{SVector{4,Int64}}()
-#     for ind_k = outputDividedCube()
-#         ss_k = SVector{4,Int64}([dict_points[k] for k = points_16[ind_k]])
-#         (length(unique(ss_k)) == 4) && push!(vec_nondegenerate_tet, ss_k)
-#     end
-#     points_12 = Vector{SVector{3,Float64}}(undef, length(dict_points))
-#     for (key_k, k) = dict_points
-#         points_12[k] = key_k
-#     end
-#     strain = [ifelse(k <= 8, 0.0, -1.0) for k = 1:length(points_12)]
-#
-#     mesh_box = HomogenousMesh(vertices=points_12, faces=outputBoxTriInd())
-#     return mesh_box, vec_nondegenerate_tet, strain
-# end
