@@ -8,6 +8,7 @@ end
 function tetrahedron_vertices_ϵ(i_tet::Int64, m::MeshCache)
     ind_vert = m.tet.tet.ind[i_tet]
     ϵ = m.tet.ϵ[ind_vert]
+    ϵ = SMatrix{1,4,Float64,4}(ϵ)
     cart_vert = m.point[ind_vert]
     return cart_vert, ϵ
 end

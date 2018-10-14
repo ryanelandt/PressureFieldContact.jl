@@ -34,6 +34,9 @@ function Tri_Tet_Intersections.tet_clip_poly_to_cartesian!(poly_3D::ClippedPolyg
     tet_clip_poly_to_cartesian!(poly_3D, poly_4D_1, A_w_ζ_top.mat)
     return nothing
 end
+function Tri_Tet_Intersections.unPad(p::Point4D{SVector{4,T}}) where {T}
+    return Point3D(p.frame, SVector{3,T}(p.v[1], p.v[2], p.v[3]))
+end
 
 ### Base ###
 function Base.copyto!(dest::TypedMechanismScenario{N,T}, src::AbstractVector{T}) where {N,T}

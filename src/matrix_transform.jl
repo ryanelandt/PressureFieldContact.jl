@@ -28,8 +28,11 @@ Base.:*(t::MatrixTransform{4,4,T,16}, point::Point4D{SVector{4,T}}) where {T} = 
 
 getPoint(c::ClippedPolygon{3,T}, k::Int64) where {T} = Point3D(c.frame, c[k])
 getPoint(c::ClippedPolygon{4,T}, k::Int64) where {T} = Point4D(c.frame, c[k])
-getPoint(c::NTuple{N,SVector{3,T}}, frame::CartesianFrame3D, k::Int64) where {N,T} = Point3D(frame, c[k])
-getPoint(c::NTuple{N,SVector{4,T}}, frame::CartesianFrame3D, k::Int64) where {N,T} = Point4D(frame, c[k])
+# getPoint(c::NTuple{N,SVector{3,T}}, frame::CartesianFrame3D, k::Int64) where {N,T} = Point3D(frame, c[k])
+# getPoint(c::NTuple{N,SVector{4,T}}, frame::CartesianFrame3D, k::Int64) where {N,T} = Point4D(frame, c[k])
+getPoint(p::poly_eight{3,T}, frame::CartesianFrame3D, k::Int64) where {T} = Point3D(frame, p[k])
+getPoint(p::poly_eight{4,T}, frame::CartesianFrame3D, k::Int64) where {T} = Point4D(frame, p[k])
+
 
 function Base.hcat(p1::Point4D{T}, p2::Point4D{T}, p3::Point4D{T}) where {T}
     @framecheck(p1.frame, p2.frame)
