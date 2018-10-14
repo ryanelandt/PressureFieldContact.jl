@@ -59,6 +59,8 @@ calc_mutual_μ(a::Nothing, b::TetMesh) = calc_mutual_μ(b, a)
 calc_mutual_μ(a::TetMesh, b::TetMesh) = sqrt(a.c_prop.μ * b.c_prop.μ)
 calc_mutual_μ(a::MeshCache, b::MeshCache) = calc_mutual_μ(a.tet, b.tet)
 
+get_Ē(m::MeshCache) = m.tet.c_prop.Ē
+
 function asHomogenousMesh(meshCache::MeshCache; color::Union{Nothing, RGBA{Float32}}=nothing)
     vec_Face = Face{3, Int32}.(meshCache.tri.ind)
     vec_Point = Point{3, Float32}.(meshCache.point)

@@ -92,8 +92,8 @@ end
 
 function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScenario{N,T}, con_ins_k::ContactInstructions) where {N,T}
     b = tm.bodyBodyCache
-    b.mesh_1 = m.MeshCache[con_ins_k.id_tri]
-    b.mesh_2 = m.MeshCache[con_ins_k.id_tet]
+    b.mesh_1 = m.MeshCache[con_ins_k.id_1]
+    b.mesh_2 = m.MeshCache[con_ins_k.id_2]
     b.x_w_r¹ = transform_to_root(tm.state, b.mesh_tri.BodyID)  # TODO: add safe=false
     b.x_w_r² = transform_to_root(tm.state, b.mesh_tet.BodyID)  # TODO: add safe=false
     b.x_r²_w = inv(b.x_w_r²)
@@ -239,9 +239,8 @@ function calcTangentialVelocity(twist_tri_tet::Twist{T}, p_cart_qp::Point3D{SVec
 end
 
 function addGeneralizedForcesThirdLaw!(wrench::Wrench{T}, tm::TypedMechanismScenario{N,T}, cInfo::ContactInstructions) where {N,T}
-    coeff = cInfo.frac_linear_weight
-    addGeneralizedForcesExternal!(wrench,  coeff, tm, tm.bodyBodyCache.mesh_tri.BodyID)
-    addGeneralizedForcesExternal!(wrench, -coeff, tm, tm.bodyBodyCache.mesh_tet.BodyID)
+    addGeneralizedForcesExternal!(wrench,  1.0, tm, tm.bodyBodyCache.mesh_1.BodyID)
+    addGeneralizedForcesExternal!(wrench, -1.0, tm, tm.bodyBodyCache.mesh_2.BodyID)
     return nothing
 end
 

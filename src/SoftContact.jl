@@ -72,6 +72,7 @@ export
     MeshCacheDict,
     MeshCache,
     is_compliant,
+    get_Ē,
 
     # mesh_body_utility.jl
     newBodyFromInertia,

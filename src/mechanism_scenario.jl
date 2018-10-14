@@ -43,16 +43,18 @@ mutable struct TypedTriTetCache{T}
 end
 
 mutable struct TypedElasticBodyBodyCache{N,T}
+    frame_world::CartesianFrame3D
     quad::TriTetQuadRule{3,N}
     triTetCache::TypedTriTetCache{T}
     TractionCache::VectorCache{TractionCache{N,T}}
     mesh_1::MeshCache
     mesh_2::MeshCache
-    x_w_r¹::Transform3D{T}
-    x_w_r²::Transform3D{T}
-    x_r²_w::Transform3D{T}
+    x_rʷ_r¹::Transform3D{T}
+    x_rʷ_r²::Transform3D{T}
+    x_r²_rʷ::Transform3D{T}
+    x_r¹_rʷ::Transform3D{T}
     twist_r¹_r²::Twist{T}
-    frac_ϵ::Float64
+    # frac_ϵ::Float64
     χ::Float64
     μ::Float64
     Ē::Float64
@@ -61,7 +63,7 @@ mutable struct TypedElasticBodyBodyCache{N,T}
         triTetCache = TypedTriTetCache{T}(frame_world)
         tc = TractionCache(N, T)
         trac_cache = VectorCache(tc)
-        return new{N,T}(quad, triTetCache, trac_cache)
+        return new{N,T}(frame_world, quad, triTetCache, trac_cache)
     end
 end
 
@@ -73,6 +75,7 @@ struct TypedMechanismScenario{N,T}
     f_generalized::Vector{T}
     bodyBodyCache::TypedElasticBodyBodyCache{N,T}
     GeometricJacobian::RigidBodyDynamics.CustomCollections.CacheIndexDict{BodyID,Base.OneTo{BodyID},Union{Nothing,GeometricJacobian{Array{T,2}}}}
+    frame_world::CartesianFrame3D  # TODO: does this need to be here?
     function TypedMechanismScenario{N,T}(mechanism::Mechanism, quad::TriTetQuadRule{3,N}, v_path, body_ids, n_bristle_pairs::Int64) where {N,T}
         function makeJacobian(v_path, state::MechanismState{T}, body_ids::Base.OneTo{BodyID}) where {T}
             v_jac = RigidBodyDynamics.BodyCacheDict{Union{Nothing,GeometricJacobian{Array{T,2}}}}(body_ids)
@@ -100,7 +103,7 @@ struct TypedMechanismScenario{N,T}
         n_dof_bristle = 6 * n_bristle_pairs
         s = SegmentedVector{BristleID}(zeros(T, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
         ṡ = SegmentedVector{BristleID}(zeros(T, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
-        return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac)
+        return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac, root_frame(mechanism))
     end
 end
 
