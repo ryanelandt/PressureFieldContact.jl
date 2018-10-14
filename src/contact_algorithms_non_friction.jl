@@ -22,27 +22,27 @@ function verify_bristle_ids!(m::MechanismScenario{N,T}, x::Vector{Float64}) wher
     return nothing
 end
 
-calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.dual)
-calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.float)
-function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{N,T2}, tm::TypedMechanismScenario{N,T1}) where {N,T1,T2}
-    state = tm.state
-    any(isnan.(x)) && error("nan in x")
-    copyto!(tm, x)
-    any(isnan.(state.q)) && error("nan in state.q")  # isnan
-    any(isnan.(state.v)) && error("nan in state.v")  # isnan
-    H = tm.result.massmatrix
-    mass_matrix!(H, state)
-    dynamics_bias!(tm.result, state)
-    configuration_derivative!(tm.result.q̇, state)
-    forceAllElasticIntersections!(m, tm)
-    f_generalized = tm.f_generalized
-    any(isnan.(f_generalized)) && error("nan in tm.f_gen_cum")  # isnan
-    C = tm.result.dynamicsbias.parent
-    rhs = -C + f_generalized + m.τ_ext
-    tm.result.v̇ .= H \ rhs
-    copyto!(xx, tm, tm.result)
-    return nothing
-end
+# calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.dual)
+# calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.float)
+# function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{N,T2}, tm::TypedMechanismScenario{N,T1}) where {N,T1,T2}
+#     state = tm.state
+#     any(isnan.(x)) && error("nan in x")
+#     copyto!(tm, x)
+#     any(isnan.(state.q)) && error("nan in state.q")  # isnan
+#     any(isnan.(state.v)) && error("nan in state.v")  # isnan
+#     H = tm.result.massmatrix
+#     mass_matrix!(H, state)
+#     dynamics_bias!(tm.result, state)
+#     configuration_derivative!(tm.result.q̇, state)
+#     forceAllElasticIntersections!(m, tm)
+#     f_generalized = tm.f_generalized
+#     any(isnan.(f_generalized)) && error("nan in tm.f_gen_cum")  # isnan
+#     C = tm.result.dynamicsbias.parent
+#     rhs = -C + f_generalized + m.τ_ext
+#     tm.result.v̇ .= H \ rhs
+#     copyto!(xx, tm, tm.result)
+#     return nothing
+# end
 
 function refreshJacobians!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenario{N,T2}) where {N,T1,T2}
     for k = m.body_ids
@@ -52,34 +52,34 @@ function refreshJacobians!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenari
     return nothing
 end
 
-function forceAllElasticIntersections!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenario{N,T2}) where {N,T1,T2}
-    refreshJacobians!(m, tm)
-    tm.f_generalized .= zero(T2)
-    for k = 1:length(m.ContactInstructions)
-        con_ins_k = m.ContactInstructions[k]
-        calcTriTetIntersections!(m, con_ins_k)
-        is_intersections = (0 != length(m.TT_Cache))
-        is_bristle = (con_ins_k.BristleFriction != nothing)
-        is_no_wrench = true
-        if is_intersections | is_bristle
-            if is_intersections
-                refreshBodyBodyCache!(m, tm, con_ins_k)
-                integrateOverContactPatch!(tm.bodyBodyCache, m.TT_Cache)
-                if !isempty(tm.bodyBodyCache.TractionCache)
-                    is_no_wrench = false
-                    if is_bristle
-                        wrench = bristle_friction!(m.frame_world, tm, con_ins_k)
-                    else
-                        wrench = regularized_friction(m.frame_world, tm.bodyBodyCache)
-                    end
-                    addGeneralizedForcesThirdLaw!(wrench, tm, con_ins_k)
-                end
-            end
-        end
-        (is_bristle & is_no_wrench) && bristle_friction_no_contact!(tm, con_ins_k)
-    end
-    return nothing
-end
+# function forceAllElasticIntersections!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenario{N,T2}) where {N,T1,T2}
+#     refreshJacobians!(m, tm)
+#     tm.f_generalized .= zero(T2)
+#     for k = 1:length(m.ContactInstructions)
+#         con_ins_k = m.ContactInstructions[k]
+#         calcTriTetIntersections!(m, con_ins_k)
+#         is_intersections = (0 != length(m.TT_Cache))
+#         is_bristle = (con_ins_k.BristleFriction != nothing)
+#         is_no_wrench = true
+#         if is_intersections | is_bristle
+#             if is_intersections
+#                 refreshBodyBodyCache!(m, tm, con_ins_k)
+#                 integrateOverContactPatch!(tm.bodyBodyCache, m.TT_Cache)
+#                 if !isempty(tm.bodyBodyCache.TractionCache)
+#                     is_no_wrench = false
+#                     if is_bristle
+#                         wrench = bristle_friction!(m.frame_world, tm, con_ins_k)
+#                     else
+#                         wrench = regularized_friction(m.frame_world, tm.bodyBodyCache)
+#                     end
+#                     addGeneralizedForcesThirdLaw!(wrench, tm, con_ins_k)
+#                 end
+#             end
+#         end
+#         (is_bristle & is_no_wrench) && bristle_friction_no_contact!(tm, con_ins_k)
+#     end
+#     return nothing
+# end
 
 function calcTriTetIntersections!(m::MechanismScenario, con_ins_k::ContactInstructions) where {N,T}
     b = m.float.bodyBodyCache  # this can be float because intersection is assumed to not depend on partials
@@ -92,11 +92,12 @@ end
 
 function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScenario{N,T}, con_ins_k::ContactInstructions) where {N,T}
     b = tm.bodyBodyCache
-    b.mesh_tri = m.MeshCache[con_ins_k.id_tri]
-    b.mesh_tet = m.MeshCache[con_ins_k.id_tet]
-    b.x_root_tri = transform_to_root(tm.state, b.mesh_tri.BodyID)  # TODO: add safe=false
-    b.x_root_tet = transform_to_root(tm.state, b.mesh_tet.BodyID)  # TODO: add safe=false
-    b.x_tet_root = inv(b.x_root_tet)
+    b.mesh_1 = m.MeshCache[con_ins_k.id_tri]
+    b.mesh_2 = m.MeshCache[con_ins_k.id_tet]
+    b.x_w_r¹ = transform_to_root(tm.state, b.mesh_tri.BodyID)  # TODO: add safe=false
+    b.x_w_r² = transform_to_root(tm.state, b.mesh_tet.BodyID)  # TODO: add safe=false
+    b.x_r²_w = inv(b.x_w_r²)
+    b.x_r¹_w = inv(b.x_w_r¹)
     return nothing
 end
 
@@ -105,18 +106,18 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     empty!(b.TractionCache)
     refreshBodyBodyTransform!(m, tm, con_ins_k)
 
-    mat_tet = b.mesh_tet.tet.c_prop
-    twist_root_tri = twist_wrt_world(tm.state, b.mesh_tri.BodyID)
-    twist_root_tet = twist_wrt_world(tm.state, b.mesh_tet.BodyID)
+    mat_2 = b.mesh_tet.tet.c_prop
+    twist_w_r¹ = twist_wrt_world(tm.state, b.mesh_1.BodyID)
+    twist_w_r² = twist_wrt_world(tm.state, b.mesh_2.BodyID)
 
-    b.twist_tri_tet = -twist_root_tet + twist_root_tri  # velocity of tri wrt tet exp in world
+    b.twist_tri_tet = -twist_w_r² + twist_w_r¹  # velocity of tri wrt tet exp in world
 
     b.frac_ϵ = con_ins_k.frac_ϵ
     b.μ = con_ins_k.μ_pair
 
-    b.Ē = mat_tet.Ē
-    b.χ = mat_tet.χ
-    b.d⁻¹ = mat_tet.d⁻¹
+    b.Ē = mat_t.Ē
+    b.χ = mat_2.χ
+    b.d⁻¹ = mat_2.d⁻¹
     return nothing
 end
 

@@ -9,16 +9,15 @@ struct BristleFriction
 end
 
 mutable struct ContactInstructions
-    id_tri::MeshID
-    id_tet::MeshID
-    frac_ϵ::Float64
-    frac_linear_weight::Float64
+    id_1::MeshID  # tri or tet
+    id_2::MeshID
+    mutual_compliance::Bool
     μ_pair::Float64
     BristleFriction::Union{Nothing,BristleFriction}
-    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, frac_ϵ::Float64, frac_linear_weight::Float64,
-        μ_pair::Float64, fric_model::Union{Nothing,BristleFriction})
+    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, mutual_compliance::Bool, μ_pair::Float64,
+            fric_model::Union{Nothing,BristleFriction})
 
-        return new(id_tri, id_tet, frac_ϵ, frac_linear_weight, μ_pair, fric_model)
+        return new(id_tri, id_tet, mutual_compliance, μ_pair, fric_model)
     end
 end
 
@@ -128,32 +127,54 @@ end
 findMesh(ts::MeshCacheDict{MeshCache}, name::String) = ts[findmesh(ts, name)]
 add_pair_rigid_compliant_regularize!(ts::TempContactStruct, name_tri::String, name_tet::String) = add_pair_rigid_compliant!(ts, name_tri, name_tet, nothing)
 
-function add_pair_rigid_compliant!(ts::TempContactStruct, name_tri::String, name_tet::String, friction_model::Union{Nothing,BristleFriction})
-    mesh_id_tri = findmesh(ts.MeshCache, name_tri)
-    mesh_id_tet = findmesh(ts.MeshCache, name_tet)
-    (1 <= mesh_id_tri) || error("invalid tri mesh id $mesh_id_tri")
-    (1 <= mesh_id_tet) || error("invalid tet mesh id $mesh_id_tet")
-    (mesh_id_tri == mesh_id_tet) && error("tri_mesh and tet_mesh id are the same $mesh_id_tri")
-    mesh_cache_tri = ts.MeshCache[mesh_id_tri]
-    mesh_cache_tet = ts.MeshCache[mesh_id_tet]
-    (mesh_cache_tet.tet == nothing) && error("compliant mesh named $name_tet has no volume mesh")
-    mat_tet = mesh_cache_tet.tet.c_prop
-    if mesh_cache_tri.tet == nothing
-        μ = mat_tet.μ
-        frac_ϵ = 1.0
+# function add_pair_rigid_compliant!(ts::TempContactStruct, name_tri::String, name_tet::String, friction_model::Union{Nothing,BristleFriction})
+#     mesh_id_tri = findmesh(ts.MeshCache, name_tri)
+#     mesh_id_tet = findmesh(ts.MeshCache, name_tet)
+#     (1 <= mesh_id_tri) || error("invalid tri mesh id $mesh_id_tri")
+#     (1 <= mesh_id_tet) || error("invalid tet mesh id $mesh_id_tet")
+#     (mesh_id_tri == mesh_id_tet) && error("tri_mesh and tet_mesh id are the same $mesh_id_tri")
+#     mesh_cache_tri = ts.MeshCache[mesh_id_tri]
+#     mesh_cache_tet = ts.MeshCache[mesh_id_tet]
+#     (mesh_cache_tet.tet == nothing) && error("compliant mesh named $name_tet has no volume mesh")
+#     mat_tet = mesh_cache_tet.tet.c_prop
+#     if mesh_cache_tri.tet == nothing
+#         μ = mat_tet.μ
+#         frac_ϵ = 1.0
+#     else
+#         mat_tri = mesh_cache_tri.c_prop
+#         μ = calc_mutual_μ(mat_tri, mat_tet)
+#         hC_tri = calculateExtrensicCompliance(mat_tri)
+#         hC_tet = calculateExtrensicCompliance(mat_tet)
+#         (hC_tet == 0.0) && error("compliance f tet mesh is rigid because its compliance is zero")
+#         frac_ϵ = hC_tet / (hC_tri + hC_tet)
+#     end
+#     (0.0 <= μ <= 3.0) || error("mu our of range")
+#     frac_linear_weight = 1.0
+#     new_contact = ContactInstructions(mesh_id_tri, mesh_id_tet, frac_ϵ, frac_linear_weight, μ, friction_model)
+#     push!(ts.ContactInstructions, new_contact)
+#     return nothing
+# end
+
+function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2::String, friction_model::Union{Nothing,BristleFriction})
+    mesh_id_1 = findmesh(ts.MeshCache, name_1)
+    mesh_id_2 = findmesh(ts.MeshCache, name_2)
+    (1 <= mesh_id_1) || error("invalid 1 mesh id $mesh_id_1")
+    (1 <= mesh_id_2) || error("invalid 2 mesh id $mesh_id_2")
+    (mesh_id_1 == mesh_id_2) && error("1_mesh and tet_mesh id are the same $mesh_id_1")
+    mesh_cache_1 = ts.MeshCache[mesh_id_1]
+    mesh_cache_2 = ts.MeshCache[mesh_id_2]
+    is_compliant_1 = is_compliant(mesh_cache_1)
+    is_compliant_2 = is_compliant(mesh_cache_2)
+    !is_compliant_1 && !is_compliant_2 && error("neither mesh is compliant")
+    if is_compliant_1 && !is_compliant_2
+        return add_pair_rigid_compliant!(ts, name_2, name_1, friction_model)
     else
-        mat_tri = mesh_cache_tri.c_prop
-        μ = calc_mutual_μ(mat_tri, mat_tet)
-        hC_tri = calculateExtrensicCompliance(mat_tri)
-        hC_tet = calculateExtrensicCompliance(mat_tet)
-        (hC_tet == 0.0) && error("compliance f tet mesh is rigid because its compliance is zero")
-        frac_ϵ = hC_tet / (hC_tri + hC_tet)
+        μ = calc_mutual_μ(mesh_cache_1, mesh_cache_2)
+        mutual_compliance = is_compliant_1 && is_compliant_2
+        new_contact = ContactInstructions(mesh_id_1, mesh_id_2, mutual_compliance, μ, friction_model)
+        push!(ts.ContactInstructions, new_contact)
+        return nothing
     end
-    (0.0 <= μ <= 3.0) || error("mu our of range")
-    frac_linear_weight = 1.0
-    new_contact = ContactInstructions(mesh_id_tri, mesh_id_tet, frac_ϵ, frac_linear_weight, μ, friction_model)
-    push!(ts.ContactInstructions, new_contact)
-    return nothing
 end
 
 function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=10.0, K_θ::Union{Nothing,Float64}=nothing, K_r::Union{Nothing, Float64}=nothing)

@@ -29,8 +29,3 @@ end
 function calculateExtrensicCompliance(mat::ContactProperties)
     return 1 / (mat.Ē * mat.d⁻¹)
 end
-
-calc_mutual_μ(a::Nothing, b::Nothing) = error("both materials are nothing")
-calc_mutual_μ(a::ContactProperties, b::Nothing) = a.μ
-calc_mutual_μ(a::Nothing, b::ContactProperties) = calc_mutual_μ(b, a)
-calc_mutual_μ(mat_1::ContactProperties, mat_2::ContactProperties) = sqrt(mat_1.μ * mat_2.μ)

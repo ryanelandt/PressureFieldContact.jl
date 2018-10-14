@@ -51,7 +51,13 @@ struct MeshCache
     end
 end
 
-is_compliant(m::MeshCache) = (m.tet == nothing)
+is_compliant(m::MeshCache) = (m.tet != nothing)
+
+calc_mutual_μ(a::Nothing, b::Nothing) = error("both materials are nothing")
+calc_mutual_μ(a::TetMesh, b::Nothing) = a.c_prop.μ
+calc_mutual_μ(a::Nothing, b::TetMesh) = calc_mutual_μ(b, a)
+calc_mutual_μ(a::TetMesh, b::TetMesh) = sqrt(a.c_prop.μ * b.c_prop.μ)
+calc_mutual_μ(a::MeshCache, b::MeshCache) = calc_mutual_μ(a.tet, b.tet)
 
 function asHomogenousMesh(meshCache::MeshCache; color::Union{Nothing, RGBA{Float32}}=nothing)
     vec_Face = Face{3, Int32}.(meshCache.tri.ind)

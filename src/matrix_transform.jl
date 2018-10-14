@@ -31,5 +31,5 @@ getPoint(c::ClippedPolygon{4,T}, k::Int64) where {T} = Point4D(c.frame, c[k])
 function Base.hcat(p1::Point4D{T}, p2::Point4D{T}, p3::Point4D{T}) where {T}
     @framecheck(p1.frame, p2.frame)
     @framecheck(p2.frame, p3.frame)
-    return MatrixTransform(frame_tri_cs, p1.frame, hcat(p1.v, p2.v, p3.v))
+    return MatrixTransform(FRAME_ϕ, p1.frame, hcat(p1.v, p2.v, p3.v))
 end

@@ -10,7 +10,7 @@ struct TractionCache{N,T}
         return new{N,T}(traction_normal, r_cart, v_cart_t, p_dA)
     end
     function TractionCache(N, T)  # TODO: delete this when vector cache only works for immutables
-        frame = frame_tet_cs
+        frame = FRAME_ζ²
 
         traction_normal = FreeVector3D(frame, SVector{3, T}(NaN .+ zeros(3)))
         r_cart = NTuple{N,Point3D{SVector{3,T}}}([Point3D(frame, SVector{3,T}(NaN, NaN, NaN)) for k = 1:N])
@@ -26,8 +26,8 @@ mutable struct TypedQuadTriCache{T}
     clip_poly_3D::ClippedPolygon{3,T}
     area_quad_k::T
     function TypedQuadTriCache{T}(frame_world::CartesianFrame3D) where {T}
-        clip_poly_4D_1 = ClippedPolygon{4,T}(frame_tet_cs)
-        clip_poly_4D_2 = ClippedPolygon{4,T}(frame_tet_cs)
+        clip_poly_4D_1 = ClippedPolygon{4,T}(FRAME_ζ²)
+        clip_poly_4D_2 = ClippedPolygon{4,T}(FRAME_ζ²)
         clip_poly_3D = ClippedPolygon{3,T}(frame_world)
         return new(clip_poly_4D_1, clip_poly_4D_2, clip_poly_3D)
     end
@@ -46,12 +46,12 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     quad::TriTetQuadRule{3,N}
     triTetCache::TypedTriTetCache{T}
     TractionCache::VectorCache{TractionCache{N,T}}
-    mesh_tri::MeshCache
-    mesh_tet::MeshCache
-    x_root_tri::Transform3D{T}
-    x_root_tet::Transform3D{T}
-    x_tet_root::Transform3D{T}
-    twist_tri_tet::Twist{T}
+    mesh_1::MeshCache
+    mesh_2::MeshCache
+    x_w_r¹::Transform3D{T}
+    x_w_r²::Transform3D{T}
+    x_r²_w::Transform3D{T}
+    twist_r¹_r²::Twist{T}
     frac_ϵ::Float64
     χ::Float64
     μ::Float64
