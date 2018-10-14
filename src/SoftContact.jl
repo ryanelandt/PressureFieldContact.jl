@@ -63,7 +63,6 @@ export
     ContactProperties,
     InertiaProperties,
     calculateExtrensicCompliance,
-    calcMutualMu,
 
     # mesh_cache.jl
     TetMesh,
