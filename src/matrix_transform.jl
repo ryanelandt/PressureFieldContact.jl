@@ -26,8 +26,6 @@ Base.:*(t::MatrixTransform{3,4,T,12}, point::Point4D{SVector{4,T}}) where {T} = 
 Base.:*(t::MatrixTransform{4,4,T,16}, point::Point4D{SVector{4,T}}) where {T} = begin @framecheck(t.from, point.frame); Point4D(t.to, t.mat * point.v) end
 @inline LinearAlgebra.inv(t::MatrixTransform{N,N,T,N1}) where {N,T,N1} = MatrixTransform(t.to, t.from, inv(t.mat))
 
-getPoint(c::ClippedPolygon{3,T}, k::Int64) where {T} = Point3D(c.frame, c[k])
-getPoint(c::ClippedPolygon{4,T}, k::Int64) where {T} = Point4D(c.frame, c[k])
 # getPoint(c::NTuple{N,SVector{3,T}}, frame::CartesianFrame3D, k::Int64) where {N,T} = Point3D(frame, c[k])
 # getPoint(c::NTuple{N,SVector{4,T}}, frame::CartesianFrame3D, k::Int64) where {N,T} = Point4D(frame, c[k])
 getPoint(p::poly_eight{3,T}, frame::CartesianFrame3D, k::Int64) where {T} = Point3D(frame, p[k])
