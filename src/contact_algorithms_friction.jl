@@ -1,11 +1,27 @@
+# function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+#     wrench = zeroWrench(frame, T)
+#     for k_trac = 1:length(b.TractionCache)
+#         trac = b.TractionCache[k_trac]
+#         for k = 1:N
+#             cart_vel_crw_t = trac.v_cart_t[k]
+#             mag_vel_t  = norm(cart_vel_crw_t.v)
+#             μ_reg     = b.μ * fastSigmoid(mag_vel_t)
+#             traction_k = trac.p_dA[k] * (trac.traction_normal - μ_reg * safe_normalize(cart_vel_crw_t))
+#             wrench += Wrench(trac.r_cart[k], traction_k)
+#         end
+#     end
+#     return wrench
+# end
+
 function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-    wrench = zeroWrench(frame, T)
+    wrench = zero(Wrench{T}, frame)
+
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         for k = 1:N
             cart_vel_crw_t = trac.v_cart_t[k]
-            mag_vel_t  = norm(cart_vel_crw_t.v)
-            μ_reg     = b.μ * fastSigmoid(mag_vel_t)
+            mag_vel_t = safe_norm(cart_vel_crw_t.v)
+            μ_reg = b.μ * fastSigmoid(mag_vel_t)
             traction_k = trac.p_dA[k] * (trac.traction_normal - μ_reg * safe_normalize(cart_vel_crw_t))
             wrench += Wrench(trac.r_cart[k], traction_k)
         end
