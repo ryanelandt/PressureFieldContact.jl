@@ -21,15 +21,18 @@ struct TractionCache{N,T}
 end
 
 mutable struct TypedQuadTriCache{T}
-    clip_poly_4D_1::ClippedPolygon{4,T}
-    clip_poly_4D_2::ClippedPolygon{4,T}
-    clip_poly_3D::ClippedPolygon{3,T}
+    # clip_poly_4D_1::ClippedPolygon{4,T}
+    # clip_poly_4D_2::ClippedPolygon{4,T}
+    # clip_poly_3D::ClippedPolygon{3,T}
     area_quad_k::T
     function TypedQuadTriCache{T}(frame_world::CartesianFrame3D) where {T}
-        clip_poly_4D_1 = ClippedPolygon{4,T}(FRAME_ζ²)
-        clip_poly_4D_2 = ClippedPolygon{4,T}(FRAME_ζ²)
-        clip_poly_3D = ClippedPolygon{3,T}(frame_world)
-        return new(clip_poly_4D_1, clip_poly_4D_2, clip_poly_3D)
+        # clip_poly_4D_1 = ClippedPolygon{4,T}(FRAME_ζ²)
+        # clip_poly_4D_2 = ClippedPolygon{4,T}(FRAME_ζ²)
+        # clip_poly_3D = ClippedPolygon{3,T}(frame_world)
+        return new{T}() # new(clip_poly_4D_1, clip_poly_4D_2, clip_poly_3D)
+    end
+    function TypedQuadTriCache{T}() where {T}
+        return new{T}()
     end
 end
 
