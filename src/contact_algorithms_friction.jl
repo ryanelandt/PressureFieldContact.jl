@@ -107,7 +107,6 @@ function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFr
     λ_r_s_w, τ_θ_s_w, r̄_w, p_dA_patch = bristle_no_slip_force_moment(b, frame_w, BF, c_θ, c_r)
     T_θ_dA = calc_T_θ_dA(b, τ_θ_s_w, r̄_w)
     wrench_λ_r̄_w = zero(Wrench{T}, frame_w)
-
     const_λ_term = λ_r_s_w * safe_scalar_divide(one(T), p_dA_patch)
     @inbounds begin
     for k_trac = 1:length(b.TractionCache)
@@ -138,23 +137,23 @@ function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFr
     τ_θ = soft_clamp(τ_θ, τ_θ_s_w)
     ang_term = τ_θ + cross(r̄_w, λ_r)
     wrench_λ_w = Wrench(frame_w, ang_term.v, λ_r.v)
-    λ_r = transform(λ_r, b.x_tet_root)
-    τ_θ = transform(τ_θ, b.x_tet_root)
+    λ_r = transform(λ_r, b.x_r²_rʷ)
+    τ_θ = transform(τ_θ, b.x_r²_rʷ)
 
     return wrench_λ_w, τ_θ, λ_r
 end
-
 
 function bristle_no_slip_force_moment(b::TypedElasticBodyBodyCache{N,T}, frame_w::CartesianFrame3D,
     BF::BristleFriction, c_θ::FreeVector3D{SVector{3,T}}, c_r::FreeVector3D{SVector{3,T}}) where {N,T}
 
     inv_τ = 1 / BF.τ
-    twist_r_c_w = b.twist_tri_tet
+    twist_r¹_r²_rʷ = b.twist_r¹_r²
+
     r̄_w, p_dA_patch = find_contact_pressure_center(b)
-    ċ_r_rel = point_velocity(twist_r_c_w, r̄_w)
-    c_w_rel = FreeVector3D(frame_w, angular(twist_r_c_w))
-    c_θ = transform(c_θ, b.x_root_tet)
-    c_r = transform(c_r, b.x_root_tet)
+    ċ_r_rel = point_velocity(twist_r¹_r²_rʷ, r̄_w)
+    c_w_rel = FreeVector3D(frame_w, angular(twist_r¹_r²_rʷ))
+    c_θ = transform(c_θ, b.x_rʷ_r²)
+    c_r = transform(c_r, b.x_rʷ_r²)
     λ_r_s_w = -BF.K_r * (c_r + inv_τ * ċ_r_rel)
     τ_θ_s_w = -BF.K_θ * (c_θ + inv_τ * c_w_rel)
     return λ_r_s_w, τ_θ_s_w, r̄_w, p_dA_patch
