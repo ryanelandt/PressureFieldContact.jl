@@ -1,17 +1,3 @@
-# function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-#     wrench = zeroWrench(frame, T)
-#     for k_trac = 1:length(b.TractionCache)
-#         trac = b.TractionCache[k_trac]
-#         for k = 1:N
-#             cart_vel_crw_t = trac.v_cart_t[k]
-#             mag_vel_t  = norm(cart_vel_crw_t.v)
-#             μ_reg     = b.μ * fastSigmoid(mag_vel_t)
-#             traction_k = trac.p_dA[k] * (trac.traction_normal - μ_reg * safe_normalize(cart_vel_crw_t))
-#             wrench += Wrench(trac.r_cart[k], traction_k)
-#         end
-#     end
-#     return wrench
-# end
 
 function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
     wrench = zero(Wrench{T}, frame)
@@ -47,7 +33,7 @@ function find_contact_pressure_center(b::TypedElasticBodyBodyCache{N,T}) where {
 end
 
 function normal_wrench(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-    wrench = zeroWrench(frame, T)
+    wrench = zero(Wrench{T}, frame)
     @inbounds begin
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
@@ -120,7 +106,8 @@ function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFr
 
     λ_r_s_w, τ_θ_s_w, r̄_w, p_dA_patch = bristle_no_slip_force_moment(b, frame_w, BF, c_θ, c_r)
     T_θ_dA = calc_T_θ_dA(b, τ_θ_s_w, r̄_w)
-    wrench_λ_r̄_w = zeroWrench(frame_w, T)
+    wrench_λ_r̄_w = zero(Wrench{T}, frame_w)
+
     const_λ_term = λ_r_s_w * safe_scalar_divide(one(T), p_dA_patch)
     @inbounds begin
     for k_trac = 1:length(b.TractionCache)
@@ -187,7 +174,7 @@ function bristle_friction!(frame_w::CartesianFrame3D, tm::TypedMechanismScenario
     b = tm.bodyBodyCache
     BF = c_ins.BristleFriction
     bristle_id = BF.BristleID
-    frame_c = b.mesh_tet.FrameID
+    frame_c = b.mesh_2.FrameID
     c_θ, c_r = bristle_deformation(frame_c, tm, bristle_id)
     wrench_λ_w, τ_θ, λ_r = bristle_friction_inner(b, BF, c_ins, frame_w, c_θ, c_r)
     wrench_t_w = normal_wrench(frame_w, b) + wrench_λ_w

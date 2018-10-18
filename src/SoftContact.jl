@@ -50,7 +50,6 @@ export
     num_partials,
     type_dual,
     fill_with_nothing!,
-    zeroWrench,
     mat_mul_SA_bug_circumvent,
     add_h_mesh_color,
 

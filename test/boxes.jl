@@ -84,9 +84,8 @@ set_body_mesh_visual!(mvis, mech_scen, box_4_name, color_red)
 set_configuration!(mech_scen, mvis, x)
 
 ### Run forward dynamics
-h = 0.004
 t_final = 5.0e-0
-@time data_time, data_state, data_k_iter = integrate_scenario_radau(mech_scen, x*1, t_final=t_final, h_max=h)
+@time data_time, data_state, rr = integrate_scenario_radau(mech_scen, x*1, t_final=t_final)
 println("Finished compiling and running simulation beginning visualization")
 
 ### Move camera
