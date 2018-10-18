@@ -21,15 +21,9 @@ struct TractionCache{N,T}
 end
 
 mutable struct TypedQuadTriCache{T}
-    # clip_poly_4D_1::ClippedPolygon{4,T}
-    # clip_poly_4D_2::ClippedPolygon{4,T}
-    # clip_poly_3D::ClippedPolygon{3,T}
     area_quad_k::T
     function TypedQuadTriCache{T}(frame_world::CartesianFrame3D) where {T}
-        # clip_poly_4D_1 = ClippedPolygon{4,T}(FRAME_ζ²)
-        # clip_poly_4D_2 = ClippedPolygon{4,T}(FRAME_ζ²)
-        # clip_poly_3D = ClippedPolygon{3,T}(frame_world)
-        return new{T}() # new(clip_poly_4D_1, clip_poly_4D_2, clip_poly_3D)
+        return new{T}()
     end
     function TypedQuadTriCache{T}() where {T}
         return new{T}()
@@ -57,7 +51,6 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     x_r²_rʷ::Transform3D{T}
     x_r¹_rʷ::Transform3D{T}
     twist_r¹_r²::Twist{T}
-    # frac_ϵ::Float64
     χ::Float64
     μ::Float64
     Ē::Float64

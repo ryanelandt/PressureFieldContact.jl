@@ -14,12 +14,12 @@ using NumericalTricks
 using LinearAlgebra
 using Radau
 
+
 const FRAME_ζ¹ = CartesianFrame3D("FRAME_ζ¹")
 const FRAME_ζ² = CartesianFrame3D("FRAME_ζ²")
 const FRAME_ϕ = CartesianFrame3D("FRAME_ϕ")
 
 include("mesh_inertia.jl")
-include("utility.jl")
 include("matrix_transform.jl")
 include("material.jl")
 include("mesh_cache.jl")
@@ -33,6 +33,7 @@ include("contact_algorithms_friction.jl")
 include("primitive_meshes.jl")
 include("vis_meshcat.jl")
 include("example_integrator.jl")
+include("utility.jl")
 
 export
     FRAME_ζ¹,
@@ -43,13 +44,6 @@ export
     makeInertiaTensor,
     centroidVolumeCombo,
     equiv_volume,
-
-    # utility.jl
-    num_partials,
-    type_dual,
-    fill_with_nothing!,
-    mat_mul_SA_bug_circumvent,
-    add_h_mesh_color,
 
     # matrix_transform.jl
     Point4D,
@@ -153,6 +147,14 @@ export
     play_recorded_data,
 
     # example_integrator.jl
-    integrate_scenario_radau
+    integrate_scenario_radau,
+
+    # utility.jl
+    num_partials,
+    type_dual,
+    fill_with_nothing!,
+    mat_mul_SA_bug_circumvent,
+    add_h_mesh_color
+
 
 end

@@ -51,9 +51,10 @@ end
 
 ### Volume ###
 function add_body_volume_mesh!(ts::TempContactStruct, name::String, h_mesh::HomogenousMesh, tet_mesh::TetMesh,
-        inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}()) where {JT<:JointType}
+        inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}(),
+        body_parent::Union{RigidBody{Float64},Nothing}=nothing) where {JT<:JointType}
 
-    body, joint = add_body_volume!(ts.mechanism, name, h_mesh, tet_mesh, inertia_prop, joint=joint)
+    body, joint = add_body_volume!(ts.mechanism, name, h_mesh, tet_mesh, inertia_prop, joint=joint, body_parent=body_parent)
     add_volume_mesh!(ts, body, name, h_mesh, tet_mesh, inertia_prop)
     return body, joint
 end
@@ -65,35 +66,38 @@ function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name:
     addMesh!(ts, mesh)
 end
 
+
 function add_body_volume!(mechanism::Mechanism, name::String, h_mesh::HomogenousMesh, tet_mesh::TetMesh,
-        inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}()) where {JT<:JointType}
+        inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}(),
+        body_parent::Union{RigidBody{Float64},Nothing}=nothing) where {JT<:JointType}
 
     tet_ind = tet_mesh.tet.ind
     point = get_h_mesh_vertices(h_mesh)
     rho = inertia_prop.rho
     (inertia_prop.d == nothing) || error("assumed thickness is something but should be nothing")
     I3, com, mass, mesh_vol = makeInertiaTensor(point, tet_ind, rho)
-    return add_body_from_inertia!(mechanism, name, I3, com, mass, joint=joint)
+    return add_body_from_inertia!(mechanism, name, I3, com, mass, joint=joint, body_parent=body_parent)
 end
 
 ### Surface ###
 function add_body_surface_mesh!(ts::TempContactStruct, name::String, h_mesh::HomogenousMesh,
-        inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}()) where {JT<:JointType}
+        inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}(),
+        body_parent::Union{RigidBody{Float64},Nothing}=nothing) where {JT<:JointType}
 
-    body, joint = add_body_surface!(ts.mechanism, name, h_mesh, inertia_prop, joint=joint)
+    body, joint = add_body_surface!(ts.mechanism, name, h_mesh, inertia_prop, joint=joint, body_parent=body_parent)
     add_surface_mesh!(ts, body, name, h_mesh, inertia_prop)
     return body, joint
 end
 
 function add_surface_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, h_mesh::HomogenousMesh,
-        inertia_prop::Union{Nothing, InertiaProperties}=nothing)
+        inertia_prop::Union{Nothing,InertiaProperties}=nothing)
 
     mesh = MeshCache(name, h_mesh, body, inertia_prop)
     addMesh!(ts, mesh)
 end
 
 function add_body_surface!(mechanism::Mechanism, name::String, h_mesh::HomogenousMesh, inertia_prop::InertiaProperties;
-        joint::JT=SPQuatFloating{Float64}()) where {JT<:JointType}
+        joint::JT=SPQuatFloating{Float64}(), body_parent::Union{RigidBody{Float64},Nothing}=nothing) where {JT<:JointType}
 
     point, tri_ind = extract_HomogenousMesh_face_vertices(h_mesh)
 
@@ -101,12 +105,18 @@ function add_body_surface!(mechanism::Mechanism, name::String, h_mesh::Homogenou
     d = inertia_prop.d
     (d == nothing) && error("assumed thickness is nothing")
     I3, com, mass, mesh_vol = makeInertiaTensor(point, tri_ind, rho, d)
-    return add_body_from_inertia!(mechanism, name, I3, com, mass, joint=joint)
+    return add_body_from_inertia!(mechanism, name, I3, com, mass, joint=joint, body_parent=body_parent)
 end
 
-function add_body_from_inertia!(mechanism::Mechanism, name::String, I3, com, mass; joint::JT=SPQuatFloating{Float64}()) where {JT<:JointType}
+return_body_never_nothing(mechanism::Mechanism, body::Nothing) = root_body(mechanism)
+return_body_never_nothing(mechanism::Mechanism, body::RigidBody{Float64}) = body
+
+function add_body_from_inertia!(mechanism::Mechanism, name::String, I3::SMatrix{3,3,Float64,9},
+        com::SVector{3,Float64}, mass::Float64; joint::JT=SPQuatFloating{Float64}(),
+        body_parent::Union{RigidBody{Float64},Nothing}=nothing) where {JT<:JointType}
+
+    body_parent = return_body_never_nothing(mechanism, body_parent)
     body_child = newBodyFromInertia(name, I3, com, mass)
-    body_parent = root_body(mechanism)
     j_parent_child, x_parent_child = outputJointTransform_ParentChild(body_parent, body_child, joint, SVector{3,Float64}(0,0,0))
     attach!(mechanism, body_parent, body_child, j_parent_child, joint_pose=x_parent_child)
     return body_child, j_parent_child
@@ -124,7 +134,6 @@ function findmesh(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this
     return id
 end
 
-findMesh(ts::MeshCacheDict{MeshCache}, name::String) = ts[findmesh(ts, name)]
 add_pair_rigid_compliant_regularize!(ts::TempContactStruct, name_tri::String, name_tet::String) = add_pair_rigid_compliant!(ts, name_tri, name_tet, nothing)
 
 # function add_pair_rigid_compliant!(ts::TempContactStruct, name_tri::String, name_tet::String, friction_model::Union{Nothing,BristleFriction})

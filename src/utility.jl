@@ -14,3 +14,7 @@ end
 function add_h_mesh_color(h_mesh::HomogenousMesh; color::Union{Nothing, RGBA{Float32}}=nothing)
     return HomogenousMesh(vertices=h_mesh.vertices, faces=h_mesh.faces, color=color)
 end
+
+findMesh(mech_scen::MechanismScenario, name::String) = findMesh(mech_scen.MeshCache, name)
+findMesh(ts::TempContactStruct, name::String) = findMesh(ts.MeshCache, name)
+findMesh(ts::MeshCacheDict{MeshCache}, name::String) = ts[findmesh(ts, name)]
