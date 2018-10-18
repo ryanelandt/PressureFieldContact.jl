@@ -2,7 +2,6 @@
 struct Point4D{V<:AbstractVector}
     v::V
     frame::CartesianFrame3D
-
     @inline function Point4D(frame::CartesianFrame3D, v::V) where {V}
         @boundscheck length(v) == 4 || throw(DimensionMismatch())
         new{V}(v, frame)
@@ -26,11 +25,8 @@ Base.:*(t::MatrixTransform{3,4,T,12}, point::Point4D{SVector{4,T}}) where {T} = 
 Base.:*(t::MatrixTransform{4,4,T,16}, point::Point4D{SVector{4,T}}) where {T} = begin @framecheck(t.from, point.frame); Point4D(t.to, t.mat * point.v) end
 @inline LinearAlgebra.inv(t::MatrixTransform{N,N,T,N1}) where {N,T,N1} = MatrixTransform(t.to, t.from, inv(t.mat))
 
-# getPoint(c::NTuple{N,SVector{3,T}}, frame::CartesianFrame3D, k::Int64) where {N,T} = Point3D(frame, c[k])
-# getPoint(c::NTuple{N,SVector{4,T}}, frame::CartesianFrame3D, k::Int64) where {N,T} = Point4D(frame, c[k])
 getPoint(p::poly_eight{3,T}, frame::CartesianFrame3D, k::Int64) where {T} = Point3D(frame, p[k])
 getPoint(p::poly_eight{4,T}, frame::CartesianFrame3D, k::Int64) where {T} = Point4D(frame, p[k])
-
 
 function Base.hcat(p1::Point4D{T}, p2::Point4D{T}, p3::Point4D{T}) where {T}
     @framecheck(p1.frame, p2.frame)
