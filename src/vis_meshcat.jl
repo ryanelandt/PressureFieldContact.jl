@@ -27,14 +27,15 @@ function play_recorded_data(mvis::MechanismVisualizer, mech_scen::MechanismScena
         dt::Float64=1/60, slowdown::Float64=1.0)
 
     (size(data_state,1) == length(data_time)) || error("the length of the time vector ($(length(data_time))) needs to be the same as the rows of the state matrix ($(size(data_state,1)))")
+    (60.0 < (slowdown * data_time[end]) ) && error("total video time is greater than 1 minute you probably didn't mean to do this.")
 
     t_last_frame = -dt
     for k = 1:length(data_time)
-        if (t_last_frame + dt) < data_time[k]
+        while (t_last_frame + dt) < data_time[k]  # wait until enough real time has passed
             t_last_frame += dt
-            set_configuration!(mech_scen, mvis, data_state[k, :])
             sleep(dt * slowdown)
         end
+        set_configuration!(mech_scen, mvis, data_state[k, :])  # visualize configuration
     end
     return nothing
 end
