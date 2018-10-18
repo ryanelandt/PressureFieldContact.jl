@@ -9,7 +9,6 @@ using ColorTypes: RGBA, RGB
 using MeshCatMechanisms
 using SoftContact
 using FileIO
-# using NumericalTricks
 using GeometryTypes: HomogenousMesh
 
 
@@ -52,9 +51,8 @@ set_configuration!(mech_scen.float.state, up_joint, [0.10])
 x = get_state(mech_scen)
 
 ### Run forward dynamics
-h = 0.001
 t_final = 1.6
-@time data_time, data_state, data_k_iter = integrate_scenario_radau(mech_scen, x*1, t_final=t_final, h_max=h)
+data_time, data_state, rr = integrate_scenario_radau(mech_scen, x*1, t_final=t_final)
 println("Finished compiling and running simulation beginning visualization")
 
 ### Add meshcat visualizer
