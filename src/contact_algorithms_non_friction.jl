@@ -1,3 +1,4 @@
+
 function verify_bristle_ids!(m::MechanismScenario{N,T}, x::Vector{Float64}) where {N,T}
     copyto!(m.float, x)
 
@@ -22,27 +23,32 @@ function verify_bristle_ids!(m::MechanismScenario{N,T}, x::Vector{Float64}) wher
     return nothing
 end
 
-# calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.dual)
-# calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.float)
-# function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{N,T2}, tm::TypedMechanismScenario{N,T1}) where {N,T1,T2}
-#     state = tm.state
-#     any(isnan.(x)) && error("nan in x")
-#     copyto!(tm, x)
-#     any(isnan.(state.q)) && error("nan in state.q")  # isnan
-#     any(isnan.(state.v)) && error("nan in state.v")  # isnan
-#     H = tm.result.massmatrix
-#     mass_matrix!(H, state)
-#     dynamics_bias!(tm.result, state)
-#     configuration_derivative!(tm.result.q̇, state)
-#     forceAllElasticIntersections!(m, tm)
-#     f_generalized = tm.f_generalized
-#     any(isnan.(f_generalized)) && error("nan in tm.f_gen_cum")  # isnan
-#     C = tm.result.dynamicsbias.parent
-#     rhs = -C + f_generalized + m.τ_ext
-#     tm.result.v̇ .= H \ rhs
-#     copyto!(xx, tm, tm.result)
-#     return nothing
-# end
+calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.dual)
+calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.float)
+function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{N,T2}, tm::TypedMechanismScenario{N,T1}) where {N,T1,T2}
+    state = tm.state
+    # any(isnan.(x)) && error("nan in x")
+    copyto!(tm, x)
+    # any(isnan.(state.q)) && error("nan in state.q")  # isnan
+    # any(isnan.(state.v)) && error("nan in state.v")  # isnan
+    H = tm.result.massmatrix
+    mass_matrix!(H, state)
+    dynamics_bias!(tm.result, state)
+    configuration_derivative!(tm.result.q̇, state)
+    forceAllElasticIntersections!(m, tm)
+    f_generalized = tm.f_generalized
+    # any(isnan.(f_generalized)) && error("nan in tm.f_gen_cum")  # isnan
+    # C = tm.result.dynamicsbias.parent
+    # rhs = -C + f_generalized + m.τ_ext
+    rhs = tm.result.dynamicsbias.parent
+    rhs .*= -1.0
+    rhs .+= f_generalized
+    rhs .+= m.τ_ext
+    #
+    tm.result.v̇ .= H \ rhs
+    copyto!(xx, tm, tm.result)
+    return nothing
+end
 
 function refreshJacobians!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenario{N,T2}) where {N,T1,T2}
     for k = m.body_ids
@@ -52,41 +58,45 @@ function refreshJacobians!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenari
     return nothing
 end
 
-# function forceAllElasticIntersections!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenario{N,T2}) where {N,T1,T2}
-#     refreshJacobians!(m, tm)
-#     tm.f_generalized .= zero(T2)
-#     for k = 1:length(m.ContactInstructions)
-#         con_ins_k = m.ContactInstructions[k]
-#         calcTriTetIntersections!(m, con_ins_k)
-#         is_intersections = (0 != length(m.TT_Cache))
-#         is_bristle = (con_ins_k.BristleFriction != nothing)
-#         is_no_wrench = true
-#         if is_intersections | is_bristle
-#             if is_intersections
-#                 refreshBodyBodyCache!(m, tm, con_ins_k)
-#                 integrateOverContactPatch!(tm.bodyBodyCache, m.TT_Cache)
-#                 if !isempty(tm.bodyBodyCache.TractionCache)
-#                     is_no_wrench = false
-#                     if is_bristle
-#                         wrench = bristle_friction!(m.frame_world, tm, con_ins_k)
-#                     else
-#                         wrench = regularized_friction(m.frame_world, tm.bodyBodyCache)
-#                     end
-#                     addGeneralizedForcesThirdLaw!(wrench, tm, con_ins_k)
-#                 end
-#             end
-#         end
-#         (is_bristle & is_no_wrench) && bristle_friction_no_contact!(tm, con_ins_k)
-#     end
-#     return nothing
-# end
+function forceAllElasticIntersections!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenario{N,T2}) where {N,T1,T2}
+    refreshJacobians!(m, tm)
+    tm.f_generalized .= zero(T2)
+    for k = 1:length(m.ContactInstructions)
+        con_ins_k = m.ContactInstructions[k]
+        calcTriTetIntersections!(m, con_ins_k)
+        is_intersections = (0 != length(m.TT_Cache))
+        is_bristle = (con_ins_k.BristleFriction != nothing)
+        is_no_wrench = true
+        if is_intersections | is_bristle
+            if is_intersections
+                refreshBodyBodyCache!(m, tm, con_ins_k)
+                integrate_over_logic!(tm.bodyBodyCache, m.TT_Cache)
+                if !isempty(tm.bodyBodyCache.TractionCache)
+                    is_no_wrench = false
+                    if is_bristle
+                        wrench = bristle_friction!(m.frame_world, tm, con_ins_k)
+                    else
+                        wrench = regularized_friction(m.frame_world, tm.bodyBodyCache)
+                    end
+                    addGeneralizedForcesThirdLaw!(wrench, tm, con_ins_k)
+                end
+            end
+        end
+        (is_bristle & is_no_wrench) && bristle_friction_no_contact!(tm, con_ins_k)
+    end
+    return nothing
+end
 
 function calcTriTetIntersections!(m::MechanismScenario, con_ins_k::ContactInstructions) where {N,T}
     b = m.float.bodyBodyCache  # this can be float because intersection is assumed to not depend on partials
     refreshBodyBodyTransform!(m, m.float, con_ins_k)
-    x_tri_tet = inv(b.x_root_tri) * b.x_root_tet
-    update_TT_Cache!(m.TT_Cache, translation(x_tri_tet), rotation(x_tri_tet))
-    tree_tree_intersect(m.TT_Cache, b.mesh_tri.tri.tree, b.mesh_tet.tet.tet.tree)
+    x_r¹_r² = inv(b.x_rʷ_r¹) * b.x_rʷ_r²
+    update_TT_Cache!(m.TT_Cache, translation(x_r¹_r²), rotation(x_r¹_r²))
+    if con_ins_k.mutual_compliance
+        tree_tree_intersect(m.TT_Cache, b.mesh_1.tet.tet.tree, b.mesh_2.tet.tet.tree)
+    else
+        tree_tree_intersect(m.TT_Cache, b.mesh_1.tri.tree, b.mesh_2.tet.tet.tree)
+    end
     return nothing
 end
 
@@ -94,10 +104,10 @@ function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScena
     b = tm.bodyBodyCache
     b.mesh_1 = m.MeshCache[con_ins_k.id_1]
     b.mesh_2 = m.MeshCache[con_ins_k.id_2]
-    b.x_w_r¹ = transform_to_root(tm.state, b.mesh_tri.BodyID)  # TODO: add safe=false
-    b.x_w_r² = transform_to_root(tm.state, b.mesh_tet.BodyID)  # TODO: add safe=false
-    b.x_r²_w = inv(b.x_w_r²)
-    b.x_r¹_w = inv(b.x_w_r¹)
+    b.x_rʷ_r¹ = transform_to_root(tm.state, b.mesh_1.BodyID)  # TODO: add safe=false
+    b.x_rʷ_r² = transform_to_root(tm.state, b.mesh_2.BodyID)  # TODO: add safe=false
+    b.x_r²_rʷ = inv(b.x_rʷ_r²)
+    b.x_r¹_rʷ = inv(b.x_rʷ_r¹)
     return nothing
 end
 
@@ -106,127 +116,169 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     empty!(b.TractionCache)
     refreshBodyBodyTransform!(m, tm, con_ins_k)
 
-    mat_2 = b.mesh_tet.tet.c_prop
     twist_w_r¹ = twist_wrt_world(tm.state, b.mesh_1.BodyID)
     twist_w_r² = twist_wrt_world(tm.state, b.mesh_2.BodyID)
+    b.twist_r¹_r² = -twist_w_r² + twist_w_r¹  # velocity of tri wrt tet exp in world
 
-    b.twist_tri_tet = -twist_w_r² + twist_w_r¹  # velocity of tri wrt tet exp in world
-
-    b.frac_ϵ = con_ins_k.frac_ϵ
     b.μ = con_ins_k.μ_pair
-
-    b.Ē = mat_t.Ē
+    mat_2 = b.mesh_2.tet.c_prop
+    b.Ē = mat_2.Ē
     b.χ = mat_2.χ
     b.d⁻¹ = mat_2.d⁻¹
     return nothing
 end
 
-function integrateOverContactPatch!(b::TypedElasticBodyBodyCache{N,T}, ttCache::TT_Cache) where {N,T}
-    mesh_tri = b.mesh_tri
-    mesh_tet = b.mesh_tet
-    triTetCache = b.triTetCache
-    quadTriCache = triTetCache.quadTriCache
-    x_root_tet = b.x_root_tet
-    x_tet_root = b.x_tet_root
-    x_root_tri = b.x_root_tri
+function integrate_over_logic!(b::TypedElasticBodyBodyCache{N,T}, ttCache::TT_Cache) where {N,T}
+    mesh_1 = b.mesh_1
+    mesh_2 = b.mesh_2
+    x_rʷ_r¹ = b.x_rʷ_r¹
+    x_rʷ_r² = b.x_rʷ_r²
+    x_r¹_rʷ = b.x_r¹_rʷ
+    x_r²_rʷ = b.x_r²_rʷ
+    if is_compliant(mesh_1)
+        integrate_over_volume_volume_all!(mesh_1, mesh_2, x_rʷ_r¹, x_rʷ_r², x_r¹_rʷ, x_r²_rʷ, b, ttCache)
+    else
+        integrate_over_surface_volume_all!(mesh_1, mesh_2, x_rʷ_r¹, x_rʷ_r², x_r¹_rʷ, x_r²_rʷ, b, ttCache)
+    end
+end
+
+function integrate_over_volume_volume_all!(mesh_1::MeshCache, mesh_2::MeshCache, x_rʷ_r¹::Transform3D{T},
+        x_rʷ_r²::Transform3D{T}, x_r¹_rʷ::Transform3D{T}, x_r²_rʷ::Transform3D{T}, b::TypedElasticBodyBodyCache{N,T},
+        ttCache::TT_Cache) where {N,T}
+
     for k = 1:length(ttCache.vc)
-        i_tri, i_tet = ttCache.vc[k]
-        p_tri = mesh_tri.point[mesh_tri.tri.ind[i_tri]]
-        i_vert_tet = mesh_tet.tet.tet.ind[i_tet]
-        p_tet = mesh_tet.point[i_vert_tet]
-        triTetCache.ϵ = mesh_tet.tet.ϵ[i_vert_tet]
-        # tet calculation
-        A_tet_ζ = MatrixTransform(frame_tet_cs, mesh_tet.FrameID, asMatOnePad(p_tet))
-        A_w_ζ_top = getTop(x_root_tet * A_tet_ζ)
-        A_ζ_w = inv(A_tet_ζ) * x_tet_root  # NOTE: inv(A_tet_ζ) is **always** Float64
-        # tri calculation
-        triTetCache.traction_normal = x_root_tri * FreeVector3D(mesh_tri.FrameID, -triangleNormal(p_tri))
-        A_ζ_r = A_ζ_w * x_root_tri
-        poly_4D_1 = quadTriCache.clip_poly_4D_1
-        poly_4D_2 = quadTriCache.clip_poly_4D_2
-        poly_3D = quadTriCache.clip_poly_3D
-        empty!(poly_4D_1)
-        for j = 1:3
-            add!(poly_4D_1, A_ζ_r * Point3D(mesh_tri.FrameID, p_tri[j]))
+        i_1, i_2 = ttCache.vc[k]
+        integrate_over_volume_volume!(i_1, i_2, mesh_1, mesh_2, x_rʷ_r¹, x_rʷ_r², x_r¹_rʷ, x_r²_rʷ, b)
+    end
+end
+
+function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache, mesh_2::MeshCache,
+        x_rʷ_r¹::Transform3D{T}, x_rʷ_r²::Transform3D{T}, x_r¹_rʷ::Transform3D{T}, x_r²_rʷ::Transform3D{T},
+        b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+
+    vert_1, ϵ¹ = tetrahedron_vertices_ϵ(i_1, mesh_1)
+    vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
+    x_rʷ_ζ¹, x_ζ¹_rʷ = calc_ζ_transforms(FRAME_ζ¹, mesh_1.FrameID, vert_1, x_r¹_rʷ, x_rʷ_r¹)
+    x_rʷ_ζ², x_ζ²_rʷ = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
+
+    plane_1_rʷ = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_rʷ.mat)
+    plane_2_rʷ = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_rʷ.mat)
+    plane_rʷ = plane_2_rʷ - plane_1_rʷ  # pressure_2 - pressure_1
+
+    poly_rʷ = clip_plane_tet(plane_rʷ, x_rʷ_ζ¹.mat)
+    if 3 <= length(poly_rʷ)
+        poly_ζ² = one_pad_then_mul(x_ζ²_rʷ.mat, poly_rʷ)
+        poly_ζ² = clip_in_tet_coordinates(poly_ζ²)
+        if 3 <= length(poly_ζ²)
+            frame_world = b.frame_world
+            n = unPad(plane_rʷ)
+            n̂ = unsafe_normalize(n)
+            n̂ = FreeVector3D(frame_world, n̂)
+            integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂, x_rʷ_ζ², x_ζ²_rʷ, ϵ²)
         end
-        modularTriTetClip(poly_4D_1, poly_4D_2)
-        if 3 <= poly_4D_1.i  ### Clip ###
-            tet_clip_poly_to_cartesian!(poly_3D, poly_4D_1, A_w_ζ_top)
-            poly_area, centroid_w_no_frame = centroid(poly_3D)
-            triTetCache.centroid_w = Point3D(poly_3D.frame, centroid_w_no_frame)  # TODO: add to Tri_Tet_Intersections
-            if 0.0 < poly_area
-                triTetCache.centroid_ζ = A_ζ_w * triTetCache.centroid_w
-                intersectionTriangulation!(b, A_w_ζ_top)
-            end
-        end
+    end
+end
+
+function integrate_over_surface_volume_all!(mesh_1::MeshCache, mesh_2::MeshCache, x_rʷ_r¹::Transform3D{T},
+        x_rʷ_r²::Transform3D{T}, x_r¹_rʷ::Transform3D{T}, x_r²_rʷ::Transform3D{T},
+        b::TypedElasticBodyBodyCache{N,T}, ttCache::TT_Cache) where {N,T}
+
+    for k = 1:length(ttCache.vc)
+        i_1, i_2 = ttCache.vc[k]
+        integrate_over_surface_volume!(i_1, i_2, mesh_1, mesh_2, x_rʷ_r¹, x_rʷ_r², x_r¹_rʷ, x_r²_rʷ, b)
+    end
+end
+
+function integrate_over_surface_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache, mesh_2::MeshCache,
+        x_rʷ_r¹::Transform3D{T}, x_rʷ_r²::Transform3D{T}, x_r¹_rʷ::Transform3D{T}, x_r²_rʷ::Transform3D{T},
+        b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+
+
+    vert_1 = triangle_vertices(i_1, mesh_1)
+    vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
+    x_rʷ_ζ², x_ζ²_rʷ = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
+    x_ζ²_r¹ = x_ζ²_rʷ * x_rʷ_r¹
+
+    n̂_r¹ = FreeVector3D(mesh_1.FrameID, -triangleNormal(vert_1))  # pressure is applied opposite the trianle normal
+    n̂_rʷ = x_rʷ_r¹ * n̂_r¹
+
+    poly_rʷ = poly_eight(vert_1)
+    poly_ζ² = one_pad_then_mul(x_ζ²_r¹.mat, poly_rʷ)
+    poly_ζ² = clip_in_tet_coordinates(poly_ζ²)
+    if 3 <= length(poly_ζ²)
+        frame_world = b.frame_world
+        integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂_rʷ, x_rʷ_ζ², x_ζ²_rʷ, ϵ²)
+    end
+end
+
+function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, poly_ζ²::poly_eight{4,T},
+        frame_world::CartesianFrame3D, n̂::FreeVector3D{SVector{3,T}}, x_rʷ_ζ²::MatrixTransform{4,4,T,16}, x_ζ²_rʷ::MatrixTransform{4,4,T,16},
+        ϵ::SMatrix{1,4,Float64,4}) where {N,T}
+
+    poly_rʷ = mul_then_un_pad(x_rʷ_ζ².mat, poly_ζ²)
+    centroid_rʷ = Point3D(frame_world, centroid(poly_rʷ)[2])
+    centroid_ζ² = x_ζ²_rʷ * centroid_rʷ
+    N_vertices = length(poly_ζ²)
+    ζ²_2 = getPoint(poly_ζ², FRAME_ζ², N)
+    vert_rʷ_2 = getPoint(poly_rʷ, frame_world, N)
+    for k = 1:N_vertices
+        ζ²_1 = ζ²_2
+        ζ²_2 = getPoint(poly_ζ², FRAME_ζ², k)
+        x_ζ²_ϕ = hcat(ζ²_1, ζ²_2, centroid_ζ²)
+        vert_rʷ_1 = vert_rʷ_2
+        vert_rʷ_2 = getPoint(poly_rʷ, frame_world, k)
+        area_quad_k = area(vert_rʷ_1, vert_rʷ_2, centroid_rʷ)
+        (0.0 < area_quad_k) && fillTractionCacheForTriangle!(b, area_quad_k, x_ζ²_ϕ, x_rʷ_ζ², n̂, ϵ)  # no point in adding intersection if area is zero
     end
     return nothing
 end
 
-function intersectionTriangulation!(b::TypedElasticBodyBodyCache{N,T}, A_w_ζ_top) where {N,T}
-    triTetCache = b.triTetCache
-    quadTriCache = triTetCache.quadTriCache
-    poly_4D = quadTriCache.clip_poly_4D_1
-    poly_3D = quadTriCache.clip_poly_3D
+# # TODO: create fillTractionCacheForTriangle! with a macro
+function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{1,T}, area_quad_k::T,
+        A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
+        ϵ::SMatrix{1,4,Float64,4}) where {T}
 
-    n_vertices = poly_4D.i
-    ζ_2 = getPoint(poly_4D, n_vertices)
-    vert_tri_2 = getPoint(poly_3D, n_vertices)
-    for k_cent_tri = 1:n_vertices
-        ζ_1 = ζ_2
-        ζ_2 = getPoint(poly_4D, k_cent_tri)
-        A_ζ_ϕ = hcat(ζ_1, ζ_2, triTetCache.centroid_ζ)
-
-        vert_tri_1 = vert_tri_2
-        vert_tri_2 = getPoint(poly_3D, k_cent_tri)
-        quadTriCache.area_quad_k = area(vert_tri_1, vert_tri_2, triTetCache.centroid_w)
-        (0.0 < quadTriCache.area_quad_k) && fillTractionCacheForTriangle!(b, A_ζ_ϕ, A_w_ζ_top)  # no point in adding intersection if area is zero
-    end
-    return nothing
-end
-
-# TODO: create fillTractionCacheForTriangle! with a macro
-function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{1,T}, A_ζ_ϕ, A_w_ζ_top) where {T}
-    traction_normal = b.triTetCache.traction_normal
-    r_cart_1, v_cart_t_1, p_dA_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ_top)
+    r_cart_1, v_cart_t_1, p_dA_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ::SMatrix{1,4,Float64,4})
     p_dA = (p_dA_1, )
     if sum(p_dA) != 0.0
         r_cart = (r_cart_1, )
         v_cart_t = (v_cart_t_1, )
-        trac_cache = TractionCache(traction_normal, r_cart, v_cart_t, p_dA)
+        trac_cache = TractionCache(n̂, r_cart, v_cart_t, p_dA)
         addCacheItem!(b.TractionCache, trac_cache)
     end
     return nothing
 end
 
-function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, A_ζ_ϕ, A_w_ζ_top) where {T}
-  traction_normal = b.triTetCache.traction_normal
-  r_cart_1, v_cart_t_1, p_dA_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ_top)
-  r_cart_2, v_cart_t_2, p_dA_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ_top)
-  r_cart_3, v_cart_t_3, p_dA_3 = fillTractionCacheInnerLoop!(3, b, A_ζ_ϕ, A_w_ζ_top)
-  p_dA = (p_dA_1, p_dA_2, p_dA_3)
-  if sum(p_dA) != 0.0
-      r_cart = (r_cart_1, r_cart_2, r_cart_3)
-      v_cart_t = (v_cart_t_1, v_cart_t_2, v_cart_t_3)
-      trac_cache = TractionCache(traction_normal, r_cart, v_cart_t, p_dA)
-      addCacheItem!(b.TractionCache, trac_cache)
-  end
-  return nothing
+function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, area_quad_k::T,
+        A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
+        ϵ::SMatrix{1,4,Float64,4}) where {T}
+
+    r_cart_1, v_cart_t_1, p_dA_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_2, v_cart_t_2, p_dA_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_3, v_cart_t_3, p_dA_3 = fillTractionCacheInnerLoop!(3, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    p_dA = (p_dA_1, p_dA_2, p_dA_3)
+    if sum(p_dA) != 0.0
+        r_cart = (r_cart_1, r_cart_2, r_cart_3)
+        v_cart_t = (v_cart_t_1, v_cart_t_2, v_cart_t_3)
+        trac_cache = TractionCache(n̂, r_cart, v_cart_t, p_dA)
+        addCacheItem!(b.TractionCache, trac_cache)
+    end
+    return nothing
 end
 
-function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}, A_ζ_ϕ, A_w_ζ_top) where {N,T}
-    triTetCache = b.triTetCache
-    quadTriCache = triTetCache.quadTriCache
+function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T},
+        A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
+        area_quad_k::T, ϵ::SMatrix{1,4,Float64,4}) where {N,T}
 
-    quad_point_ϕ = Point3D(frame_tri_cs, b.quad.zeta[k])
+    quad_point_ϕ = Point3D(FRAME_ϕ, b.quad.zeta[k])
     quad_point_ζ = A_ζ_ϕ * quad_point_ϕ
-    p_cart_qp = A_w_ζ_top * quad_point_ζ
-    ϵ_quad = b.frac_ϵ * dot(triTetCache.ϵ, quad_point_ζ.v)
-    cart_vel_crw_t, signed_mag_vel_n = calcTangentialVelocity(b.twist_tri_tet, p_cart_qp, triTetCache.traction_normal)
-    ϵ_dot = b.frac_ϵ * signed_mag_vel_n * b.d⁻¹  # ϵ_dot ≈ z_dot / thickness because the rigid body provides the normal and is fixed
+    p_cart_qp = unPad(A_w_ζ * quad_point_ζ)
+    ϵ_quad = dot(ϵ, quad_point_ζ.v)
+    cart_vel_crw_t, signed_mag_vel_n = calcTangentialVelocity(b.twist_r¹_r², p_cart_qp, n̂)
+    ϵ_dot = signed_mag_vel_n * b.d⁻¹  # ϵ_dot ≈ z_dot / thickness because the rigid body provides the normal and is fixed
     damp_term = fastSoftPlus(1.0 - b.χ * ϵ_dot)
     p = -ϵ_quad * damp_term
-    p_dA = p * b.quad.w[k] * quadTriCache.area_quad_k * b.Ē
+    p_dA = p * b.quad.w[k] * area_quad_k * b.Ē
     return p_cart_qp, cart_vel_crw_t, p_dA
 end
 

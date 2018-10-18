@@ -17,8 +17,6 @@ using Radau
 const FRAME_ζ¹ = CartesianFrame3D("FRAME_ζ¹")
 const FRAME_ζ² = CartesianFrame3D("FRAME_ζ²")
 const FRAME_ϕ = CartesianFrame3D("FRAME_ϕ")
-# const frame_tet_cs = CartesianFrame3D("tet_cs")
-# const frame_tri_cs = CartesianFrame3D("tri_cs")
 
 include("mesh_inertia.jl")
 include("utility.jl")
@@ -123,8 +121,6 @@ export
     forceAllElasticIntersections!,
     calcTriTetIntersections!,
     refreshBodyBodyCache!,
-    integrateOverContactPatch!,
-    intersectionTriangulation!,
     fillTractionCacheForTriangle!,
     fillTractionCacheInnerLoop!,
     calcTangentialVelocity,

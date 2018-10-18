@@ -20,7 +20,6 @@ function calc_ζ_transforms(frame_ζ::CartesianFrame3D, frame_r ::CartesianFrame
     return x_w_ζ, x_ζ_w
 end
 
-# function find_plane_tet(E::Float64, ϵ::SVector{4,Float64}, X_r_w)
 function find_plane_tet(E::Float64, ϵ::SMatrix{1,4,Float64,4}, X_r_w)
     return (E * ϵ) * X_r_w
 end
