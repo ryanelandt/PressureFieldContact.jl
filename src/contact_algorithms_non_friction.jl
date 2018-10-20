@@ -219,8 +219,8 @@ function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, poly_�
     centroid_rʷ = Point3D(frame_world, centroid(poly_rʷ)[2])
     centroid_ζ² = x_ζ²_rʷ * centroid_rʷ
     N_vertices = length(poly_ζ²)
-    ζ²_2 = getPoint(poly_ζ², FRAME_ζ², N)
-    vert_rʷ_2 = getPoint(poly_rʷ, frame_world, N)
+    ζ²_2 = getPoint(poly_ζ², FRAME_ζ², N_vertices)
+    vert_rʷ_2 = getPoint(poly_rʷ, frame_world, N_vertices)
     for k = 1:N_vertices
         ζ²_1 = ζ²_2
         ζ²_2 = getPoint(poly_ζ², FRAME_ζ², k)
