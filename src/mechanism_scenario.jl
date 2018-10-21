@@ -20,29 +20,9 @@ struct TractionCache{N,T}
     end
 end
 
-mutable struct TypedQuadTriCache{T}
-    area_quad_k::T
-    function TypedQuadTriCache{T}(frame_world::CartesianFrame3D) where {T}
-        return new{T}()
-    end
-    function TypedQuadTriCache{T}() where {T}
-        return new{T}()
-    end
-end
-
-mutable struct TypedTriTetCache{T}
-    quadTriCache::TypedQuadTriCache{T}
-    ϵ::SVector{4,Float64}
-    traction_normal::FreeVector3D{SVector{3,T}}
-    centroid_ζ::Point4D{SVector{4,T}}
-    centroid_w::Point3D{SVector{3,T}}
-    TypedTriTetCache{T}(frame_world::CartesianFrame3D) where {T} = new(TypedQuadTriCache{T}(frame_world))
-end
-
 mutable struct TypedElasticBodyBodyCache{N,T}
     frame_world::CartesianFrame3D
     quad::TriTetQuadRule{3,N}
-    triTetCache::TypedTriTetCache{T}
     TractionCache::VectorCache{TractionCache{N,T}}
     mesh_1::MeshCache
     mesh_2::MeshCache
@@ -57,10 +37,9 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     d⁻¹::Float64
     wrench::Wrench{T}
     function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
-        triTetCache = TypedTriTetCache{T}(frame_world)
         tc = TractionCache(N, T)
         trac_cache = VectorCache(tc)
-        return new{N,T}(frame_world, quad, triTetCache, trac_cache)
+        return new{N,T}(frame_world, quad, trac_cache)
     end
 end
 

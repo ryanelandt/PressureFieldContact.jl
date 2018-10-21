@@ -159,6 +159,30 @@ function integrate_over_volume_volume_all!(mesh_1::MeshCache, mesh_2::MeshCache,
     end
 end
 
+function triangle_vertices(i_tri::Int64, m::MeshCache)
+    ind_vert = m.tri.ind[i_tri]
+    return m.point[ind_vert]
+end
+
+function tetrahedron_vertices_ϵ(i_tet::Int64, m::MeshCache)
+    ind_vert = m.tet.tet.ind[i_tet]
+    ϵ = m.tet.ϵ[ind_vert]
+    ϵ = SMatrix{1,4,Float64,4}(ϵ)
+    cart_vert = m.point[ind_vert]
+    return cart_vert, ϵ
+end
+
+function calc_ζ_transforms(frame_ζ::CartesianFrame3D, frame_r ::CartesianFrame3D, p_tet, x_r_w, x_w_r)
+    x_r_ζ = MatrixTransform(frame_ζ, frame_r, asMatOnePad(p_tet))
+    x_w_ζ = x_w_r * x_r_ζ
+    x_ζ_w = inv(x_r_ζ) * x_r_w  # NOTE: inv(A_r¹_ζ) is **always** Float64
+    return x_w_ζ, x_ζ_w
+end
+
+function find_plane_tet(E::Float64, ϵ::SMatrix{1,4,Float64,4}, X_r_w)
+    return (E * ϵ) * X_r_w
+end
+
 function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache, mesh_2::MeshCache,
         x_rʷ_r¹::Transform3D{T}, x_rʷ_r²::Transform3D{T}, x_r¹_rʷ::Transform3D{T}, x_r²_rʷ::Transform3D{T},
         b::TypedElasticBodyBodyCache{N,T}) where {N,T}
@@ -308,7 +332,7 @@ end
 
 function addGeneralizedForcesExternal!(wrench::Wrench{T},  coeff::Float64, tm::TypedMechanismScenario{N,T},
         body_id::BodyID) where {N,T}
-        
+
     jac = tm.GeometricJacobian[body_id]
     if jac != nothing
         tm.f_generalized .+= coeff * torque(jac, wrench)

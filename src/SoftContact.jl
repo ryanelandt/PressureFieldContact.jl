@@ -28,7 +28,6 @@ include("temp_structures.jl")
 include("mechanism_scenario.jl")
 include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
-include("contact_algorithms_non_friction_replace.jl")
 include("contact_algorithms_friction.jl")
 include("primitive_meshes.jl")
 include("vis_meshcat.jl")
@@ -94,8 +93,6 @@ export
 
     # mechanism_scenario
     TractionCache,
-    TypedQuadTriCache,
-    TypedTriTetCache,
     TypedElasticBodyBodyCache,
     TypedMechanismScenario,
     makePaths,
@@ -115,17 +112,15 @@ export
     forceAllElasticIntersections!,
     calcTriTetIntersections!,
     refreshBodyBodyCache!,
+    triangle_vertices,
+    tetrahedron_vertices_ϵ,
+    calc_ζ_transforms,
+    find_plane_tet,
     fillTractionCacheForTriangle!,
     fillTractionCacheInnerLoop!,
     calcTangentialVelocity,
     addGeneralizedForcesThirdLaw!,
     addGeneralizedForcesExternal!,
-
-    # contact_algorithms_non_friction_replace.jl
-    triangle_vertices,
-    tetrahedron_vertices_ϵ,
-    calc_ζ_transforms,
-    find_plane_tet,
 
     # contact_algorithms_friction.jl
     regularized_friction,

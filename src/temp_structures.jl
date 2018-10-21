@@ -66,7 +66,6 @@ function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name:
     addMesh!(ts, mesh)
 end
 
-
 function add_body_volume!(mechanism::Mechanism, name::String, h_mesh::HomogenousMesh, tet_mesh::TetMesh,
         inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}(),
         body_parent::Union{RigidBody{Float64},Nothing}=nothing) where {JT<:JointType}
@@ -191,7 +190,7 @@ end
 
 function tune_bristle_stiffness(ts::TempContactStruct, name::String, f_disp::Float64=0.0025,
         rad_disp::Float64=deg2rad(0.25))
-        
+
     K_θ = calc_angular_stiffness(ts, name, rad_disp=rad_disp)
     K_r = calc_linear_stiffness(ts, name, f_disp=f_disp)
     return K_θ, K_r
