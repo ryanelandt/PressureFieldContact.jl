@@ -169,6 +169,9 @@ function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache
     poly_rʷ = clip_plane_tet(plane_rʷ, x_rʷ_ζ¹.mat)
     if 3 <= length(poly_rʷ)
         poly_ζ² = one_pad_then_mul(x_ζ²_rʷ.mat, poly_rʷ)
+        poly_ζ² = zero_small_coordinates(poly_ζ²)  # This needs to be done to avoid a degenerate situation where the
+            # plane lies exactly on the intersection of the faces of two tets. This situation happens EVERY time two
+            # tet faces that lie on the surface intersect.
         poly_ζ² = clip_in_tet_coordinates(poly_ζ²)
         if 3 <= length(poly_ζ²)
             frame_world = b.frame_world
