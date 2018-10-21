@@ -111,7 +111,9 @@ end
 box_indices() = [SVector(Tuple(k_cart)) for k_cart = CartesianIndices((2,2,2))[:]]
 basicBoxPoints() = [SVector{3,Float64}(ifelse.(Tuple(k).==1,-1.0,+1.0)) for k = box_indices()]
 
-function sizeCenterBoxPoints(scale::SVector{3,Float64}=SVector{3,Float64}(1,1,1), center::SVector{3,Float64}=SVector{3,Float64}(0,0,0))
+function sizeCenterBoxPoints(scale::SVector{3,Float64}=SVector{3,Float64}(1,1,1),
+        center::SVector{3,Float64}=SVector{3,Float64}(0,0,0))
+        
     v = basicBoxPoints()
     for k = eachindex(v)
         v[k] = v[k] .* scale .+ center

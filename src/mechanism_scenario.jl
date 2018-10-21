@@ -73,7 +73,9 @@ struct TypedMechanismScenario{N,T}
     bodyBodyCache::TypedElasticBodyBodyCache{N,T}
     GeometricJacobian::RigidBodyDynamics.CustomCollections.CacheIndexDict{BodyID,Base.OneTo{BodyID},Union{Nothing,GeometricJacobian{Array{T,2}}}}
     frame_world::CartesianFrame3D  # TODO: does this need to be here?
-    function TypedMechanismScenario{N,T}(mechanism::Mechanism, quad::TriTetQuadRule{3,N}, v_path, body_ids, n_bristle_pairs::Int64) where {N,T}
+    function TypedMechanismScenario{N,T}(mechanism::Mechanism, quad::TriTetQuadRule{3,N}, v_path, body_ids,
+            n_bristle_pairs::Int64) where {N,T}
+
         function makeJacobian(v_path, state::MechanismState{T}, body_ids::Base.OneTo{BodyID}) where {T}
             v_jac = RigidBodyDynamics.BodyCacheDict{Union{Nothing,GeometricJacobian{Array{T,2}}}}(body_ids)
             fill_with_nothing!(v_jac)

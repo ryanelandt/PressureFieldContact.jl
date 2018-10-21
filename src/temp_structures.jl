@@ -134,9 +134,13 @@ function findmesh(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this
     return id
 end
 
-add_pair_rigid_compliant_regularize!(ts::TempContactStruct, name_tri::String, name_tet::String) = add_pair_rigid_compliant!(ts, name_tri, name_tet, nothing)
+function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, name_tri::String, name_tet::String)
+    return add_pair_rigid_compliant!(ts, name_tri, name_tet, nothing)
+end
 
-function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2::String, friction_model::Union{Nothing,BristleFriction})
+function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2::String,
+        friction_model::Union{Nothing,BristleFriction})
+
     mesh_id_1 = findmesh(ts.MeshCache, name_1)
     mesh_id_2 = findmesh(ts.MeshCache, name_2)
     (1 <= mesh_id_1) || error("invalid 1 mesh id $mesh_id_1")
@@ -158,7 +162,9 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2
     end
 end
 
-function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=10.0, K_θ::Union{Nothing,Float64}=nothing, K_r::Union{Nothing, Float64}=nothing)
+function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=10.0,
+        K_θ::Union{Nothing,Float64}=nothing, K_r::Union{Nothing, Float64}=nothing)
+
     (K_θ == nothing) && error("K_θ needs to be given")
     (K_r == nothing) && error("K_r needs to be given")
     bristle_id = BristleID(1 + length(ts.bristle_ids))
@@ -167,19 +173,25 @@ function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::Stri
     return add_pair_rigid_compliant!(ts, name_tri, name_tet, bf)
 end
 
-function add_pair_rigid_compliant_bristle_tune_tet!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=10.0, f_disp::Float64=0.0025, rad_disp::Float64=deg2rad(0.25))
+function add_pair_rigid_compliant_bristle_tune_tet!(ts::TempContactStruct, name_tri::String, name_tet::String;
+        τ::Float64=10.0, f_disp::Float64=0.0025, rad_disp::Float64=deg2rad(0.25))
+
     K_θ, K_r = tune_bristle_stiffness(ts, name_tet, f_disp, rad_disp)
     add_pair_rigid_compliant_bristle!(ts, name_tri, name_tet, τ=τ, K_θ=K_θ, K_r=K_r)
     return nothing
 end
 
-function add_pair_rigid_compliant_bristle_tune_tri!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=10.0, f_disp::Float64=0.0025, rad_disp::Float64=deg2rad(0.25))
+function add_pair_rigid_compliant_bristle_tune_tri!(ts::TempContactStruct, name_tri::String, name_tet::String;
+        τ::Float64=10.0, f_disp::Float64=0.0025, rad_disp::Float64=deg2rad(0.25))
+
     K_θ, K_r = tune_bristle_stiffness(ts, name_tri, f_disp, rad_disp)
     add_pair_rigid_compliant_bristle!(ts, name_tri, name_tet, τ=τ, K_θ=K_θ, K_r=K_r)
     return nothing
 end
 
-function tune_bristle_stiffness(ts::TempContactStruct, name::String, f_disp::Float64=0.0025, rad_disp::Float64=deg2rad(0.25))
+function tune_bristle_stiffness(ts::TempContactStruct, name::String, f_disp::Float64=0.0025,
+        rad_disp::Float64=deg2rad(0.25))
+        
     K_θ = calc_angular_stiffness(ts, name, rad_disp=rad_disp)
     K_r = calc_linear_stiffness(ts, name, f_disp=f_disp)
     return K_θ, K_r

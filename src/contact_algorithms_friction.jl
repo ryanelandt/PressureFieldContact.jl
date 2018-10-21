@@ -62,20 +62,26 @@ end
 
 @inline get_bristle_d0(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T} = segments(tm.s)[bristle_id]
 @inline get_bristle_d1(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T} = segments(tm.ṡ)[bristle_id]
-function update_bristle_d1!(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID, c_w::FreeVector3D{SVector{3,T}}, ċ_r::FreeVector3D{SVector{3,T}}) where {N,T}
+function update_bristle_d1!(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID, c_w::FreeVector3D{SVector{3,T}},
+        ċ_r::FreeVector3D{SVector{3,T}}) where {N,T}
+
     @framecheck(c_w.frame, ċ_r.frame)
     update_bristle_d1!(tm, bristle_id, c_w.v, ċ_r.v)
     return nothing
 end
 
-function update_bristle_d1!(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID, c_w::SVector{3,T}, ċ_r::SVector{3,T}) where {N,T}
+function update_bristle_d1!(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID, c_w::SVector{3,T},
+        ċ_r::SVector{3,T}) where {N,T}
+
     segments_s = get_bristle_d0(tm, bristle_id)
     segments_ṡ = get_bristle_d1(tm, bristle_id)
     velocity_to_configuration_derivative!(segments_ṡ, SPQuatFloating{Float64}(), segments_s, vcat(c_w, ċ_r))
     return nothing
 end
 
-function calc_T_θ_dA(b::TypedElasticBodyBodyCache{N,T}, τ_θ_s_w::FreeVector3D{SVector{3,T}}, r̄_w::Point3D{SVector{3,T}}) where {N,T}
+function calc_T_θ_dA(b::TypedElasticBodyBodyCache{N,T}, τ_θ_s_w::FreeVector3D{SVector{3,T}},
+        r̄_w::Point3D{SVector{3,T}}) where {N,T}
+
     @framecheck(τ_θ_s_w.frame, r̄_w.frame)
     int_T_θ_dA = zero(T)
     @inbounds begin
@@ -102,7 +108,7 @@ function notch_function(x::T, k=0.05) where {T}
 end
 
 function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFriction, c_ins::ContactInstructions,
-    frame_w::CartesianFrame3D, c_θ::FreeVector3D{SVector{3,T}}, c_r::FreeVector3D{SVector{3,T}}) where {N,T}
+        frame_w::CartesianFrame3D, c_θ::FreeVector3D{SVector{3,T}}, c_r::FreeVector3D{SVector{3,T}}) where {N,T}
 
     λ_r_s_w, τ_θ_s_w, r̄_w, p_dA_patch = bristle_no_slip_force_moment(b, frame_w, BF, c_θ, c_r)
     T_θ_dA = calc_T_θ_dA(b, τ_θ_s_w, r̄_w)
@@ -144,7 +150,7 @@ function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFr
 end
 
 function bristle_no_slip_force_moment(b::TypedElasticBodyBodyCache{N,T}, frame_w::CartesianFrame3D,
-    BF::BristleFriction, c_θ::FreeVector3D{SVector{3,T}}, c_r::FreeVector3D{SVector{3,T}}) where {N,T}
+        BF::BristleFriction, c_θ::FreeVector3D{SVector{3,T}}, c_r::FreeVector3D{SVector{3,T}}) where {N,T}
 
     inv_τ = 1 / BF.τ
     twist_r¹_r²_rʷ = b.twist_r¹_r²

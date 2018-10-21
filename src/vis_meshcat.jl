@@ -1,5 +1,7 @@
 
-function MeshCatMechanisms.set_configuration!(mech_scen::MechanismScenario, mvis::MechanismVisualizer, x::Vector{Float64})
+function MeshCatMechanisms.set_configuration!(mech_scen::MechanismScenario, mvis::MechanismVisualizer,
+        x::Vector{Float64})
+        
     copyto!(mech_scen.float, x)
     set_configuration!(mvis, mech_scen.float.state.q)
     return nothing
@@ -29,8 +31,8 @@ function HomogenousMesh_32(h_mesh::HomogenousMesh; color=RGBA{Float32}(0.5, 0.5,
     return HomogenousMesh(vertices=vertices, faces=faces, color=color)
 end
 
-function play_recorded_data(mvis::MechanismVisualizer, mech_scen::MechanismScenario, data_time::Vector{Float64}, data_state::Matrix{Float64};
-        dt::Float64=1/60, slowdown::Float64=1.0)
+function play_recorded_data(mvis::MechanismVisualizer, mech_scen::MechanismScenario, data_time::Vector{Float64},
+        data_state::Matrix{Float64}; dt::Float64=1/60, slowdown::Float64=1.0)
 
     (size(data_state,1) == length(data_time)) || error("the length of the time vector ($(length(data_time))) needs to be the same as the rows of the state matrix ($(size(data_state,1)))")
     (60.0 < (slowdown * data_time[end]) ) && error("total video time is greater than 1 minute you probably didn't mean to do this.")

@@ -21,7 +21,9 @@ struct TetMesh
     tet::SimplexTree{4}
     ϵ::Vector{Float64}
     c_prop::ContactProperties
-    function TetMesh(point::Vector{SVector{3,Float64}}, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64}, c_prop::ContactProperties)
+    function TetMesh(point::Vector{SVector{3,Float64}}, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
+            c_prop::ContactProperties)
+            
         tet_simp_tree = SimplexTree(point, tet_ind)
         return new(tet_simp_tree, ϵ, c_prop)
     end
@@ -44,7 +46,9 @@ struct MeshCache
         return new(point, name, BodyID(body), default_frame(body), inertia_prop, tri_simp_tree, tet_mesh)
     end
 
-    function MeshCache(name::String, h_mesh::HomogenousMesh, body::RigidBody{Float64}, inertia_prop::Union{Nothing, InertiaProperties}=nothing)
+    function MeshCache(name::String, h_mesh::HomogenousMesh, body::RigidBody{Float64},
+            inertia_prop::Union{Nothing, InertiaProperties}=nothing)
+
         tri_simp_tree = SimplexTree(h_mesh)
         point = get_h_mesh_vertices(h_mesh)
         return new(point, name, BodyID(body), default_frame(body), inertia_prop, tri_simp_tree, nothing)

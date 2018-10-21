@@ -25,7 +25,9 @@ end
 
 calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.dual)
 calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.float)
-function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{N,T2}, tm::TypedMechanismScenario{N,T1}) where {N,T1,T2}
+function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{N,T2},
+        tm::TypedMechanismScenario{N,T1}) where {N,T1,T2}
+
     state = tm.state
     # any(isnan.(x)) && error("nan in x")
     copyto!(tm, x)
@@ -101,7 +103,9 @@ function calcTriTetIntersections!(m::MechanismScenario, con_ins_k::ContactInstru
     return nothing
 end
 
-function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScenario{N,T}, con_ins_k::ContactInstructions) where {N,T}
+function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScenario{N,T},
+        con_ins_k::ContactInstructions) where {N,T}
+
     b = tm.bodyBodyCache
     b.mesh_1 = m.MeshCache[con_ins_k.id_1]
     b.mesh_2 = m.MeshCache[con_ins_k.id_2]
@@ -112,7 +116,9 @@ function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScena
     return nothing
 end
 
-function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{N,T}, con_ins_k::ContactInstructions) where {N,T}
+function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{N,T},
+        con_ins_k::ContactInstructions) where {N,T}
+
     b = tm.bodyBodyCache
     empty!(b.TractionCache)
     refreshBodyBodyTransform!(m, tm, con_ins_k)
@@ -216,8 +222,8 @@ function integrate_over_surface_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCach
 end
 
 function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, poly_ζ²::poly_eight{4,T},
-        frame_world::CartesianFrame3D, n̂::FreeVector3D{SVector{3,T}}, x_rʷ_ζ²::MatrixTransform{4,4,T,16}, x_ζ²_rʷ::MatrixTransform{4,4,T,16},
-        ϵ::SMatrix{1,4,Float64,4}) where {N,T}
+        frame_world::CartesianFrame3D, n̂::FreeVector3D{SVector{3,T}}, x_rʷ_ζ²::MatrixTransform{4,4,T,16},
+        x_ζ²_rʷ::MatrixTransform{4,4,T,16}, ϵ::SMatrix{1,4,Float64,4}) where {N,T}
 
     poly_rʷ = mul_then_un_pad(x_rʷ_ζ².mat, poly_ζ²)
     centroid_rʷ = Point3D(frame_world, centroid(poly_rʷ)[2])
@@ -300,7 +306,9 @@ function addGeneralizedForcesThirdLaw!(wrench::Wrench{T}, tm::TypedMechanismScen
     return nothing
 end
 
-function addGeneralizedForcesExternal!(wrench::Wrench{T},  coeff::Float64, tm::TypedMechanismScenario{N,T}, body_id::BodyID) where {N,T}
+function addGeneralizedForcesExternal!(wrench::Wrench{T},  coeff::Float64, tm::TypedMechanismScenario{N,T},
+        body_id::BodyID) where {N,T}
+        
     jac = tm.GeometricJacobian[body_id]
     if jac != nothing
         tm.f_generalized .+= coeff * torque(jac, wrench)

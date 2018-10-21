@@ -1,5 +1,7 @@
 
-function integrate_scenario_radau(mech_scen::MechanismScenario, x::Vector{Float64}; t_final::Float64=1.0, max_steps::Int64=1000)
+function integrate_scenario_radau(mech_scen::MechanismScenario, x::Vector{Float64}; t_final::Float64=1.0,
+        max_steps::Int64=1000)
+        
     n_dof = num_partials(mech_scen)
 
     (t_final < 0.0) && error("t_final (set to $t_final) most be non-negative")

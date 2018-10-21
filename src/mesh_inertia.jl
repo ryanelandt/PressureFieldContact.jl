@@ -1,7 +1,9 @@
 makeInertiaTensor(point::Vector{SVector{3,Float64}}, vec_vol_ind::Vector{SVector{3, Int64}}, rho::Float64, d::Float64) = makeInertiaTensor(getTriQuadRule(3), point, vec_vol_ind, rho, d)
 makeInertiaTensor(point::Vector{SVector{3,Float64}}, vec_vol_ind::Vector{SVector{4, Int64}}, rho::Float64) = makeInertiaTensor(getTetQuadRule(4), point, vec_vol_ind, rho, nothing)
 
-function makeInertiaTensor(quad_rule::TriTetQuadRule{N_ζ, NQ}, point::Vector{SVector{3,Float64}}, vec_vol_ind::Vector{SVector{N_ζ, Int64}}, rho::Float64, d::Union{Nothing,Float64}) where {N_ζ, NQ}
+function makeInertiaTensor(quad_rule::TriTetQuadRule{N_ζ, NQ}, point::Vector{SVector{3,Float64}},
+        vec_vol_ind::Vector{SVector{N_ζ, Int64}}, rho::Float64, d::Union{Nothing,Float64}) where {N_ζ, NQ}
+        
     com, mesh_vol = centroidVolumeCombo(point, vec_vol_ind, d)
     tensor_I = zeros(3, 3)
     eye3 = SMatrix{3,3}(1.0I)
@@ -20,7 +22,9 @@ function makeInertiaTensor(quad_rule::TriTetQuadRule{N_ζ, NQ}, point::Vector{SV
     return tensor_I, com, mesh_vol * rho, mesh_vol
 end
 
-function centroidVolumeCombo(point::Vector{SVector{3,Float64}}, vec_vol_ind::Vector{SVector{N, Int64}}, d::Union{Nothing,Float64}) where {N}
+function centroidVolumeCombo(point::Vector{SVector{3,Float64}}, vec_vol_ind::Vector{SVector{N, Int64}},
+        d::Union{Nothing,Float64}) where {N}
+
     v_cum, c_cum = 0.0, 0.0
     for ind_k = vec_vol_ind
         points_simplex_k = point[ind_k]
