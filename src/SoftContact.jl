@@ -1,3 +1,5 @@
+# cd(expanduser("~") * "/.julia/dev/SoftContact/src")
+
 module SoftContact
 
 using StaticArrays
@@ -19,9 +21,9 @@ const FRAME_ζ¹ = CartesianFrame3D("FRAME_ζ¹")
 const FRAME_ζ² = CartesianFrame3D("FRAME_ζ²")
 const FRAME_ϕ = CartesianFrame3D("FRAME_ϕ")
 
+include("structs.jl")
 include("mesh_inertia.jl")
 include("matrix_transform.jl")
-include("material.jl")
 include("mesh_cache.jl")
 include("mesh_body_utility.jl")
 include("temp_structures.jl")
@@ -39,7 +41,20 @@ export
     FRAME_ζ²,
     FRAME_ϕ,
 
+    # structs.jl
+    MeshInertiaInfo,
+    ContactProperties,
+    calculateExtrensicCompliance,
+    InertiaProperties,
+    TetMesh,
+    get_tri_mesh,
+    get_tet_mesh,
+    is_compliant,
+    get_Ē,
+
     # mesh_inertia.jl
+    make_volume_mesh_inertia_info,
+    make_surface_mesh_inertia_info,
     makeInertiaTensor,
     centroidVolumeCombo,
     equiv_volume,
@@ -49,20 +64,12 @@ export
     MatrixTransform,
     getPoint,
 
-    # material.jl
-    ContactProperties,
-    InertiaProperties,
-    calculateExtrensicCompliance,
-
     # mesh_cache.jl
-    TetMesh,
     asHomogenousMesh,
     MeshID,
     MeshDict,
     MeshCacheDict,
     MeshCache,
-    is_compliant,
-    get_Ē,
 
     # mesh_body_utility.jl
     newBodyFromInertia,

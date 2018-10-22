@@ -72,10 +72,10 @@ function add_body_volume!(mechanism::Mechanism, name::String, h_mesh::Homogenous
 
     tet_ind = tet_mesh.tet.ind
     point = get_h_mesh_vertices(h_mesh)
-    rho = inertia_prop.rho
     (inertia_prop.d == nothing) || error("assumed thickness is something but should be nothing")
-    I3, com, mass, mesh_vol = makeInertiaTensor(point, tet_ind, rho)
-    return add_body_from_inertia!(mechanism, name, I3, com, mass, joint=joint, body_parent=body_parent)
+    # mesh_inertia_info = makeInertiaTensor(point, tet_ind, inertia_prop)
+    mesh_inertia_info = make_volume_mesh_inertia_info(point, tet_ind, inertia_prop)
+    return add_body_from_inertia!(mechanism, name, mesh_inertia_info, joint=joint, body_parent=body_parent)
 end
 
 ### Surface ###
@@ -100,22 +100,20 @@ function add_body_surface!(mechanism::Mechanism, name::String, h_mesh::Homogenou
 
     point, tri_ind = extract_HomogenousMesh_face_vertices(h_mesh)
 
-    rho = inertia_prop.rho
-    d = inertia_prop.d
-    (d == nothing) && error("assumed thickness is nothing")
-    I3, com, mass, mesh_vol = makeInertiaTensor(point, tri_ind, rho, d)
-    return add_body_from_inertia!(mechanism, name, I3, com, mass, joint=joint, body_parent=body_parent)
+    # (inertia_prop.d == nothing) && error("assumed thickness is nothing")
+    # mesh_inertia_info = makeInertiaTensor(point, tri_ind, inertia_prop)
+    mesh_inertia_info = make_surface_mesh_inertia_info(point, tri_ind, inertia_prop)
+    return add_body_from_inertia!(mechanism, name, mesh_inertia_info, joint=joint, body_parent=body_parent)
 end
 
 return_body_never_nothing(mechanism::Mechanism, body::Nothing) = root_body(mechanism)
 return_body_never_nothing(mechanism::Mechanism, body::RigidBody{Float64}) = body
 
-function add_body_from_inertia!(mechanism::Mechanism, name::String, I3::SMatrix{3,3,Float64,9},
-        com::SVector{3,Float64}, mass::Float64; joint::JT=SPQuatFloating{Float64}(),
-        body_parent::Union{RigidBody{Float64},Nothing}=nothing) where {JT<:JointType}
+function add_body_from_inertia!(mechanism::Mechanism, name::String, mesh_inertia_info::MeshInertiaInfo;
+        joint::JT=SPQuatFloating{Float64}(), body_parent::Union{RigidBody{Float64},Nothing}=nothing) where {JT<:JointType}
 
     body_parent = return_body_never_nothing(mechanism, body_parent)
-    body_child = newBodyFromInertia(name, I3, com, mass)
+    body_child = newBodyFromInertia(name, mesh_inertia_info)  # I3, com, mass)
     j_parent_child, x_parent_child = outputJointTransform_ParentChild(body_parent, body_child, joint, SVector{3,Float64}(0,0,0))
     attach!(mechanism, body_parent, body_child, j_parent_child, joint_pose=x_parent_child)
     return body_child, j_parent_child
@@ -175,7 +173,9 @@ end
 function add_pair_rigid_compliant_bristle_tune_tet!(ts::TempContactStruct, name_tri::String, name_tet::String;
         τ::Float64=10.0, f_disp::Float64=0.0025, rad_disp::Float64=deg2rad(0.25))
 
-    K_θ, K_r = tune_bristle_stiffness(ts, name_tet, f_disp, rad_disp)
+    mesh = ts.MeshCache[findmesh(ts.MeshCache, name)]
+    mesh_inertia_info = make_volume_mesh_inertia_info(mesh)
+    K_θ, K_r = tune_bristle_stiffness(ts, mesh_inertia_info, f_disp, rad_disp)
     add_pair_rigid_compliant_bristle!(ts, name_tri, name_tet, τ=τ, K_θ=K_θ, K_r=K_r)
     return nothing
 end
@@ -183,34 +183,33 @@ end
 function add_pair_rigid_compliant_bristle_tune_tri!(ts::TempContactStruct, name_tri::String, name_tet::String;
         τ::Float64=10.0, f_disp::Float64=0.0025, rad_disp::Float64=deg2rad(0.25))
 
-    K_θ, K_r = tune_bristle_stiffness(ts, name_tri, f_disp, rad_disp)
+    mesh = ts.MeshCache[findmesh(ts.MeshCache, name_tri)]
+    mesh_inertia_info = make_surface_mesh_inertia_info(mesh)
+    K_θ, K_r = tune_bristle_stiffness(ts, mesh, mesh_inertia_info, f_disp, rad_disp)
     add_pair_rigid_compliant_bristle!(ts, name_tri, name_tet, τ=τ, K_θ=K_θ, K_r=K_r)
     return nothing
 end
 
-function tune_bristle_stiffness(ts::TempContactStruct, name::String, f_disp::Float64=0.0025,
+function tune_bristle_stiffness(ts::TempContactStruct, mesh::MeshCache, mesh_inertia_info::MeshInertiaInfo, f_disp::Float64=0.0025,
         rad_disp::Float64=deg2rad(0.25))
 
-    K_θ = calc_angular_stiffness(ts, name, rad_disp=rad_disp)
-    K_r = calc_linear_stiffness(ts, name, f_disp=f_disp)
+    K_θ = calc_angular_stiffness(mesh_inertia_info, rad_disp=rad_disp)
+    gravity_mag = norm(ts.mechanism.gravitational_acceleration.v)
+    K_r = calc_linear_stiffness(gravity_mag, mesh, mesh_inertia_info, f_disp=f_disp)
     return K_θ, K_r
 end
 
-function calc_linear_stiffness(ts::TempContactStruct, name::String; f_disp::Float64=0.0025)
-    mesh_id = findmesh(ts.MeshCache, name)
-    gravity = norm(ts.mechanism.gravitational_acceleration.v)
-    mesh = ts.MeshCache[mesh_id]
-    inertia_tensor = bodies(ts.mechanism)[mesh.BodyID].inertia
-    F = inertia_tensor.mass * gravity
+function calc_angular_stiffness(mesh_inertia_info::MeshInertiaInfo; rad_disp::Float64=deg2rad(0.25))
+    inertia_tensor  = mesh_inertia_info.tensor_I
+    avg_inertia = sum(svd(inertia_tensor).S) / 3
+    return avg_inertia / rad_disp
+end
+
+function calc_linear_stiffness(gravity_mag::Float64, mesh::MeshCache, mesh_inertia_info::MeshInertiaInfo; f_disp::Float64=0.0025)
+    inertia_tensor = mesh_inertia_info.tensor_I
+    mass = mesh_inertia_info.mass
+    F = mass * gravity_mag
     char_length = sum(mesh.tri.tree.box.e) / 3  # to avoid importing Statistics
     delta_x = char_length * f_disp
     return F / delta_x
-end
-
-function calc_angular_stiffness(ts::TempContactStruct, name::String; rad_disp::Float64=deg2rad(0.25))
-    mesh_id = findmesh(ts.MeshCache, name)
-    mesh = ts.MeshCache[mesh_id]
-    inertia_tensor = bodies(ts.mechanism)[mesh.BodyID].inertia
-    avg_inertia = sum(svd(inertia_tensor.moment).S) / 3  # to avoid importing Statistics
-    return avg_inertia / rad_disp
 end
