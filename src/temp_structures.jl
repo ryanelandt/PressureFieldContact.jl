@@ -73,7 +73,6 @@ function add_body_volume!(mechanism::Mechanism, name::String, h_mesh::Homogenous
     tet_ind = tet_mesh.tet.ind
     point = get_h_mesh_vertices(h_mesh)
     (inertia_prop.d == nothing) || error("assumed thickness is something but should be nothing")
-    # mesh_inertia_info = makeInertiaTensor(point, tet_ind, inertia_prop)
     mesh_inertia_info = make_volume_mesh_inertia_info(point, tet_ind, inertia_prop)
     return add_body_from_inertia!(mechanism, name, mesh_inertia_info, joint=joint, body_parent=body_parent)
 end
@@ -99,9 +98,6 @@ function add_body_surface!(mechanism::Mechanism, name::String, h_mesh::Homogenou
         joint::JT=SPQuatFloating{Float64}(), body_parent::Union{RigidBody{Float64},Nothing}=nothing) where {JT<:JointType}
 
     point, tri_ind = extract_HomogenousMesh_face_vertices(h_mesh)
-
-    # (inertia_prop.d == nothing) && error("assumed thickness is nothing")
-    # mesh_inertia_info = makeInertiaTensor(point, tri_ind, inertia_prop)
     mesh_inertia_info = make_surface_mesh_inertia_info(point, tri_ind, inertia_prop)
     return add_body_from_inertia!(mechanism, name, mesh_inertia_info, joint=joint, body_parent=body_parent)
 end

@@ -1,5 +1,5 @@
 
-function verify_bristle_ids!(m::MechanismScenario{N,T}, x::Vector{Float64}) where {N,T}
+function verify_bristle_ids!(m::MechanismScenario{NQ,NX,T}, x::Vector{Float64}) where {NQ,NX,T}
     copyto!(m.float, x)
 
     bristle_done = falses(m.bristle_ids)
@@ -23,10 +23,10 @@ function verify_bristle_ids!(m::MechanismScenario{N,T}, x::Vector{Float64}) wher
     return nothing
 end
 
-calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.dual)
-calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{N,T}) where {N,T} = calcXd!(xx, x, m, m.float)
-function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{N,T2},
-        tm::TypedMechanismScenario{N,T1}) where {N,T1,T2}
+calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{NQ,NX,T}) where {NQ,NX,T} = calcXd!(xx, x, m, m.dual)
+calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{NQ,NX,T}) where {NQ,NX,T} = calcXd!(xx, x, m, m.float)
+function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{NQ,NX,T2},
+        tm::TypedMechanismScenario{NQ,T1}) where {NQ,NX,T1,T2}
 
     state = tm.state
     # any(isnan.(x)) && error("nan in x")
@@ -52,7 +52,7 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
     return nothing
 end
 
-function refreshJacobians!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenario{N,T2}) where {N,T1,T2}
+function refreshJacobians!(m::MechanismScenario{NQ,NX,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NQ,NX,T1,T2}
     for k = m.body_ids
         path_k = m.path[k]
         (path_k != nothing) && geometric_jacobian!(tm.GeometricJacobian[k], tm.state, path_k)
@@ -60,7 +60,7 @@ function refreshJacobians!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenari
     return nothing
 end
 
-function forceAllElasticIntersections!(m::MechanismScenario{N,T1}, tm::TypedMechanismScenario{N,T2}) where {N,T1,T2}
+function forceAllElasticIntersections!(m::MechanismScenario{NQ,NX,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NQ,NX,T1,T2}
     refreshJacobians!(m, tm)
     tm.f_generalized .= zero(T2)
     for k = 1:length(m.ContactInstructions)
@@ -90,7 +90,7 @@ function forceAllElasticIntersections!(m::MechanismScenario{N,T1}, tm::TypedMech
     return nothing
 end
 
-function calcTriTetIntersections!(m::MechanismScenario, con_ins_k::ContactInstructions) where {N,T}
+function calcTriTetIntersections!(m::MechanismScenario, con_ins_k::ContactInstructions) # where {N,T}
     b = m.float.bodyBodyCache  # this can be float because intersection is assumed to not depend on partials
     refreshBodyBodyTransform!(m, m.float, con_ins_k)
     x_r¹_r² = inv(b.x_rʷ_r¹) * b.x_rʷ_r²
