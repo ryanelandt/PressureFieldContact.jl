@@ -105,6 +105,7 @@ export
     makePaths,
     MechanismScenario,
     num_partials,
+    num_x,
     type_dual,
     get_state,
     set_state_spq!,

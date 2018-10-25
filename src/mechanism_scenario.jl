@@ -98,8 +98,7 @@ function makePaths(mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, b
     return v_path
 end
 
-struct MechanismScenario{NQ,NX,T}
-    n_dof::Int64
+struct MechanismScenario{NX,NQ,T}
     body_ids::Base.OneTo{BodyID}
     mesh_ids::Base.OneTo{MeshID}
     bristle_ids::Base.OneTo{BristleID}
@@ -115,7 +114,7 @@ struct MechanismScenario{NQ,NX,T}
     function MechanismScenario(ts::TempContactStruct, de::Function; n_quad_rule::Int64=2, N_chunk::Int64=12)
         (1 <= n_quad_rule <= 2) || error("only quadrature rules 1 (first order) and 2 (second? order) are currently implemented")
         quad = getTriQuadRule(n_quad_rule)
-        N = length(quad.w)
+        NQ = length(quad.w)
 
         mechanism = ts.mechanism
         body_ids = Base.OneTo(last(bodies(mechanism)).id)
@@ -127,26 +126,26 @@ struct MechanismScenario{NQ,NX,T}
         n_velocities = num_velocities(mechanism)
         (n_positions == n_velocities) || error("n_positions ($n_positions) and n_velocities ($n_velocities) are different. Replace QuaternionFloating joints with SPQuatFloating joints.")
 
-        n_dof = n_positions + n_velocities + 6 * n_bristle_pairs
+        NX = n_positions + n_velocities + 6 * n_bristle_pairs
 
         T = Dual{Nothing,Float64,N_chunk}
         frame_world = root_frame(mechanism)
         τ_ext = zeros(Float64, num_positions(mechanism))
         mesh_cache = ts.MeshCache
         cache_path = makePaths(mechanism, mesh_cache, body_ids)
-        cache_float = TypedMechanismScenario{N,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
-        cache_dual = TypedMechanismScenario{N,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
+        cache_float = TypedMechanismScenario{NQ,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
+        cache_dual = TypedMechanismScenario{NQ,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         vec_instructions = ts.ContactInstructions
-        return new{N,n_dof,T}(n_dof, body_ids, mesh_ids, bristle_ids, frame_world, TT_Cache(), τ_ext, cache_float, cache_dual, cache_path, mesh_cache, vec_instructions, de)
+        return new{NX,NQ,T}(body_ids, mesh_ids, bristle_ids, frame_world, TT_Cache(), τ_ext, cache_float, cache_dual, cache_path, mesh_cache, vec_instructions, de)
     end
 end
 
-num_partials(m::MechanismScenario{NQ,NX,Dual{Nothing,Float64,N_partials}}) where {NQ,NX,N_partials} = N_partials
-num_x(m::MechanismScenario{NQ,NX,T}) where {NQ,NX,T} = NX
-type_dual(m::MechanismScenario{NQ,NX,T}) where {NQ,NX,T} = T
+num_partials(m::MechanismScenario{NX,NQ,Dual{Nothing,Float64,N_partials}}) where {NX,NQ,N_partials} = N_partials
+num_x(m::MechanismScenario{NX,NQ,T}) where {NX,NQ,T} = NX
+type_dual(m::MechanismScenario{NX,NQ,T}) where {NX,NQ,T} = T
 
 function get_state(mech_scen::MechanismScenario)
-    x = zeros(num_partials(mech_scen))
+    x = zeros(num_x(mech_scen))
     copyto!(x, mech_scen.float)
     return x
 end
