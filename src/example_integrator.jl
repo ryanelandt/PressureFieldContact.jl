@@ -1,8 +1,8 @@
 
 function integrate_scenario_radau(mech_scen::MechanismScenario, x::Vector{Float64}; t_final::Float64=1.0,
         max_steps::Int64=1000)
-        
-    n_dof = num_partials(mech_scen)
+
+    n_dof = num_x(mech_scen)
 
     (t_final < 0.0) && error("t_final (set to $t_final) most be non-negative")
     (length(x) == n_dof) || error("The length of x ($(length(x))) is different from the number of variables in the scenario ($n_dof). Did you forget the state variables for bristle friction?")
