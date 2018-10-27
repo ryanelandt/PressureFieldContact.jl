@@ -7,7 +7,6 @@ using MeshCat
 using ColorTypes: RGBA, RGB
 using MeshCatMechanisms
 using SoftContact
-using GeometryTypes: HomogenousMesh
 using Binary_BB_Trees: get_h_mesh_faces_32, get_h_mesh_vertices_32
 using Rotations: RotZ
 
@@ -85,7 +84,8 @@ set_configuration!(mech_scen, mvis, x)
 
 ### Run forward dynamics
 t_final = 5.0e-0
-data_time, data_state, rr = integrate_scenario_radau(mech_scen, x*1, t_final=t_final)
+rr = Radau_for_MechanismScenario(mech_scen)
+data_time, data_state = integrate_scenario_radau(rr, mech_scen, x*1, t_final=t_final)
 println("Finished compiling and running simulation beginning visualization")
 
 ### Move camera
@@ -93,4 +93,4 @@ setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 7)
 settransform!(vis["/Cameras/default"], Translation(0.0, 0.0, 0.30) ∘ LinearMap(RotZ(-π * 0.35)))
 
 ### Playback data
-play_recorded_data(mvis, mech_scen, data_time, data_state, slowdown=2.0)
+play_recorded_data(mvis, mech_scen, data_time, data_state, slowdown=1.0)
