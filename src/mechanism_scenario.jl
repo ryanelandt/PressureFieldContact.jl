@@ -3,7 +3,7 @@ struct TractionCache{N,T}
     traction_normal::FreeVector3D{SVector{3,T}}
     r_cart::NTuple{N,Point3D{SVector{3,T}}}
     v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
-    area::NTuple{N,T}
+    dA::NTuple{N,T}
     p::NTuple{N,T}
     # function TractionCache(traction_normal::FreeVector3D{SVector{3,T}}, r_cart::NTuple{N,Point3D{SVector{3,T}}},
     #     v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}, p_dA::NTuple{N,T}) where {N,T}
