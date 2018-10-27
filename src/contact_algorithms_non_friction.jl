@@ -96,6 +96,20 @@ function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::Typed
     return nothing
 end
 
+function normal_wrench(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+    wrench = zero(Wrench{T}, frame)
+    @inbounds begin
+    for k_trac = 1:length(b.TractionCache)
+        trac = b.TractionCache[k_trac]
+        for k = 1:N
+            p_dA = calc_point_p_dA(trac, k)
+            wrench += Wrench(trac.r_cart[k], p_dA * trac.traction_normal)
+        end
+    end
+    end
+    return wrench
+end
+
 function calcTriTetIntersections!(m::MechanismScenario, con_ins_k::ContactInstructions) # where {N,T}
     b = m.float.bodyBodyCache  # this can be float because intersection is assumed to not depend on partials
     refreshBodyBodyTransform!(m, m.float, con_ins_k)

@@ -5,20 +5,6 @@ struct TractionCache{N,T}
     v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
     dA::NTuple{N,T}
     p::NTuple{N,T}
-    # function TractionCache(traction_normal::FreeVector3D{SVector{3,T}}, r_cart::NTuple{N,Point3D{SVector{3,T}}},
-    #     v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}, p_dA::NTuple{N,T}) where {N,T}
-    #
-    #     return new{N,T}(traction_normal, r_cart, v_cart_t, p_dA)
-    # end
-    # function TractionCache(N, T)  # TODO: delete this when vector cache only works for immutables
-    #     frame = FRAME_ζ²
-    #
-    #     traction_normal = FreeVector3D(frame, SVector{3, T}(NaN .+ zeros(3)))
-    #     r_cart = NTuple{N,Point3D{SVector{3,T}}}([Point3D(frame, SVector{3,T}(NaN, NaN, NaN)) for k = 1:N])
-    #     v_cart_t = NTuple{N,FreeVector3D{SVector{3,T}}}([FreeVector3D(frame, SVector{3,T}(NaN, NaN, NaN)) for k = 1:N])
-    #     p_dA = NTuple{N,T}(NaN .+ zeros(N))
-    #     return new{N,T}(traction_normal, r_cart, v_cart_t, p_dA)
-    # end
 end
 
 mutable struct TypedElasticBodyBodyCache{N,T}

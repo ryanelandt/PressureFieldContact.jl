@@ -3,9 +3,7 @@
 struct BristleFriction
     BristleID::BristleID
     τ::Float64
-    K_θ::Float64
-    K_r::Float64
-    BristleFriction(bristle_ID::BristleID; τ::Float64, K_θ::Float64, K_r::Float64) = new(bristle_ID, τ, K_θ, K_r)
+    BristleFriction(bristle_ID::BristleID; τ::Float64) = new(bristle_ID, τ)
 end
 
 mutable struct ContactInstructions
@@ -155,76 +153,51 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2
     end
 end
 
-function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=10.0,
-        K_θ::Union{Nothing,Float64}=nothing, K_r::Union{Nothing, Float64}=nothing)
+function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=10.0)
+    # , K_θ::Union{Nothing,Float64}=nothing, K_r::Union{Nothing, Float64}=nothing)
 
-    (K_θ == nothing) && error("K_θ needs to be given")
-    (K_r == nothing) && error("K_r needs to be given")
+    # (K_θ == nothing) && error("K_θ needs to be given")
+    # (K_r == nothing) && error("K_r needs to be given")
     bristle_id = BristleID(1 + length(ts.bristle_ids))
-    bf = BristleFriction(bristle_id, τ=τ, K_θ=K_θ, K_r=K_r)
+    bf = BristleFriction(bristle_id, τ=τ)  # , K_θ=K_θ, K_r=K_r)
     ts.bristle_ids = Base.OneTo(bristle_id)
     return add_pair_rigid_compliant!(ts, name_tri, name_tet, bf)
 end
 
-
-
-# mesh = ts.MeshCache[findmesh(ts.MeshCache, name_tet)]
-
-function add_pair_rigid_compliant_bristle_tune!(ts::TempContactStruct, name_1::String, name_2::String;
-        τ::Float64=10.0, f_disp::Float64=0.0025, rad_disp::Float64=deg2rad(0.25))
-
-    mesh = ts.MeshCache[findmesh(ts.MeshCache, name_1)]
-    if is_compliant(mesh)
-        mesh_inertia_info = make_volume_mesh_inertia_info(mesh)
-    else
-        mesh_inertia_info = make_surface_mesh_inertia_info(mesh)
-    end
-    # mesh_inertia_info = make_volume_mesh_inertia_info(mesh)
-    K_θ, K_r = tune_bristle_stiffness(ts, mesh, mesh_inertia_info, f_disp, rad_disp)
-    add_pair_rigid_compliant_bristle!(ts, name_1, name_2, τ=τ, K_θ=K_θ, K_r=K_r)
-    return nothing
-end
-
-# function add_pair_rigid_compliant_bristle_tune_tet!(ts::TempContactStruct, name_tri::String, name_tet::String;
+# function add_pair_rigid_compliant_bristle_tune!(ts::TempContactStruct, name_1::String, name_2::String;
 #         τ::Float64=10.0, f_disp::Float64=0.0025, rad_disp::Float64=deg2rad(0.25))
 #
-#     mesh = ts.MeshCache[findmesh(ts.MeshCache, name_tet)]
-#     mesh_inertia_info = make_volume_mesh_inertia_info(mesh)
+#     mesh = ts.MeshCache[findmesh(ts.MeshCache, name_1)]
+#     if is_compliant(mesh)
+#         mesh_inertia_info = make_volume_mesh_inertia_info(mesh)
+#     else
+#         mesh_inertia_info = make_surface_mesh_inertia_info(mesh)
+#     end
 #     K_θ, K_r = tune_bristle_stiffness(ts, mesh, mesh_inertia_info, f_disp, rad_disp)
-#     add_pair_rigid_compliant_bristle!(ts, name_tri, name_tet, τ=τ, K_θ=K_θ, K_r=K_r)
+#     add_pair_rigid_compliant_bristle!(ts, name_1, name_2, τ=τ, K_θ=K_θ, K_r=K_r)
 #     return nothing
 # end
 #
-# function add_pair_rigid_compliant_bristle_tune_tri!(ts::TempContactStruct, name_tri::String, name_tet::String;
-#         τ::Float64=10.0, f_disp::Float64=0.0025, rad_disp::Float64=deg2rad(0.25))
+# function tune_bristle_stiffness(ts::TempContactStruct, mesh::MeshCache, mesh_inertia_info::MeshInertiaInfo, f_disp::Float64=0.0025,
+#         rad_disp::Float64=deg2rad(0.25))
 #
-#     mesh = ts.MeshCache[findmesh(ts.MeshCache, name_tri)]
-#     mesh_inertia_info = make_surface_mesh_inertia_info(mesh)
-#     K_θ, K_r = tune_bristle_stiffness(ts, mesh, mesh_inertia_info, f_disp, rad_disp)
-#     add_pair_rigid_compliant_bristle!(ts, name_tri, name_tet, τ=τ, K_θ=K_θ, K_r=K_r)
-#     return nothing
+#     K_θ = calc_angular_stiffness(mesh_inertia_info, rad_disp=rad_disp)
+#     gravity_mag = norm(ts.mechanism.gravitational_acceleration.v)
+#     K_r = calc_linear_stiffness(gravity_mag, mesh, mesh_inertia_info, f_disp=f_disp)
+#     return K_θ, K_r
 # end
-
-function tune_bristle_stiffness(ts::TempContactStruct, mesh::MeshCache, mesh_inertia_info::MeshInertiaInfo, f_disp::Float64=0.0025,
-        rad_disp::Float64=deg2rad(0.25))
-
-    K_θ = calc_angular_stiffness(mesh_inertia_info, rad_disp=rad_disp)
-    gravity_mag = norm(ts.mechanism.gravitational_acceleration.v)
-    K_r = calc_linear_stiffness(gravity_mag, mesh, mesh_inertia_info, f_disp=f_disp)
-    return K_θ, K_r
-end
-
-function calc_angular_stiffness(mesh_inertia_info::MeshInertiaInfo; rad_disp::Float64=deg2rad(0.25))
-    inertia_tensor  = mesh_inertia_info.tensor_I
-    avg_inertia = sum(svd(inertia_tensor).S) / 3
-    return avg_inertia / rad_disp
-end
-
-function calc_linear_stiffness(gravity_mag::Float64, mesh::MeshCache, mesh_inertia_info::MeshInertiaInfo; f_disp::Float64=0.0025)
-    inertia_tensor = mesh_inertia_info.tensor_I
-    mass = mesh_inertia_info.mass
-    F = mass * gravity_mag
-    char_length = sum(mesh.tri.tree.box.e) / 3  # to avoid importing Statistics
-    delta_x = char_length * f_disp
-    return F / delta_x
-end
+#
+# function calc_angular_stiffness(mesh_inertia_info::MeshInertiaInfo; rad_disp::Float64=deg2rad(0.25))
+#     inertia_tensor  = mesh_inertia_info.tensor_I
+#     avg_inertia = sum(svd(inertia_tensor).S) / 3
+#     return avg_inertia / rad_disp
+# end
+#
+# function calc_linear_stiffness(gravity_mag::Float64, mesh::MeshCache, mesh_inertia_info::MeshInertiaInfo; f_disp::Float64=0.0025)
+#     inertia_tensor = mesh_inertia_info.tensor_I
+#     mass = mesh_inertia_info.mass
+#     F = mass * gravity_mag
+#     char_length = sum(mesh.tri.tree.box.e) / 3  # to avoid importing Statistics
+#     delta_x = char_length * f_disp
+#     return F / delta_x
+# end
