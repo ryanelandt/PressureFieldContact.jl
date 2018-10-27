@@ -2,14 +2,13 @@ using CoordinateTransformations: Translation, LinearMap
 using StaticArrays
 using Rotations: RotZ, RotX, SPQuat
 using Binary_BB_Trees
-using LinearAlgebra
+using LinearAlgebra  # TODO: is this used?
 using RigidBodyDynamics
 using MeshCat
 using ColorTypes: RGBA, RGB
 using MeshCatMechanisms
 using SoftContact
 using FileIO
-using GeometryTypes: HomogenousMesh
 
 
 set_zero_subnormals(true)  # optional tweak to make simulation run faster
@@ -33,6 +32,7 @@ up_h_mesh, up_tet_mesh = create_volume_box(rad_box)
 _, up_joint = add_body_volume_mesh!(ts, up_name, up_h_mesh, up_tet_mesh, InertiaProperties(rho=500.0), joint=up_joint)
 
 ### Spoon
+spoon_name = "spoon"
 mesh_spoon = load(spoon_path)
 scale_HomogenousMesh!(mesh_spoon, 0.01)  # make 0.01 of origional size or spoon will be HUGE
 # assume that the spoon in a shell of this density and thickness (d) for the purposes of inertia tensor calculation
@@ -40,8 +40,8 @@ spoon_i_prop = InertiaProperties(rho=900.0, d=0.0025)
 _, spoon_joint = add_body_surface_mesh!(ts, "spoon", mesh_spoon, spoon_i_prop)  # adds body and calculates inertia from the surface mesh
 
 ### Friction pairs
-add_pair_rigid_compliant_bristle_tune_tri!(ts, "spoon", up_name)
-add_pair_rigid_compliant_bristle_tune_tri!(ts, "spoon", lo_name)
+add_pair_rigid_compliant_bristle!(ts, spoon_name, up_name, τ=1/0.1)
+add_pair_rigid_compliant_bristle!(ts, spoon_name, lo_name, τ=1/0.1)
 mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=1)  # there will be many intersections; first order is fine
 
 ### Set initial condition
@@ -52,7 +52,8 @@ x = get_state(mech_scen)
 
 ### Run forward dynamics
 t_final = 1.6
-data_time, data_state, rr = integrate_scenario_radau(mech_scen, x*1, t_final=t_final)
+rr = Radau_for_MechanismScenario(mech_scen)
+data_time, data_state = integrate_scenario_radau(rr, mech_scen, x*1, t_final=t_final)
 println("Finished compiling and running simulation beginning visualization")
 
 ### Add meshcat visualizer
@@ -74,5 +75,4 @@ setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 27)
 settransform!(vis["/Cameras/default"], Translation(0.0, 0.0, 0.04) ∘ LinearMap(RotZ(-π * 0.35)))
 
 ### Playback data
-sleep(3)  # wait for visualizer to initialize
-play_recorded_data(mvis, mech_scen, data_time, data_state, slowdown=5.0)
+play_recorded_data(mvis, mech_scen, data_time, data_state, slowdown=1.0)
