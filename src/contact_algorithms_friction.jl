@@ -54,7 +54,7 @@ function bristle_stiffness_l_now(b::TypedElasticBodyBodyCache{N,T}, frame_c::Car
             K_l_dimless += dA * SVector{3,T}(K_l_dA_1, K_l_dA_2, K_l_dA_3)
         end
     end
-    K_r = b.Ē * K_l_dimless * 50.0 # TODO: fix this line/choice
+    K_r = b.Ē * K_l_dimless * b.mesh_2.tet.c_prop.d⁻¹
     all(0.0 .<= K_r) || error("element negative")
     K_r = FreeVector3D(b.frame_world, K_r)
     return transform(K_r, b.x_r²_rʷ)
@@ -76,7 +76,7 @@ function bristle_stiffness_θ_now(b::TypedElasticBodyBodyCache{N,T}, r̄::Point3
             K_θ_dimless += dA * norm_r_rel * SVector{3,T}(K_θ_dA_1, K_θ_dA_2, K_θ_dA_3)
         end
     end
-    K_θ = b.Ē * K_θ_dimless * 50.0  # TODO: fix this line/choice
+    K_θ = b.Ē * K_θ_dimless * b.mesh_2.tet.c_prop.d⁻¹
     all(0.0 .<= K_θ) || error("element negative")
     K_θ = FreeVector3D(b.frame_world, K_θ)
     return transform(K_θ, b.x_r²_rʷ)
@@ -149,7 +149,6 @@ function find_contact_pressure_center(b::TypedElasticBodyBodyCache{N,T}) where {
     frame = b.TractionCache[1].r_cart[1].frame
     return Point3D(frame, int_p_r_dA / int_p_dA ), int_p_dA
 end
-
 
 @inline get_bristle_d0(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T} = segments(tm.s)[bristle_id]
 @inline get_bristle_d1(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T} = segments(tm.ṡ)[bristle_id]
@@ -260,76 +259,3 @@ function bristle_no_slip_force_moment(b::TypedElasticBodyBodyCache{N,T}, frame_w
     λ_r_s_w = FreeVector3D(K_r.frame, -K_r.v .* λ_r_s_w.v)
     return λ_r_s_w, τ_θ_s_w, r̄_w, p_dA_patch
 end
-
-# calc_point_p_dA(tc::TractionCache{N,T}, k::Int64) where {N,T} = tc.p[k] * tc.dA[k]
-#
-# function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-#     wrench = zero(Wrench{T}, frame)
-#
-#     for k_trac = 1:length(b.TractionCache)
-#         trac = b.TractionCache[k_trac]
-#         for k = 1:N
-#             cart_vel_crw_t = trac.v_cart_t[k]
-#             mag_vel_t = safe_norm(cart_vel_crw_t.v)
-#             μ_reg = b.μ * fastSigmoid(mag_vel_t)
-#             # p_dA = trac.p[k] * trac.dA[k]
-#             p_dA = calc_point_p_dA(trac, k)
-#             traction_k = p_dA * (trac.traction_normal - μ_reg * safe_normalize(cart_vel_crw_t))
-#             wrench += Wrench(trac.r_cart[k], traction_k)
-#         end
-#     end
-#     return wrench
-# end
-# function bristle_deformation(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T}
-#     segments_s = get_bristle_d0(tm, bristle_id)
-#     c_θ = rotation(SPQuatFloating{Float64}(), segments_s)
-#     c_θ = cheapRV(c_θ)
-#     c_r = translation(SPQuatFloating{Float64}(), segments_s)
-#     return c_θ, c_r
-# end
-#
-# function bristle_deformation(frame_c::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T}
-#     c_θ, c_r = bristle_deformation(tm, bristle_id)
-#     c_r = FreeVector3D(frame_c, c_r)
-#     c_θ = FreeVector3D(frame_c, c_θ)
-#     return c_θ, c_r
-# end
-# function update_bristle_d1!(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID, c_w::FreeVector3D{SVector{3,T}},
-#         ċ_r::FreeVector3D{SVector{3,T}}) where {N,T}
-#
-#     @framecheck(c_w.frame, ċ_r.frame)
-#     update_bristle_d1!(tm, bristle_id, c_w.v, ċ_r.v)
-#     return nothing
-# end
-#
-# function update_bristle_d1!(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID, c_w::SVector{3,T},
-#         ċ_r::SVector{3,T}) where {N,T}
-#
-#     segments_s = get_bristle_d0(tm, bristle_id)
-#     segments_ṡ = get_bristle_d1(tm, bristle_id)
-#     velocity_to_configuration_derivative!(segments_ṡ, SPQuatFloating{Float64}(), segments_s, vcat(c_w, ċ_r))
-#     return nothing
-# end
-# function bristle_friction_no_contact!(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
-#     BF = c_ins.BristleFriction
-#     bristle_id = BF.BristleID
-#     c_θ, c_r = bristle_deformation(tm, bristle_id)
-#     c_w = -BF.τ * c_θ
-#     ċ_r = -BF.τ * c_r
-#     update_bristle_d1!(tm, bristle_id, c_w, ċ_r)
-#     return nothing
-# end
-#
-# function bristle_friction!(frame_w::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
-#     b = tm.bodyBodyCache
-#     BF = c_ins.BristleFriction
-#     bristle_id = BF.BristleID
-#     frame_c = b.mesh_2.FrameID
-#     c_θ, c_r = bristle_deformation(frame_c, tm, bristle_id)
-#     wrench_λ_w, τ_θ, λ_r = bristle_friction_inner(b, BF, c_ins, frame_w, c_θ, c_r)
-#     wrench_t_w = normal_wrench(frame_w, b) + wrench_λ_w
-#     c_w = -BF.τ * (c_θ + τ_θ * (1 / BF.K_θ) )
-#     ċ_r = -BF.τ * (c_r + λ_r * (1 / BF.K_r) )
-#     update_bristle_d1!(tm, bristle_id, c_w, ċ_r)
-#     return wrench_t_w
-# end
