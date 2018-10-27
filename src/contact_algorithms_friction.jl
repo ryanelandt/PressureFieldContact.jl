@@ -1,4 +1,6 @@
 
+calc_point_p_dA(tc::TractionCache{N,T}, k::Int64) where {N,T} = tc.p[k] * tc.dA[k]
+
 function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
     wrench = zero(Wrench{T}, frame)
 
@@ -8,7 +10,9 @@ function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCa
             cart_vel_crw_t = trac.v_cart_t[k]
             mag_vel_t = safe_norm(cart_vel_crw_t.v)
             μ_reg = b.μ * fastSigmoid(mag_vel_t)
-            traction_k = trac.p_dA[k] * (trac.traction_normal - μ_reg * safe_normalize(cart_vel_crw_t))
+            # p_dA = trac.p[k] * trac.dA[k]
+            p_dA = calc_point_p_dA(trac, k)
+            traction_k = p_dA * (trac.traction_normal - μ_reg * safe_normalize(cart_vel_crw_t))
             wrench += Wrench(trac.r_cart[k], traction_k)
         end
     end
@@ -22,7 +26,8 @@ function find_contact_pressure_center(b::TypedElasticBodyBodyCache{N,T}) where {
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         for k = 1:N
-            p = trac.p_dA[k]
+            # p = trac.p_dA[k]
+            p = calc_point_p_dA(trac, k)
             int_p_dA += p
             int_p_r_dA += p * trac.r_cart[k].v
         end
@@ -91,7 +96,8 @@ function calc_T_θ_dA(b::TypedElasticBodyBodyCache{N,T}, τ_θ_s_w::FreeVector3D
             r_rel_w = trac.r_cart[k] - r̄_w
             r_cross_τ = cross(r_rel_w, τ_θ_s_w)
             r_cross_τ_squared = norm_squared(r_cross_τ)
-            int_T_θ_dA += trac.p_dA[k] * r_cross_τ_squared
+            p_dA = calc_point_p_dA(trac, k)
+            int_T_θ_dA += p_dA * r_cross_τ_squared
         end
     end
     end

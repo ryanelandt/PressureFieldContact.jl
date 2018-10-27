@@ -3,21 +3,22 @@ struct TractionCache{N,T}
     traction_normal::FreeVector3D{SVector{3,T}}
     r_cart::NTuple{N,Point3D{SVector{3,T}}}
     v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
-    p_dA::NTuple{N,T}
-    function TractionCache(traction_normal::FreeVector3D{SVector{3,T}}, r_cart::NTuple{N,Point3D{SVector{3,T}}},
-        v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}, p_dA::NTuple{N,T}) where {N,T}
-
-        return new{N,T}(traction_normal, r_cart, v_cart_t, p_dA)
-    end
-    function TractionCache(N, T)  # TODO: delete this when vector cache only works for immutables
-        frame = FRAME_ζ²
-
-        traction_normal = FreeVector3D(frame, SVector{3, T}(NaN .+ zeros(3)))
-        r_cart = NTuple{N,Point3D{SVector{3,T}}}([Point3D(frame, SVector{3,T}(NaN, NaN, NaN)) for k = 1:N])
-        v_cart_t = NTuple{N,FreeVector3D{SVector{3,T}}}([FreeVector3D(frame, SVector{3,T}(NaN, NaN, NaN)) for k = 1:N])
-        p_dA = NTuple{N,T}(NaN .+ zeros(N))
-        return new{N,T}(traction_normal, r_cart, v_cart_t, p_dA)
-    end
+    area::NTuple{N,T}
+    p::NTuple{N,T}
+    # function TractionCache(traction_normal::FreeVector3D{SVector{3,T}}, r_cart::NTuple{N,Point3D{SVector{3,T}}},
+    #     v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}, p_dA::NTuple{N,T}) where {N,T}
+    #
+    #     return new{N,T}(traction_normal, r_cart, v_cart_t, p_dA)
+    # end
+    # function TractionCache(N, T)  # TODO: delete this when vector cache only works for immutables
+    #     frame = FRAME_ζ²
+    #
+    #     traction_normal = FreeVector3D(frame, SVector{3, T}(NaN .+ zeros(3)))
+    #     r_cart = NTuple{N,Point3D{SVector{3,T}}}([Point3D(frame, SVector{3,T}(NaN, NaN, NaN)) for k = 1:N])
+    #     v_cart_t = NTuple{N,FreeVector3D{SVector{3,T}}}([FreeVector3D(frame, SVector{3,T}(NaN, NaN, NaN)) for k = 1:N])
+    #     p_dA = NTuple{N,T}(NaN .+ zeros(N))
+    #     return new{N,T}(traction_normal, r_cart, v_cart_t, p_dA)
+    # end
 end
 
 mutable struct TypedElasticBodyBodyCache{N,T}
@@ -37,8 +38,7 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     d⁻¹::Float64
     wrench::Wrench{T}
     function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
-        tc = TractionCache(N, T)
-        trac_cache = VectorCache(tc)
+        trac_cache = VectorCache{TractionCache{N, T}}()
         return new{N,T}(frame_world, quad, trac_cache)
     end
 end

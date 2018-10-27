@@ -121,6 +121,7 @@ export
     forceAllElasticIntersections!,
     calcTriTetIntersections!,
     refreshBodyBodyCache!,
+    integrate_over_logic!,
     triangle_vertices,
     tetrahedron_vertices_ϵ,
     calc_ζ_transforms,
@@ -158,7 +159,7 @@ export
     type_dual,
     fill_with_nothing!,
     mat_mul_SA_bug_circumvent,
-    add_h_mesh_color
-
+    add_h_mesh_color,
+    Radau_for_MechanismScenario
 
 end
