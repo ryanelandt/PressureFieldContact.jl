@@ -53,10 +53,22 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
     rhs .+= f_generalized
     rhs .+= m.τ_ext
     #
-    tm.result.v̇ .= H \ rhs
+    # tm.result.v̇ .= H \ rhs
+    chol_fact = LinearAlgebra.cholesky!(H)
+    ldiv!(tm.result.v̇.parent, chol_fact, rhs)
+    #
     copyto!(xx, tm, tm.result)
     return nothing
 end
+
+# function solve_PD_lin_eq!(A::Symmetric{Float64,Array{Float64,2}})
+#     return
+# end
+
+# A_symm = Symmetric(A)
+# LinearAlgebra.LAPACK.potrf!(A_symm.uplo, A_symm.data)
+# B = [0.3, 0.5, 0.5, 0.6]
+# LinearAlgebra.LAPACK.potrs!(A_symm.uplo, A_symm.data, B)
 
 function refreshJacobians!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NX,NQ,T1,T2}
     for k = m.body_ids
@@ -103,7 +115,7 @@ function normal_wrench(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T
         trac = b.TractionCache[k_trac]
         for k = 1:N
             p_dA = calc_point_p_dA(trac, k)
-            wrench += Wrench(trac.r_cart[k], p_dA * trac.traction_normal)
+            wrench += Wrench(trac.r_cart[k], p_dA * trac.n̂)
         end
     end
     end
@@ -292,31 +304,43 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{1,T}, area_q
         A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
         ϵ::SMatrix{1,4,Float64,4}) where {T}
 
-    r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_1, v_cart_t_1, pene_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
     p = (p_1, )
     if sum(p) != 0.0
         dA = (dA_1, )
         r_cart = (r_cart_1, )
         v_cart_t = (v_cart_t_1, )
-        trac_cache = TractionCache(n̂, r_cart, v_cart_t, dA, p)
+        pene = (pene_1, )
+        trac_cache = TractionCache(n̂, r_cart, v_cart_t, pene, dA, p)
         addCacheItem!(b.TractionCache, trac_cache)
     end
     return nothing
 end
 
+# struct TractionCache{N,T}
+#     n̂::FreeVector3D{SVector{3,T}}
+#     r_cart::NTuple{N,Point3D{SVector{3,T}}}
+#     # v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
+#     v_cart::NTuple{N,FreeVector3D{SVector{3,T}}}
+#     penetration::NTuple{N,T}
+#     dA::NTuple{N,T}
+#     p::NTuple{N,T}
+# end
+
 function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, area_quad_k::T,
         A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
         ϵ::SMatrix{1,4,Float64,4}) where {T}
 
-    r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
-    r_cart_2, v_cart_t_2, dA_2, p_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
-    r_cart_3, v_cart_t_3, dA_3, p_3 = fillTractionCacheInnerLoop!(3, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_1, v_cart_t_1, pene_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_2, v_cart_t_2, pene_2, dA_2, p_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_3, v_cart_t_3, pene_3, dA_3, p_3 = fillTractionCacheInnerLoop!(3, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
     p = (p_1, p_2, p_3)
     if sum(p) != 0.0
         dA = (dA_1, dA_2, dA_3)
         r_cart = (r_cart_1, r_cart_2, r_cart_3)
         v_cart_t = (v_cart_t_1, v_cart_t_2, v_cart_t_3)
-        trac_cache = TractionCache(n̂, r_cart, v_cart_t, dA, p)
+        pene = (pene_1, pene_2, pene_3)
+        trac_cache = TractionCache(n̂, r_cart, v_cart_t, pene, dA, p)
         addCacheItem!(b.TractionCache, trac_cache)
     end
     return nothing
@@ -330,19 +354,29 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
     quad_point_ζ = A_ζ_ϕ * quad_point_ϕ
     p_cart_qp = unPad(A_w_ζ * quad_point_ζ)
     ϵ_quad = dot(ϵ, quad_point_ζ.v)
-    cart_vel_crw_t, signed_mag_vel_n = calcTangentialVelocity(b.twist_r¹_r², p_cart_qp, n̂)
+    # cart_vel_crw_t, signed_mag_vel_n = calcTangentialVelocity(b.twist_r¹_r², p_cart_qp, n̂)
+    cart_vel, signed_mag_vel_n = calcNormalVelocityMag(b.twist_r¹_r², p_cart_qp, n̂)
     ϵ_dot = signed_mag_vel_n * b.d⁻¹  # ϵ_dot ≈ z_dot / thickness because the rigid body provides the normal and is fixed
     damp_term = fastSoftPlus(1.0 - b.χ * ϵ_dot)
-    p = -ϵ_quad * damp_term * b.Ē
+    p = -ϵ_quad * b.Ē
+    p_hc = p * damp_term  # -ϵ_quad * damp_term * b.Ē
     # p_dA = p * b.quad.w[k] * area_quad_k * b.Ē
     dA = b.quad.w[k] * area_quad_k
-    return p_cart_qp, cart_vel_crw_t, dA, p
+    penetration = ϵ_quad / b.d⁻¹   # normal penetration (l = p L / E)
+    # return p_cart_qp, cart_vel_crw_t, dA, p
+    return p_cart_qp, cart_vel, penetration, dA, p_hc
 end
 
-function calcTangentialVelocity(twist_tri_tet::Twist{T}, p_cart_qp::Point3D{SVector{3,T}}, traction_normal::FreeVector3D{SVector{3,T}}) where {T}
+function calcNormalVelocityMag(twist_tri_tet::Twist{T}, p_cart_qp::Point3D{SVector{3,T}}, n̂::FreeVector3D{SVector{3,T}}) where {T}
+    cart_vel = point_velocity(twist_tri_tet, p_cart_qp)
+    signed_mag_vel_n = dot(n̂, cart_vel)
+    return cart_vel, signed_mag_vel_n
+end
+
+function calcTangentialVelocity(twist_tri_tet::Twist{T}, p_cart_qp::Point3D{SVector{3,T}}, n̂::FreeVector3D{SVector{3,T}}) where {T}
     cart_vel_crw = point_velocity(twist_tri_tet, p_cart_qp)
-    signed_mag_vel_n = dot(traction_normal, cart_vel_crw)
-    cart_vel_crw_n = traction_normal * signed_mag_vel_n
+    signed_mag_vel_n = dot(n̂, cart_vel_crw)
+    cart_vel_crw_n = n̂ * signed_mag_vel_n
     cart_vel_crw_t = cart_vel_crw - cart_vel_crw_n
     return cart_vel_crw_t, signed_mag_vel_n
 end

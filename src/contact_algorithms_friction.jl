@@ -5,11 +5,19 @@ function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCa
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         for k = 1:N
-            cart_vel_crw_t = trac.v_cart_t[k]
-            mag_vel_t = safe_norm(cart_vel_crw_t.v)
+            # cart_vel_t = trac.v_cart_t[k]
+            cart_vel = trac.v_cart[k]
+            n̂ = trac.n̂
+            # signed_mag_vel_n = dot(trac.n̂, cart_vel)
+            cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
+            # signed_mag_vel_n = dot(n̂, cart_vel_crw)
+            # cart_vel_crw_n = n̂ * signed_mag_vel_n
+            # cart_vel_t = cart_vel_crw - cart_vel_crw_n
+            # return cart_vel_t, signed_mag_vel_n
+            mag_vel_t = safe_norm(cart_vel_t.v)
             μ_reg = b.μ * fastSigmoid(mag_vel_t)
             p_dA = calc_point_p_dA(trac, k)
-            traction_k = p_dA * (trac.traction_normal - μ_reg * safe_normalize(cart_vel_crw_t))
+            traction_k = p_dA * (n̂ - μ_reg * safe_normalize(cart_vel_t))
             wrench += Wrench(trac.r_cart[k], traction_k)
         end
     end
@@ -45,7 +53,7 @@ function bristle_stiffness_l_now(b::TypedElasticBodyBodyCache{N,T}, frame_c::Car
     K_l_dimless = zeros(SVector{3,T})
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
-        n̂ = trac.traction_normal.v
+        n̂ = trac.n̂.v
         for k = 1:N
             dA = trac.dA[k]
             K_l_dA_1 = safe_norm(vec_sub_vec_proj(SVector{3,T}(1.0, 0.0, 0.0), n̂))
@@ -65,7 +73,7 @@ function bristle_stiffness_θ_now(b::TypedElasticBodyBodyCache{N,T}, r̄::Point3
     K_θ_dimless = zeros(SVector{3,T})
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
-        n̂ = trac.traction_normal.v
+        n̂ = trac.n̂.v
         for k = 1:N
             dA = trac.dA[k]
             r_rel = trac.r_cart[k] - r̄
@@ -208,7 +216,7 @@ function bristle_friction_inner(b::TypedElasticBodyBodyCache{N,T}, BF::BristleFr
     const_λ_term = λ_r_s_w * safe_scalar_divide(one(T), p_dA_patch)
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
-        n̂_w = trac.traction_normal
+        n̂_w = trac.n̂
         for k = 1:N
             r_rel_w = trac.r_cart[k] - r̄_w
             r_cross_τ = cross(r_rel_w, τ_θ_s_w)
