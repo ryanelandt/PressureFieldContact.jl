@@ -61,15 +61,6 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
     return nothing
 end
 
-# function solve_PD_lin_eq!(A::Symmetric{Float64,Array{Float64,2}})
-#     return
-# end
-
-# A_symm = Symmetric(A)
-# LinearAlgebra.LAPACK.potrf!(A_symm.uplo, A_symm.data)
-# B = [0.3, 0.5, 0.5, 0.6]
-# LinearAlgebra.LAPACK.potrs!(A_symm.uplo, A_symm.data, B)
-
 function refreshJacobians!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NX,NQ,T1,T2}
     for k = m.body_ids
         path_k = m.path[k]
@@ -317,16 +308,6 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{1,T}, area_q
     return nothing
 end
 
-# struct TractionCache{N,T}
-#     n̂::FreeVector3D{SVector{3,T}}
-#     r_cart::NTuple{N,Point3D{SVector{3,T}}}
-#     # v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
-#     v_cart::NTuple{N,FreeVector3D{SVector{3,T}}}
-#     penetration::NTuple{N,T}
-#     dA::NTuple{N,T}
-#     p::NTuple{N,T}
-# end
-
 function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, area_quad_k::T,
         A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
         ϵ::SMatrix{1,4,Float64,4}) where {T}
@@ -354,16 +335,13 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
     quad_point_ζ = A_ζ_ϕ * quad_point_ϕ
     p_cart_qp = unPad(A_w_ζ * quad_point_ζ)
     ϵ_quad = dot(ϵ, quad_point_ζ.v)
-    # cart_vel_crw_t, signed_mag_vel_n = calcTangentialVelocity(b.twist_r¹_r², p_cart_qp, n̂)
     cart_vel, signed_mag_vel_n = calcNormalVelocityMag(b.twist_r¹_r², p_cart_qp, n̂)
     ϵ_dot = signed_mag_vel_n * b.d⁻¹  # ϵ_dot ≈ z_dot / thickness because the rigid body provides the normal and is fixed
     damp_term = fastSoftPlus(1.0 - b.χ * ϵ_dot)
     p = -ϵ_quad * b.Ē
     p_hc = p * damp_term  # -ϵ_quad * damp_term * b.Ē
-    # p_dA = p * b.quad.w[k] * area_quad_k * b.Ē
     dA = b.quad.w[k] * area_quad_k
     penetration = ϵ_quad / b.d⁻¹   # normal penetration (l = p L / E)
-    # return p_cart_qp, cart_vel_crw_t, dA, p
     return p_cart_qp, cart_vel, penetration, dA, p_hc
 end
 

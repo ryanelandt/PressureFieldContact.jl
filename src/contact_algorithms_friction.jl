@@ -5,15 +5,9 @@ function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCa
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         for k = 1:N
-            # cart_vel_t = trac.v_cart_t[k]
             cart_vel = trac.v_cart[k]
             n̂ = trac.n̂
-            # signed_mag_vel_n = dot(trac.n̂, cart_vel)
             cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
-            # signed_mag_vel_n = dot(n̂, cart_vel_crw)
-            # cart_vel_crw_n = n̂ * signed_mag_vel_n
-            # cart_vel_t = cart_vel_crw - cart_vel_crw_n
-            # return cart_vel_t, signed_mag_vel_n
             mag_vel_t = safe_norm(cart_vel_t.v)
             μ_reg = b.μ * fastSigmoid(mag_vel_t)
             p_dA = calc_point_p_dA(trac, k)

@@ -1,9 +1,7 @@
 
 struct TractionCache{N,T}
-    # traction_normal::FreeVector3D{SVector{3,T}}
     n̂::FreeVector3D{SVector{3,T}}
     r_cart::NTuple{N,Point3D{SVector{3,T}}}
-    # v_cart_t::NTuple{N,FreeVector3D{SVector{3,T}}}
     v_cart::NTuple{N,FreeVector3D{SVector{3,T}}}
     penetration::NTuple{N,T}
     dA::NTuple{N,T}
