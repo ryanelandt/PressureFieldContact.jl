@@ -16,6 +16,14 @@ function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCa
     return wrench
 end
 
+function calc_point_spatial_stiffness(r::SVector{3,T}, n̂::SVector{3,T}) where {T}
+    c_r_n̂ = cross(r, n̂)
+    Φ = -(vector_to_skew_symmetric(r) + n̂ * c_r_n̂')
+    K_22 = diagm(0=>ones(3)) - n̂ * n̂'
+    return vcat(hcat(Φ' * Φ, Φ'),
+                hcat(Φ,        K_22))
+end
+
 function bristle_friction_no_contact!(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     BF = c_ins.BristleFriction
     bristle_id = BF.BristleID

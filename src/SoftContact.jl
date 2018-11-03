@@ -6,6 +6,7 @@ using StaticArrays
 using Rotations: Quat, Rotation, SPQuat
 using ForwardDiff: Dual
 using RigidBodyDynamics
+using RigidBodyDynamics.Spatial: vector_to_skew_symmetric
 using GeometryTypes: HomogenousMesh, Face, Point
 using ColorTypes: RGBA
 using MeshCatMechanisms
@@ -132,6 +133,7 @@ export
     regularized_friction,
     find_contact_pressure_center,
     normal_wrench,
+    calc_point_spatial_stiffness,
     # bristle_deformation,
     # bristle_friction!,
     # bristle_friction_no_contact!,
