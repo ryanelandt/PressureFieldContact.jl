@@ -61,14 +61,6 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
     return nothing
 end
 
-function refreshJacobians!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NX,NQ,T1,T2}
-    for k = m.body_ids
-        path_k = m.path[k]
-        (path_k != nothing) && geometric_jacobian!(tm.GeometricJacobian[k], tm.state, path_k)
-    end
-    return nothing
-end
-
 function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NX,NQ,T1,T2}
     refreshJacobians!(m, tm)
     tm.f_generalized .= zero(T2)
@@ -95,6 +87,14 @@ function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::Typed
             end
         end
         (is_bristle & is_no_wrench) && bristle_friction_no_contact!(tm, con_ins_k)
+    end
+    return nothing
+end
+
+function refreshJacobians!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NX,NQ,T1,T2}
+    for k = m.body_ids
+        path_k = m.path[k]
+        (path_k != nothing) && geometric_jacobian!(tm.GeometricJacobian[k], tm.state, path_k)
     end
     return nothing
 end

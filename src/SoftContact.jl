@@ -134,6 +134,8 @@ export
     find_contact_pressure_center,
     normal_wrench,
     calc_point_spatial_stiffness,
+    get_bristle_d0,
+    get_bristle_d1,
     # bristle_deformation,
     # bristle_friction!,
     # bristle_friction_no_contact!,
