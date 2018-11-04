@@ -77,7 +77,7 @@ function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::Typed
                 if !isempty(tm.bodyBodyCache.TractionCache)
                     is_no_wrench = false
                     if is_bristle
-                        wrench = bristle_friction!(m.frame_world, tm, con_ins_k)
+                        wrench = veil_friction!(m.frame_world, tm, con_ins_k)
                     else
                         wrench = regularized_friction(m.frame_world, tm.bodyBodyCache)
                     end
@@ -86,10 +86,40 @@ function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::Typed
                 end
             end
         end
-        (is_bristle & is_no_wrench) && bristle_friction_no_contact!(tm, con_ins_k)
+        (is_bristle & is_no_wrench) && veil_friction_no_contact!(tm, con_ins_k)
     end
     return nothing
 end
+
+# function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NX,NQ,T1,T2}
+#     refreshJacobians!(m, tm)
+#     tm.f_generalized .= zero(T2)
+#     for k = 1:length(m.ContactInstructions)
+#         con_ins_k = m.ContactInstructions[k]
+#         calcTriTetIntersections!(m, con_ins_k)
+#         is_intersections = (0 != length(m.TT_Cache))
+#         is_bristle = (con_ins_k.BristleFriction != nothing)
+#         is_no_wrench = true
+#         if is_intersections | is_bristle
+#             if is_intersections
+#                 refreshBodyBodyCache!(m, tm, con_ins_k)
+#                 integrate_over_logic!(tm.bodyBodyCache, m.TT_Cache)
+#                 if !isempty(tm.bodyBodyCache.TractionCache)
+#                     is_no_wrench = false
+#                     if is_bristle
+#                         wrench = bristle_friction!(m.frame_world, tm, con_ins_k)
+#                     else
+#                         wrench = regularized_friction(m.frame_world, tm.bodyBodyCache)
+#                     end
+#                     tm.bodyBodyCache.wrench = wrench
+#                     addGeneralizedForcesThirdLaw!(wrench, tm, con_ins_k)
+#                 end
+#             end
+#         end
+#         (is_bristle & is_no_wrench) && bristle_friction_no_contact!(tm, con_ins_k)
+#     end
+#     return nothing
+# end
 
 function refreshJacobians!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NX,NQ,T1,T2}
     for k = m.body_ids
@@ -105,7 +135,7 @@ function normal_wrench(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         for k = 1:N
-            p_dA = calc_point_p_dA(trac, k)
+            p_dA = calc_p_dA(trac, k)
             wrench += Wrench(trac.r_cart[k], p_dA * trac.n̂)
         end
     end

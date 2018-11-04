@@ -22,3 +22,9 @@ findMesh(ts::MeshCacheDict{MeshCache}, name::String) = ts[findmesh(ts, name)]
 function Radau_for_MechanismScenario(m::MechanismScenario{NX,NQ,Dual{Type_Tag,Float64,NC}}) where {NX,NQ,Type_Tag,NC}
     return RadauIntegrator{MechanismScenario, NX, 3, NC}(1.0e-16, m)
 end
+
+as_static_vector(f::Wrench{T}) where {T} = vcat(angular(f), linear(f))
+as_static_vector(f::Twist{T}) where {T} = vcat(angular(f), linear(f))
+
+@inline get_bristle_d0(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T} = segments(tm.s)[bristle_id]
+@inline get_bristle_d1(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T} = segments(tm.ṡ)[bristle_id]

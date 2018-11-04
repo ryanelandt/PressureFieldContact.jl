@@ -98,6 +98,7 @@ export
 
     # mechanism_scenario
     TractionCache,
+    calc_p_dA,
     TypedElasticBodyBodyCache,
     TypedMechanismScenario,
     makePaths,
@@ -115,6 +116,7 @@ export
     verify_bristle_ids!,
     calcXd!,
     refreshJacobians!,
+    normal_wrench,
     forceAllElasticIntersections!,
     calcTriTetIntersections!,
     refreshBodyBodyCache!,
@@ -131,11 +133,15 @@ export
 
     # contact_algorithms_friction.jl
     regularized_friction,
-    find_contact_pressure_center,
-    normal_wrench,
     calc_point_spatial_stiffness,
-    get_bristle_d0,
-    get_bristle_d1,
+    calc_patch_spatial_stiffness,
+    veil_clamp_wrench,
+    veil_friction!,
+    calc_wrench_to_stick,
+    calc_λ_max,
+    veil_friction_no_contact!,
+    # find_contact_pressure_center,
+    # calc_point_spatial_stiffness,
     # bristle_deformation,
     # bristle_friction!,
     # bristle_friction_no_contact!,
@@ -160,6 +166,8 @@ export
     fill_with_nothing!,
     mat_mul_SA_bug_circumvent,
     add_h_mesh_color,
-    Radau_for_MechanismScenario
+    Radau_for_MechanismScenario,
+    get_bristle_d0,
+    get_bristle_d1
 
 end
