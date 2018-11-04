@@ -18,26 +18,22 @@ function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCa
     return wrench
 end
 
-# function calc_point_spatial_stiffness(r::SVector{3,T}, n̂::SVector{3,T}) where {T}
-#     c_r_n̂ = cross(r, n̂)
-#     Φ = -(vector_to_skew_symmetric(r) + n̂ * c_r_n̂')
-#     K_22 = diagm(0=>ones(3)) - n̂ * n̂'
-#     return vcat(hcat(Φ' * Φ, Φ'),
-#                 hcat(Φ,        K_22))
-# end
-
 function calc_point_spatial_stiffness(r::SVector{3,T}, n̂::SVector{3,T}) where {T}
+    K_22 = calculate_spatial_stiffness_term(n̂)
+    Φ = K_22 * vector_to_skew_symmetric(r)
+    return vcat(hcat(Φ' * Φ, Φ'),
+    hcat(Φ,     -K_22))
+end
+
+function calculate_spatial_stiffness_term(n̂::SVector{3,T}) where {T}
     # K_22 = one(SMatrix{3,3,T,9}) - n̂ * n̂'
-    t1 = n̂[1] * n̂[1] - 1
-    t2 = n̂[2] * n̂[2] - 1
-    t3 = n̂[3] * n̂[3] - 1
+    t1 = n̂[1] * n̂[1] - 1.0
+    t2 = n̂[2] * n̂[2] - 1.0
+    t3 = n̂[3] * n̂[3] - 1.0
     t4 = n̂[2] * n̂[3]
     t5 = n̂[1] * n̂[3]
     t6 = n̂[1] * n̂[2]
-    K_22 = SMatrix{3,3,T,9}(t1, t6, t5, t6, t2, t4, t5, t4, t3)
-    Φ = K_22 * vector_to_skew_symmetric(r)
-    return vcat(hcat(Φ' * Φ, Φ'),
-                hcat(Φ,     -K_22))
+    return SMatrix{3,3,T,9}(t1, t6, t5, t6, t2, t4, t5, t4, t3)
 end
 
 function calc_patch_spatial_stiffness(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, K) where {N,T}
@@ -45,17 +41,28 @@ function calc_patch_spatial_stiffness(tm::TypedMechanismScenario{N,T}, c_ins::Co
     frame_c = b.mesh_2.FrameID
     tc = b.TractionCache
 
+    Q_11_sum = zeros(SMatrix{3,3,T,9})
+    Q_21_sum = zeros(SMatrix{3,3,T,9})
+    Q_22_sum = zeros(SMatrix{3,3,T,9})
     for k = 1:length(tc)
         trac = tc.vec[k]
+        n̂² = transform(trac.n̂, b.x_r²_rʷ)
+        neg_Q_22 = calculate_spatial_stiffness_term(n̂².v)
         for k_qp = 1:N
             r² = transform(trac.r_cart[k_qp], b.x_r²_rʷ)
-            n̂² = transform(trac.n̂, b.x_r²_rʷ)
-            @framecheck(r².frame, n̂².frame)
-            @framecheck(frame_c, n̂².frame)
-            K .+= calc_p_dA(trac, k_qp) * calc_point_spatial_stiffness(r².v, n̂².v)
+            Q_21 = neg_Q_22 * vector_to_skew_symmetric(r².v)
+            Q_11 = Q_21' * Q_21
+            p_dA = calc_p_dA(trac, k_qp)
+            Q_11_sum += p_dA * Q_11
+            Q_21_sum += p_dA * Q_21
+            Q_22_sum -= p_dA * neg_Q_22
         end
     end
-    K .*= c_ins.μ_pair
+    μ = c_ins.μ_pair
+    K[1:3, 1:3] .= μ * Q_11_sum
+    K[4:6, 1:3] .= μ * Q_21_sum
+    K[4:6, 4:6] .= μ * Q_22_sum
+    K[1:3, 4:6] .= μ * Q_21_sum'  # TODO: remove if unecessary
     return nothing
 end
 
@@ -107,7 +114,6 @@ function veil_friction!(frame_w::CartesianFrame3D, tm::TypedMechanismScenario{N,
     x̃_dot .= U * ẋ
 
     f̄_rʷ = transform(f̄, b.x_rʷ_r²)
-    # @framecheck(f̄_rʷ.frame, frame_w)
     return normal_wrench(frame_w, b) + f̄_rʷ
 end
 
@@ -141,7 +147,6 @@ function calc_λ_max(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions
         n̂ = trac.n̂
         for k_qp = 1:N
             r = trac.r_cart[k_qp]
-            # @framecheck(f_stick.frame, r.frame)
             λᵗ = cross(fᶿ, r.v) + fʳ
             vel_at_point = point_velocity(twist_r¹_r², r)
             λ_parallel = λᵗ - τ⁻¹ * vel_at_point.v
@@ -295,7 +300,6 @@ end
 #     frame = b.TractionCache[1].r_cart[1].frame
 #     return Point3D(frame, int_p_r_dA / int_p_dA ), int_p_dA
 # end
-
 
 # function update_bristle_d1_warp!(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID, c_w::FreeVector3D{SVector{3,T}},
 #         ċ_r::FreeVector3D{SVector{3,T}}) where {N,T}

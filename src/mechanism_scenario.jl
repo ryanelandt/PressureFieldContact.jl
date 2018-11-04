@@ -28,7 +28,7 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     d⁻¹::Float64
     wrench::Wrench{T}
     function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
-        K = Symmetric(zeros(MMatrix{6,6,T,36}))
+        K = Symmetric(zeros(MMatrix{6,6,T,36}), :L)
         trac_cache = VectorCache{TractionCache{N, T}}()
         return new{N,T}(K, frame_world, quad, trac_cache)
     end
