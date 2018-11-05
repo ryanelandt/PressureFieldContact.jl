@@ -66,15 +66,38 @@ function calc_patch_spatial_stiffness(tm::TypedMechanismScenario{N,T}, c_ins::Co
     return nothing
 end
 
+###
+
 function veil_clamp_wrench(f_max::Wrench{T}, f_stick::Wrench{T}) where {T}
+    function simple_clamp(a::T, b::T) where {T}
+        if 0.0 <= b
+            return clamp(a, zero(T), b)
+        else
+            return clamp(a, b, zero(T))
+        end
+    end
+
     frame_f = f_max.frame
     @framecheck(frame_f, f_stick.frame)
-    f̄ᶿ = soft_clamp.(f_max.angular, f_stick.angular)  # TODO: need to clamp at zero this clamp is single sided
-    f̄ʳ = soft_clamp.(f_max.linear,  f_stick.linear)  # TODO: need to clamp at zero this clamp is single sided
+    f̄ᶿ = simple_clamp.(f_max.angular, f_stick.angular)  # TODO: replace with a double-sided smooth clamp
+    f̄ʳ = simple_clamp.(f_max.linear,  f_stick.linear)  # TODO: replace with a double-sided smooth clamp
     f̄ᶿ = FreeVector3D(frame_f, f̄ᶿ)
     f̄ʳ = FreeVector3D(frame_f, f̄ʳ)
     f̄ = Wrench(f̄ᶿ, f̄ʳ)
     return f̄ᶿ, f̄ʳ, f̄
+end
+
+function make_stiffness_PSD!(K::MMatrix{6,6,T,36}) where {T}
+    tol = 1.0e-4
+
+    ang_K = K[1] + K[8] + K[15]  # NOTE: # diag(SMatrix{6,6,Int64,36}(collect(1:36)))
+    for j = 1:3  # add to diagonal for angular stiffness
+        K[j, j] += ang_K * tol
+    end
+    lin_K = K[22] + K[29] + K[36]  # NOTE: # diag(SMatrix{6,6,Int64,36}(collect(1:36)))
+    for j = 4:6  # add to diagonal for linear stiffness
+        K[j, j] += lin_K * tol
+    end
 end
 
 function veil_friction!(frame_w::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
@@ -94,9 +117,9 @@ function veil_friction!(frame_w::CartesianFrame3D, tm::TypedMechanismScenario{N,
     K = b.K
     fill!(K.data, zero(T))
     calc_patch_spatial_stiffness(tm, c_ins, K.data)
-    for j = 1:6
-        K.data[j, j] += 1.0e-4
-    end
+
+    make_stiffness_PSD!(K.data)
+    K.data .*= BF.k̄
 
     cf = cholesky(K)
     U = cf.U
@@ -107,7 +130,7 @@ function veil_friction!(frame_w::CartesianFrame3D, tm::TypedMechanismScenario{N,
 
     f̄ᶿ, f̄ʳ, f̄ = veil_clamp_wrench(f_max, f_stick)
 
-    term_1 = cf.U \ (cf.L \ as_static_vector(f̄))
+    term_1 = cf.U \ (cf.L \ as_static_vector(f̄))  # term_1 = K.data \ as_static_vector(f̄)
 
     ẋ = -BF.τ * (x + term_1)
     x̃_dot = get_bristle_d1(tm, bristle_id)
@@ -166,6 +189,57 @@ function veil_friction_no_contact!(tm::TypedMechanismScenario{N,T}, c_ins::Conta
     segments_ṡ .= -BF.τ * segments_s
     return nothing
 end
+
+# function veil_clamp_wrench(f_max::Wrench{T}, f_stick::Wrench{T}) where {T}
+#     frame_f = f_max.frame
+#     @framecheck(frame_f, f_stick.frame)
+#     f̄ᶿ = soft_clamp.(f_max.angular, f_stick.angular)  # TODO: need to clamp at zero this clamp is single sided
+#     f̄ʳ = soft_clamp.(f_max.linear,  f_stick.linear)  # TODO: need to clamp at zero this clamp is single sided
+#     f̄ᶿ = FreeVector3D(frame_f, f̄ᶿ)
+#     f̄ʳ = FreeVector3D(frame_f, f̄ʳ)
+#     f̄ = Wrench(f̄ᶿ, f̄ʳ)
+#     return f̄ᶿ, f̄ʳ, f̄
+# end
+#
+# function veil_friction!(frame_w::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+#     BF = c_ins.BristleFriction
+#     bristle_id = BF.BristleID
+#     x̃ = get_bristle_d0(tm, bristle_id)
+#     x̃ = SVector{6,T}(x̃[1], x̃[2], x̃[3], x̃[4], x̃[5], x̃[6])
+#
+#     b = tm.bodyBodyCache
+#     twist_r¹_r² = b.twist_r¹_r²
+#     twist_r¹_r²_r² = transform(twist_r¹_r², b.x_r²_rʷ)
+#
+#     frame_c = b.mesh_2.FrameID
+#     @framecheck(twist_r¹_r²_r².frame, frame_c)
+#     v_spatial_rel = as_static_vector(twist_r¹_r²_r²)
+#
+#     K = b.K
+#     fill!(K.data, zero(T))
+#     calc_patch_spatial_stiffness(tm, c_ins, K.data)
+#     for j = 1:6
+#         K.data[j, j] += 1.0e-4
+#     end
+#
+#     cf = cholesky(K)
+#     U = cf.U
+#     x = U \ x̃
+#
+#     f_stick = calc_wrench_to_stick(tm, BF, x, v_spatial_rel, K)
+#     f_max = calc_λ_max(tm, c_ins, f_stick, twist_r¹_r²)
+#
+#     f̄ᶿ, f̄ʳ, f̄ = veil_clamp_wrench(f_max, f_stick)
+#
+#     term_1 = cf.U \ (cf.L \ as_static_vector(f̄))
+#
+#     ẋ = -BF.τ * (x + term_1)
+#     x̃_dot = get_bristle_d1(tm, bristle_id)
+#     x̃_dot .= U * ẋ
+#
+#     f̄_rʷ = transform(f̄, b.x_rʷ_r²)
+#     return normal_wrench(frame_w, b) + f̄_rʷ
+# end
 
 # function bristle_friction_no_contact!(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
 #     BF = c_ins.BristleFriction

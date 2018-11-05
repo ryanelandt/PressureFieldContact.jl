@@ -3,7 +3,8 @@
 struct BristleFriction
     BristleID::BristleID
     τ::Float64
-    BristleFriction(bristle_ID::BristleID; τ::Float64) = new(bristle_ID, τ)
+    k̄::Float64
+    BristleFriction(bristle_ID::BristleID; τ::Float64, k̄::Float64) = new(bristle_ID, τ, k̄)
 end
 
 mutable struct ContactInstructions
@@ -153,13 +154,13 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2
     end
 end
 
-function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=10.0)
+function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=30.0, k̄=1.0e4)
     # , K_θ::Union{Nothing,Float64}=nothing, K_r::Union{Nothing, Float64}=nothing)
 
     # (K_θ == nothing) && error("K_θ needs to be given")
     # (K_r == nothing) && error("K_r needs to be given")
     bristle_id = BristleID(1 + length(ts.bristle_ids))
-    bf = BristleFriction(bristle_id, τ=τ)  # , K_θ=K_θ, K_r=K_r)
+    bf = BristleFriction(bristle_id, τ=τ, k̄=k̄)  # , K_θ=K_θ, K_r=K_r)
     ts.bristle_ids = Base.OneTo(bristle_id)
     return add_pair_rigid_compliant!(ts, name_tri, name_tet, bf)
 end

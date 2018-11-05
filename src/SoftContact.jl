@@ -168,6 +168,7 @@ export
     add_h_mesh_color,
     Radau_for_MechanismScenario,
     get_bristle_d0,
-    get_bristle_d1
+    get_bristle_d1,
+    as_static_vector
 
 end
