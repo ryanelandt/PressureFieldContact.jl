@@ -132,10 +132,12 @@ function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScena
     b = tm.bodyBodyCache
     b.mesh_1 = m.MeshCache[con_ins_k.id_1]
     b.mesh_2 = m.MeshCache[con_ins_k.id_2]
+
     b.x_rʷ_r¹ = transform_to_root(tm.state, b.mesh_1.BodyID)  # TODO: add safe=false
     b.x_rʷ_r² = transform_to_root(tm.state, b.mesh_2.BodyID)  # TODO: add safe=false
     b.x_r²_rʷ = inv(b.x_rʷ_r²)
     b.x_r¹_rʷ = inv(b.x_rʷ_r¹)
+
     return nothing
 end
 
@@ -146,9 +148,12 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     empty!(b.TractionCache)
     refreshBodyBodyTransform!(m, tm, con_ins_k)
 
+    # Rates
     twist_w_r¹ = twist_wrt_world(tm.state, b.mesh_1.BodyID)
     twist_w_r² = twist_wrt_world(tm.state, b.mesh_2.BodyID)
-    b.twist_r¹_r² = -twist_w_r² + twist_w_r¹  # velocity of tri wrt tet exp in world
+    b.twist_r¹_r² = -twist_w_r² + twist_w_r¹  # velocity of tri wrt tet expressed in world
+
+    # b.ẋ_rʷ_r² = DH_derivative(twist_w_r², b.x_r²_rʷ)
 
     b.μ = con_ins_k.μ_pair
     mat_2 = b.mesh_2.tet.c_prop
@@ -195,11 +200,12 @@ function tetrahedron_vertices_ϵ(i_tet::Int64, m::MeshCache)
     return cart_vert, ϵ
 end
 
-function calc_ζ_transforms(frame_ζ::CartesianFrame3D, frame_r ::CartesianFrame3D, p_tet, x_r_w, x_w_r)
-    x_r_ζ = MatrixTransform(frame_ζ, frame_r, asMatOnePad(p_tet))
-    x_w_ζ = x_w_r * x_r_ζ
-    x_ζ_w = inv(x_r_ζ) * x_r_w  # NOTE: inv(A_r¹_ζ) is **always** Float64
-    return x_w_ζ, x_ζ_w
+function calc_ζ_transforms(frame_ζ::CartesianFrame3D, frame_b ::CartesianFrame3D, p_tet, x_r¹_rʷ, x_rʷ_r¹)
+    x_r¹_ζ = MatrixTransform(frame_ζ, frame_b, asMatOnePad(p_tet))
+    x_ζ_r¹ = inv(x_r¹_ζ)
+    x_rʷ_ζ = x_rʷ_r¹ * x_r¹_ζ
+    x_ζ_rʷ = x_ζ_r¹ * x_r¹_rʷ  # NOTE: inv(x_r_ζ) is **always** Float64
+    return x_rʷ_ζ, x_ζ_rʷ, x_ζ_r¹
 end
 
 function find_plane_tet(E::Float64, ϵ::SMatrix{1,4,Float64,4}, X_r_w)
@@ -212,8 +218,8 @@ function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache
 
     vert_1, ϵ¹ = tetrahedron_vertices_ϵ(i_1, mesh_1)
     vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
-    x_rʷ_ζ¹, x_ζ¹_rʷ = calc_ζ_transforms(FRAME_ζ¹, mesh_1.FrameID, vert_1, x_r¹_rʷ, x_rʷ_r¹)
-    x_rʷ_ζ², x_ζ²_rʷ = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
+    x_rʷ_ζ¹, x_ζ¹_rʷ, x_ζ¹_r¹ = calc_ζ_transforms(FRAME_ζ¹, mesh_1.FrameID, vert_1, x_r¹_rʷ, x_rʷ_r¹)
+    x_rʷ_ζ², x_ζ²_rʷ, x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
 
     plane_1_rʷ = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_rʷ.mat)
     plane_2_rʷ = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_rʷ.mat)
@@ -231,7 +237,7 @@ function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache
             n = unPad(plane_rʷ)
             n̂ = unsafe_normalize(n)
             n̂ = FreeVector3D(frame_world, n̂)
-            integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂, x_rʷ_ζ², x_ζ²_rʷ, ϵ²)
+            integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂, x_rʷ_ζ², x_ζ²_rʷ, ϵ², x_ζ²_r²)
         end
     end
 end
@@ -253,7 +259,7 @@ function integrate_over_surface_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCach
 
     vert_1 = triangle_vertices(i_1, mesh_1)
     vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
-    x_rʷ_ζ², x_ζ²_rʷ = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
+    x_rʷ_ζ², x_ζ²_rʷ, x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
     x_ζ²_r¹ = x_ζ²_rʷ * x_rʷ_r¹
 
     n̂_r¹ = FreeVector3D(mesh_1.FrameID, -triangleNormal(vert_1))  # pressure is applied opposite the trianle normal
@@ -264,13 +270,13 @@ function integrate_over_surface_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCach
     poly_ζ² = clip_in_tet_coordinates(poly_ζ²)
     if 3 <= length(poly_ζ²)
         frame_world = b.frame_world
-        integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂_rʷ, x_rʷ_ζ², x_ζ²_rʷ, ϵ²)
+        integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂_rʷ, x_rʷ_ζ², x_ζ²_rʷ, ϵ², x_ζ²_r²)
     end
 end
 
 function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, poly_ζ²::poly_eight{4,T},
         frame_world::CartesianFrame3D, n̂::FreeVector3D{SVector{3,T}}, x_rʷ_ζ²::MatrixTransform{4,4,T,16},
-        x_ζ²_rʷ::MatrixTransform{4,4,T,16}, ϵ::SMatrix{1,4,Float64,4}) where {N,T}
+        x_ζ²_rʷ::MatrixTransform{4,4,T,16}, ϵ::SMatrix{1,4,Float64,4}, x_ζ²_r²::MatrixTransform{4,4,Float64,16}) where {N,T}
 
     poly_rʷ = mul_then_un_pad(x_rʷ_ζ².mat, poly_ζ²)
     centroid_rʷ = Point3D(frame_world, centroid(poly_rʷ)[2])
@@ -285,7 +291,7 @@ function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, poly_�
         vert_rʷ_1 = vert_rʷ_2
         vert_rʷ_2 = getPoint(poly_rʷ, frame_world, k)
         area_quad_k = area(vert_rʷ_1, vert_rʷ_2, centroid_rʷ)
-        (0.0 < area_quad_k) && fillTractionCacheForTriangle!(b, area_quad_k, x_ζ²_ϕ, x_rʷ_ζ², n̂, ϵ)  # no point in adding intersection if area is zero
+        (0.0 < area_quad_k) && fillTractionCacheForTriangle!(b, area_quad_k, x_ζ²_ϕ, x_rʷ_ζ², n̂, ϵ, x_ζ²_r²)  # no point in adding intersection if area is zero
     end
     return nothing
 end
@@ -293,16 +299,18 @@ end
 # # TODO: create fillTractionCacheForTriangle! with a macro
 function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{1,T}, area_quad_k::T,
         A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
-        ϵ::SMatrix{1,4,Float64,4}) where {T}
+        ϵ::SMatrix{1,4,Float64,4}, x_ζ²_r²::MatrixTransform{4,4,Float64,16}) where {T}
 
-    r_cart_1, v_cart_t_1, pene_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_1, v_cart_t_1, pene_1, dA_1, p_1, ϵ_quad_1, ϵ_dot_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
     p = (p_1, )
     if sum(p) != 0.0
-        dA = (dA_1, )
         r_cart = (r_cart_1, )
         v_cart_t = (v_cart_t_1, )
         pene = (pene_1, )
-        trac_cache = TractionCache(n̂, r_cart, v_cart_t, pene, dA, p)
+        dA = (dA_1, )
+        ϵ_quad = (ϵ_quad_1, )
+        ϵ_dot = (ϵ_dot_1, )
+        trac_cache = TractionCache(n̂, r_cart, v_cart_t, pene, dA, p, ϵ_quad, ϵ_dot)
         addCacheItem!(b.TractionCache, trac_cache)
     end
     return nothing
@@ -312,16 +320,18 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, area_q
         A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
         ϵ::SMatrix{1,4,Float64,4}) where {T}
 
-    r_cart_1, v_cart_t_1, pene_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
-    r_cart_2, v_cart_t_2, pene_2, dA_2, p_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
-    r_cart_3, v_cart_t_3, pene_3, dA_3, p_3 = fillTractionCacheInnerLoop!(3, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_1, v_cart_t_1, pene_1, dA_1, p_1, ϵ_quad_1, ϵ_dot_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_2, v_cart_t_2, pene_2, dA_2, p_2, ϵ_quad_2, ϵ_dot_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_3, v_cart_t_3, pene_3, dA_3, p_3, ϵ_quad_3, ϵ_dot_3 = fillTractionCacheInnerLoop!(3, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
     p = (p_1, p_2, p_3)
     if sum(p) != 0.0
         dA = (dA_1, dA_2, dA_3)
         r_cart = (r_cart_1, r_cart_2, r_cart_3)
         v_cart_t = (v_cart_t_1, v_cart_t_2, v_cart_t_3)
         pene = (pene_1, pene_2, pene_3)
-        trac_cache = TractionCache(n̂, r_cart, v_cart_t, pene, dA, p)
+        ϵ_quad = (ϵ_quad_1, ϵ_quad_2, ϵ_quad_3)
+        ϵ_dot = (ϵ_dot_1, ϵ_dot_2, ϵ_dot_3)
+        trac_cache = TractionCache(n̂, r_cart, v_cart_t, pene, dA, p, ϵ_quad, ϵ_dot)
         addCacheItem!(b.TractionCache, trac_cache)
     end
     return nothing
@@ -329,27 +339,28 @@ end
 
 function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T},
         A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
-        area_quad_k::T, ϵ::SMatrix{1,4,Float64,4}) where {N,T}
+        area_quad_k::T, ϵ_tet::SMatrix{1,4,Float64,4}, x_ζ²_r²::MatrixTransform{4,4,Float64,16}) where {N,T}
 
     quad_point_ϕ = Point3D(FRAME_ϕ, b.quad.zeta[k])
     quad_point_ζ = A_ζ_ϕ * quad_point_ϕ
     p_cart_qp = unPad(A_w_ζ * quad_point_ζ)
-    ϵ_quad = dot(ϵ, quad_point_ζ.v)
-    cart_vel, signed_mag_vel_n = calcNormalVelocityMag(b.twist_r¹_r², p_cart_qp, n̂)
-    ϵ_dot = signed_mag_vel_n * b.d⁻¹  # ϵ_dot ≈ z_dot / thickness because the rigid body provides the normal and is fixed
+    ϵ_quad = dot(ϵ_tet, quad_point_ζ.v)
+    cart_vel = point_velocity(b.twist_r¹_r², p_cart_qp)
+    r_dot_body = transform(cart_vel, b.x_r²_rʷ)
+    ϵ_dot = dot(ϵ_tet, (x_ζ²_r² * r_dot_body).v)
     damp_term = fastSoftPlus(1.0 - b.χ * ϵ_dot)
     p = -ϵ_quad * b.Ē
     p_hc = p * damp_term  # -ϵ_quad * damp_term * b.Ē
     dA = b.quad.w[k] * area_quad_k
-    penetration = ϵ_quad / b.d⁻¹   # normal penetration (l = p L / E)
-    return p_cart_qp, cart_vel, penetration, dA, p_hc
+    penetration = ϵ_quad / b.d⁻¹   # normal penetration (l = p L / E)  # TODO: delete this field
+    return p_cart_qp, cart_vel, penetration, dA, p_hc, ϵ_quad, ϵ_dot
 end
 
-function calcNormalVelocityMag(twist_tri_tet::Twist{T}, p_cart_qp::Point3D{SVector{3,T}}, n̂::FreeVector3D{SVector{3,T}}) where {T}
-    cart_vel = point_velocity(twist_tri_tet, p_cart_qp)
-    signed_mag_vel_n = dot(n̂, cart_vel)
-    return cart_vel, signed_mag_vel_n
-end
+# function calcNormalVelocityMag(twist_tri_tet::Twist{T}, p_cart_qp::Point3D{SVector{3,T}}, n̂::FreeVector3D{SVector{3,T}}) where {T}
+#     cart_vel = point_velocity(twist_tri_tet, p_cart_qp)
+#     signed_mag_vel_n = dot(n̂, cart_vel)
+#     return cart_vel, signed_mag_vel_n
+# end
 
 function calcTangentialVelocity(twist_tri_tet::Twist{T}, p_cart_qp::Point3D{SVector{3,T}}, n̂::FreeVector3D{SVector{3,T}}) where {T}
     cart_vel_crw = point_velocity(twist_tri_tet, p_cart_qp)

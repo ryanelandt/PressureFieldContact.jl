@@ -6,6 +6,8 @@ struct TractionCache{N,T}
     penetration::NTuple{N,T}
     dA::NTuple{N,T}
     p::NTuple{N,T}
+    ϵ::NTuple{N,T}
+    ϵϵ::NTuple{N,T}
 end
 
 @inline calc_p_dA(t::TractionCache, k::Int64) = t.p[k] * t.dA[k]
@@ -21,6 +23,7 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     x_rʷ_r²::Transform3D{T}
     x_r²_rʷ::Transform3D{T}
     x_r¹_rʷ::Transform3D{T}
+    # ẋ_r²_rʷ::MatrixTransform{4,4,T,16}
     twist_r¹_r²::Twist{T}
     χ::Float64
     μ::Float64
