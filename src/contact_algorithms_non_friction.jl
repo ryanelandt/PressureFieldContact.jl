@@ -301,16 +301,13 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{1,T}, area_q
         A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
         ϵ::SMatrix{1,4,Float64,4}, x_ζ²_r²::MatrixTransform{4,4,Float64,16}) where {T}
 
-    r_cart_1, v_cart_t_1, pene_1, dA_1, p_1, ϵ_quad_1, ϵ_dot_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
+    r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
     p = (p_1, )
     if sum(p) != 0.0
         r_cart = (r_cart_1, )
         v_cart_t = (v_cart_t_1, )
-        pene = (pene_1, )
         dA = (dA_1, )
-        ϵ_quad = (ϵ_quad_1, )
-        ϵ_dot = (ϵ_dot_1, )
-        trac_cache = TractionCache(n̂, r_cart, v_cart_t, pene, dA, p, ϵ_quad, ϵ_dot)
+        trac_cache = TractionCache(n̂, r_cart, v_cart_t, dA, p)
         addCacheItem!(b.TractionCache, trac_cache)
     end
     return nothing
@@ -320,18 +317,15 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, area_q
         A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
         ϵ::SMatrix{1,4,Float64,4}) where {T}
 
-    r_cart_1, v_cart_t_1, pene_1, dA_1, p_1, ϵ_quad_1, ϵ_dot_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
-    r_cart_2, v_cart_t_2, pene_2, dA_2, p_2, ϵ_quad_2, ϵ_dot_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
-    r_cart_3, v_cart_t_3, pene_3, dA_3, p_3, ϵ_quad_3, ϵ_dot_3 = fillTractionCacheInnerLoop!(3, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_2, v_cart_t_2, dA_2, p_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
+    r_cart_3, v_cart_t_3, dA_3, p_3 = fillTractionCacheInnerLoop!(3, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ)
     p = (p_1, p_2, p_3)
     if sum(p) != 0.0
         dA = (dA_1, dA_2, dA_3)
         r_cart = (r_cart_1, r_cart_2, r_cart_3)
         v_cart_t = (v_cart_t_1, v_cart_t_2, v_cart_t_3)
-        pene = (pene_1, pene_2, pene_3)
-        ϵ_quad = (ϵ_quad_1, ϵ_quad_2, ϵ_quad_3)
-        ϵ_dot = (ϵ_dot_1, ϵ_dot_2, ϵ_dot_3)
-        trac_cache = TractionCache(n̂, r_cart, v_cart_t, pene, dA, p, ϵ_quad, ϵ_dot)
+        trac_cache = TractionCache(n̂, r_cart, v_cart_t, dA, p)
         addCacheItem!(b.TractionCache, trac_cache)
     end
     return nothing
@@ -345,29 +339,14 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
     quad_point_ζ = A_ζ_ϕ * quad_point_ϕ
     p_cart_qp = unPad(A_w_ζ * quad_point_ζ)
     ϵ_quad = dot(ϵ_tet, quad_point_ζ.v)
-    cart_vel = point_velocity(b.twist_r¹_r², p_cart_qp)
-    r_dot_body = transform(cart_vel, b.x_r²_rʷ)
-    ϵ_dot = dot(ϵ_tet, (x_ζ²_r² * r_dot_body).v)
-    damp_term = fastSoftPlus(1.0 - b.χ * ϵ_dot)
+    ṙ = point_velocity(b.twist_r¹_r², p_cart_qp)
+    ṙ² = transform(ṙ, b.x_r²_rʷ)
+    ϵϵ = dot(ϵ_tet, (x_ζ²_r² * ṙ²).v)
+    damp_term = fastSoftPlus(1.0 - b.χ * ϵϵ)
     p = -ϵ_quad * b.Ē
     p_hc = p * damp_term  # -ϵ_quad * damp_term * b.Ē
     dA = b.quad.w[k] * area_quad_k
-    penetration = ϵ_quad / b.d⁻¹   # normal penetration (l = p L / E)  # TODO: delete this field
-    return p_cart_qp, cart_vel, penetration, dA, p_hc, ϵ_quad, ϵ_dot
-end
-
-# function calcNormalVelocityMag(twist_tri_tet::Twist{T}, p_cart_qp::Point3D{SVector{3,T}}, n̂::FreeVector3D{SVector{3,T}}) where {T}
-#     cart_vel = point_velocity(twist_tri_tet, p_cart_qp)
-#     signed_mag_vel_n = dot(n̂, cart_vel)
-#     return cart_vel, signed_mag_vel_n
-# end
-
-function calcTangentialVelocity(twist_tri_tet::Twist{T}, p_cart_qp::Point3D{SVector{3,T}}, n̂::FreeVector3D{SVector{3,T}}) where {T}
-    cart_vel_crw = point_velocity(twist_tri_tet, p_cart_qp)
-    signed_mag_vel_n = dot(n̂, cart_vel_crw)
-    cart_vel_crw_n = n̂ * signed_mag_vel_n
-    cart_vel_crw_t = cart_vel_crw - cart_vel_crw_n
-    return cart_vel_crw_t, signed_mag_vel_n
+    return p_cart_qp, ṙ, dA, p_hc
 end
 
 function addGeneralizedForcesThirdLaw!(wrench::Wrench{T}, tm::TypedMechanismScenario{N,T}, cInfo::ContactInstructions) where {N,T}

@@ -3,11 +3,8 @@ struct TractionCache{N,T}
     n̂::FreeVector3D{SVector{3,T}}
     r_cart::NTuple{N,Point3D{SVector{3,T}}}
     v_cart::NTuple{N,FreeVector3D{SVector{3,T}}}
-    penetration::NTuple{N,T}
     dA::NTuple{N,T}
     p::NTuple{N,T}
-    ϵ::NTuple{N,T}
-    ϵϵ::NTuple{N,T}
 end
 
 @inline calc_p_dA(t::TractionCache, k::Int64) = t.p[k] * t.dA[k]
@@ -23,7 +20,6 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     x_rʷ_r²::Transform3D{T}
     x_r²_rʷ::Transform3D{T}
     x_r¹_rʷ::Transform3D{T}
-    # ẋ_r²_rʷ::MatrixTransform{4,4,T,16}
     twist_r¹_r²::Twist{T}
     χ::Float64
     μ::Float64
@@ -31,7 +27,7 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     d⁻¹::Float64
     wrench::Wrench{T}
     function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
-        K = Symmetric(zeros(MMatrix{6,6,T,36}), :L)
+        K = Symmetric(zeros(MMatrix{6,6,T,36}), :U)
         trac_cache = VectorCache{TractionCache{N, T}}()
         return new{N,T}(K, frame_world, quad, trac_cache)
     end
