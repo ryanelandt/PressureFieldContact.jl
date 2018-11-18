@@ -117,7 +117,7 @@ export
     calcXd!,
     refreshJacobians!,
     normal_wrench,
-    # forceAllElasticIntersections!,
+    forceAllElasticIntersections!,
     calcTriTetIntersections!,
     refreshBodyBodyCache!,
     integrate_over_logic!,
@@ -154,6 +154,7 @@ export
 
     # vis_meshcat.jl
     set_body_mesh_visual!,
+    set_mesh_visual!,
     HomogenousMesh_32,
     play_recorded_data,
 

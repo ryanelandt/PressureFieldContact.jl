@@ -1,7 +1,7 @@
 
 function MeshCatMechanisms.set_configuration!(mech_scen::MechanismScenario, mvis::MechanismVisualizer,
         x::Vector{Float64})
-        
+
     copyto!(mech_scen.float, x)
     set_configuration!(mvis, mech_scen.float.state.q)
     return nothing
@@ -16,6 +16,15 @@ end
 function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario,
         body::RigidBody{Float64}, mesh_cache::MeshCache, color)
 
+    color = as_rgba(color)
+    my_vis_ele = VisualElement(default_frame(body), asHomogenousMesh(mesh_cache), color, Translation(0,0,0))
+    setelement!(mvis, my_vis_ele, mesh_cache.name)
+    return nothing
+end
+
+function set_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, name::String, color)
+    mesh_cache = findMesh(mech_scen.MeshCache, name)
+    body = root_body(mech_scen.float.state.mechanism)
     color = as_rgba(color)
     my_vis_ele = VisualElement(default_frame(body), asHomogenousMesh(mesh_cache), color, Translation(0,0,0))
     setelement!(mvis, my_vis_ele, mesh_cache.name)
