@@ -36,13 +36,13 @@ struct InertiaProperties
     end
 end
 struct SimplexTree{N}
-    tree::bin_BB_Tree{AABB}
+    tree::bin_BB_Tree
     ind::Vector{SVector{N,Int64}}
     function SimplexTree(h_mesh::HomogenousMesh)
         point = get_h_mesh_vertices(h_mesh)
         ind = get_h_mesh_faces(h_mesh)
         if length(ind) == 1
-            tree = bin_BB_Tree{AABB}(1, svSvToAABB(point[ind[1]]))
+            tree = bin_BB_Tree(1, svSvToAABB(point[ind[1]]))
         else
             tree = triTetMeshToTreeAABB(point, ind)
         end
