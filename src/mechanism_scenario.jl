@@ -102,7 +102,7 @@ struct MechanismScenario{NX,NQ,T}
     ContactInstructions::Vector{ContactInstructions}
     de::Function
     time::MVector{1,Float64}
-    function MechanismScenario(ts::TempContactStruct, de::Function; n_quad_rule::Int64=2, N_chunk::Int64=12)
+    function MechanismScenario(ts::TempContactStruct, de::Function; n_quad_rule::Int64=2, N_chunk::Int64=6)
         (1 <= n_quad_rule <= 2) || error("only quadrature rules 1 (first order) and 2 (second? order) are currently implemented")
         quad = getTriQuadRule(n_quad_rule)
         NQ = length(quad.w)
