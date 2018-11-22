@@ -1,12 +1,13 @@
 
 function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario}, mech_scen::MechanismScenario,
-        x::Vector{Float64}; t_final::Float64=1.0, max_steps::Int64=1000, is_disp_count::Bool=false)
+        x::Vector{Float64}; t_start::Float64=0.0, t_final::Float64=1.0, max_steps::Int64=1000,
+        is_disp_count::Bool=false)
 
     n_dof = num_x(mech_scen)
     (length(x) == n_dof) || error("The length of x ($(length(x))) is different from the number of variables in the scenario ($n_dof). Did you forget the state variables for bristle friction?")
     (t_final < 0.0) && error("t_final (set to $t_final) most be non-negative")
 
-    t_cumulative = 0.0
+    t_cumulative = t_start
     data_time = zeros(Float64, max_steps)
     data_state = zeros(Float64, max_steps, n_dof)
     verify_bristle_ids!(mech_scen, x)  # make sure than any bristle friction variables are used exactly once
