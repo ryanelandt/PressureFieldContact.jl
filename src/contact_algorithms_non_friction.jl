@@ -23,16 +23,16 @@ function verify_bristle_ids!(m::MechanismScenario{NX,NQ,T}, x::Vector{Float64}) 
     return nothing
 end
 
-function calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{NX,NQ,T}) where {NX,NQ,T}
-    return calcXd!(xx, x, m, m.dual)
+function calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{NX,NQ,T}, t::Float64=0.0) where {NX,NQ,T}
+    return calcXd!(xx, x, m, m.dual, t)
 end
 
-function calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{NX,NQ,T}) where {NX,NQ,T}
-    return calcXd!(xx, x, m, m.float)
+function calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{NX,NQ,T}, t::Float64=0.0) where {NX,NQ,T}
+    return calcXd!(xx, x, m, m.float, t)
 end
 
 function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{NX,NQ,T2},
-        tm::TypedMechanismScenario{NQ,T1}) where {NX,NQ,T1,T2}
+        tm::TypedMechanismScenario{NQ,T1}, t::Float64=0.0) where {NX,NQ,T1,T2}
 
     state = tm.state
     # any(isnan.(x)) && error("nan in x")
