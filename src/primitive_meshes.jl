@@ -23,7 +23,7 @@ function create_surface_box(rad::Union{Float64,SVector{3,Float64}}=1.0;
     return HomogenousMesh(vertices=sizeCenterBoxPoints(rad, center), faces=outputBoxTriInd())
 end
 
-function create_volume_box(rad::Union{Float64,SVector{3,Float64}}=1.0;
+function create_volume_box(rad::Union{Float64,SVector{3,Float64}}=1.0; dh::basic_dh{Float64}=one(basic_dh{Float64}),
         center::SVector{3,Float64}=SVector{3,Float64}(0,0,0), fill_frac::Float64=1.0, Ē::Float64=1.0e6,
         μ::Float64=0.3, χ::Float64=1.0)
 
@@ -44,6 +44,8 @@ function create_volume_box(rad::Union{Float64,SVector{3,Float64}}=1.0;
         points_12[k] = key_k
     end
     ϵ = [ifelse(k <= 8, 0.0, -1.0) for k = 1:length(points_12)]
+
+    points_12 = [dh_vector_mul(dh, k) for k = points_12]
 
     box_h_mesh = HomogenousMesh(vertices=points_12, faces=outputBoxTriInd())
     box_tet_mesh = TetMesh(points_12, vec_nondegenerate_tet, ϵ, ContactProperties(Ē=Ē, μ=μ, χ=χ, d=d))
@@ -113,7 +115,7 @@ basicBoxPoints() = [SVector{3,Float64}(ifelse.(Tuple(k).==1,-1.0,+1.0)) for k = 
 
 function sizeCenterBoxPoints(scale::SVector{3,Float64}=SVector{3,Float64}(1,1,1),
         center::SVector{3,Float64}=SVector{3,Float64}(0,0,0))
-        
+
     v = basicBoxPoints()
     for k = eachindex(v)
         v[k] = v[k] .* scale .+ center

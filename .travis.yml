@@ -16,10 +16,8 @@ before_script:
   - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/Binary_BB_Trees.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
 
   # TODO: remove me when Radau does not have this dependency
-  - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/andreasnoack/GenericLinearAlgebra.jl.git", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
-
-  - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/Radau.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
-
+  # - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/andreasnoack/GenericLinearAlgebra.jl.git", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
+  # - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/Radau.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
 
   # TODO: remove when default version has principal_value!
   - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/JuliaRobotics/RigidBodyDynamics.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
