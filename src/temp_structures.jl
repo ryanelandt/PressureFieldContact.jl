@@ -71,6 +71,7 @@ function add_body_volume!(mechanism::Mechanism, name::String, h_mesh::Homogenous
 
     tet_ind = tet_mesh.tet.ind
     point = get_h_mesh_vertices(h_mesh)
+    # TODO: handle this differently
     (inertia_prop.d == nothing) || error("assumed thickness is something but should be nothing")
     mesh_inertia_info = make_volume_mesh_inertia_info(point, tet_ind, inertia_prop)
     return add_body_from_inertia!(mechanism, name, mesh_inertia_info, joint=joint, body_parent=body_parent)
