@@ -3,7 +3,7 @@
 module SoftContact
 
 using StaticArrays
-using Rotations: Quat, Rotation, SPQuat
+using Rotations: Quat, Rotation, SPQuat, RotMatrix
 using ForwardDiff: Dual
 using RigidBodyDynamics
 using RigidBodyDynamics.Spatial: vector_to_skew_symmetric

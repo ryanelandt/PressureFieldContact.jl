@@ -10,10 +10,14 @@ function newBodyFromInertia(nameBody::String, mesh_inertia_info::MeshInertiaInfo
 end
 
 function outputJointTransform_ParentChild(body_parent::RigidBody, body_child::RigidBody, evaluated_joint_type_in,
-        relative_position::SVector{3, Float64})
+        dh::basic_dh{Float64}=one(basic_dh{Float64}) )
+        # relative_position::SVector{3, Float64})
 
+    rot, trans = dh_R_t(dh)
+    rot = RotMatrix{3,Float64}(rot)
     j_parent_child = Joint(body_parent.name * "_" * body_child.name, evaluated_joint_type_in)
-    x_parent_child = Transform3D(frame_before(j_parent_child), default_frame(body_parent), Quat{Float64}(1,0,0,0), relative_position)
+    x_parent_child = Transform3D(frame_before(j_parent_child), default_frame(body_parent), rot, trans)
+        # Quat{Float64}(1,0,0,0), relative_position)
     return j_parent_child, x_parent_child
 end
 
