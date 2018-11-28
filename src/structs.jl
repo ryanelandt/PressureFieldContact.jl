@@ -23,6 +23,26 @@ end
 
 calculateExtrensicCompliance(mat::ContactProperties) = 1 / (mat.Ē * mat.d⁻¹)
 
+struct eTree{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
+    tri::Union{Nothing,bin_BB_Tree}
+    tet::Union{Nothing,bin_BB_Tree}
+    ϵ::Union{Nothing,Vector{Float64}}
+    c_prop::Union{Nothing,ContactProperties}
+    function eTree(e_mesh::eMesh{Tri,Tet}, ϵ::Vector{Float64}, c_prop::ContactProperties)
+        tri = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tri)
+        tet = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tet)
+        return new{Tri,Tet}(tri, tet, ϵ, c_prop)
+    end
+    function eTree(e_mesh::eMesh{Tri,Nothing})
+        tri = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tri)
+        return new{Tri,Nothing}(tri, nothing, nothing, nothing)
+    end
+    function eTree(e_mesh::eMesh{Nothing,Tet}, ϵ::Vector{Float64}, c_prop::ContactProperties)
+        tet = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tet)
+        return new{Nothing,Tet}(nothing, tet, ϵ, c_prop)
+    end
+end
+
 struct InertiaProperties
     d::Union{Nothing,Float64}  # if volume mesh is known thickness isn't needed to calculate inertia
     rho::Float64  # rho is always needed to calculate inertia
@@ -61,6 +81,8 @@ struct TetMesh
     function TetMesh(point::Vector{SVector{3,Float64}}, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
             c_prop::ContactProperties)
 
+        (maximum(ϵ) == 0.0) || error("ϵ needs to be zero on the boundary and negative in the internior")
+        (length(ϵ) == length(point)) || error("there needs to be a strain for each point")
         tet_simp_tree = SimplexTree(point, tet_ind)
         return new(tet_simp_tree, ϵ, c_prop)
     end

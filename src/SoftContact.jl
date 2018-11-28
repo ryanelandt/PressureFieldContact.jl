@@ -46,6 +46,7 @@ export
     MeshInertiaInfo,
     ContactProperties,
     calculateExtrensicCompliance,
+    eTree,
     InertiaProperties,
     TetMesh,
     get_tri_mesh,
