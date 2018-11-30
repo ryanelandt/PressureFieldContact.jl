@@ -9,57 +9,53 @@ using MeshCatMechanisms
 using SoftContact
 using Binary_BB_Trees: get_h_mesh_faces_32, get_h_mesh_vertices_32
 using Rotations: RotZ
+using Binary_BB_Trees: output_eMesh_half_plane, output_eMesh_box, as_tri_eMesh, scale!
 
 
 set_zero_subnormals(true)
-BLAS.set_num_threads(1)
+BLAS.set_num_threads(1)  # NOTE: comment out this line if using IntelMKL
 
 ### Box properties
 box_rad = 0.05
-box_shell = box_rad / 5
+i_prop_compliant = InertiaProperties(rho=400.0)
+i_prop_rigid = InertiaProperties(rho=400.0, d=0.09)
+c_prop_compliant = ContactProperties(Ē=1.0e6, μ=0.2, d=box_rad, χ=0.2)
+eM_box_rigid = as_tri_eMesh(output_eMesh_box(box_rad))
+eM_box_compliant = output_eMesh_box(box_rad)
 
 ### Create mechanism and temporary structure
 my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -9.8054))  # create empty mechanism
 ts = TempContactStruct(my_mechanism)
 
-### Half plane
-plane_w = 1.0
-plane_name = "plane"
-plane_h_mesh, plane_tet_mesh = create_volume_half_plane(plane_w, μ=0.0, χ=0.1)
-add_volume_mesh!(ts, root_body(my_mechanism), plane_name, plane_h_mesh, plane_tet_mesh)
+### Names
+name_plane = "plane"
+name_box_1 = "box_1"
+name_box_2 = "box_2"
+name_box_3 = "box_3"
+name_box_4 = "box_4"
 
-### Box 1
-box_1_name = "box_1"
-box_1_h_mesh = create_surface_box(box_rad)
-_, box_1_joint = add_body_surface_mesh!(ts, box_1_name, box_1_h_mesh, InertiaProperties(rho=400.0, d=box_shell))
+### Plane
+d_plane = 1.0
+eM_half = output_eMesh_half_plane(d_plane)
+add_contact!(ts, name_plane, eM_half, ContactProperties(Ē=1.0e6, μ=0.0, d=d_plane, χ=2.2))
 
-### Box 2
-box_2_name = "box_2"
-box_2_h_mesh, box_2_tet_mesh = create_volume_box(box_rad, χ=0.03)
-_, box_2_joint = add_body_volume_mesh!(ts, box_2_name, box_2_h_mesh, box_2_tet_mesh, InertiaProperties(rho=400.0))
+### Boxes
+body_box_1, joint_box_1 = add_body_contact!(ts, name_box_1, eM_box_rigid, nothing, i_prop_rigid)
+body_box_2, joint_box_2 = add_body_contact!(ts, name_box_2, eM_box_compliant, c_prop_compliant, i_prop_compliant)
+body_box_3, joint_box_3 = add_body_contact!(ts, name_box_3, eM_box_rigid, nothing, i_prop_rigid)
+body_box_4, joint_box_4 = add_body_contact!(ts, name_box_4, eM_box_compliant, c_prop_compliant, i_prop_compliant)
 
-### Box 3
-box_3_name = "box_3"
-box_3_h_mesh = create_surface_box(box_rad)
-_, box_3_joint = add_body_surface_mesh!(ts, box_3_name, box_3_h_mesh, InertiaProperties(rho=400.0, d=box_shell))
+### Friction
+add_pair_rigid_compliant_regularize!(ts, name_plane, name_box_1)
+add_pair_rigid_compliant_regularize!(ts, name_box_2, name_box_1)
+add_pair_rigid_compliant_regularize!(ts, name_box_2, name_box_3)
+add_pair_rigid_compliant_regularize!(ts, name_box_4, name_box_3)
 
-### Box 2
-box_4_name = "box_4"
-box_4_h_mesh, box_4_tet_mesh = create_volume_box(box_rad, χ=0.03)
-_, box_4_joint = add_body_volume_mesh!(ts, box_4_name, box_4_h_mesh, box_4_tet_mesh, InertiaProperties(rho=400.0))
-
-### Friction pairs
-add_pair_rigid_compliant_regularize!(ts, box_1_name, plane_name)
-add_pair_rigid_compliant_regularize!(ts, box_1_name, box_2_name)
-add_pair_rigid_compliant_regularize!(ts, box_3_name, box_2_name)
-add_pair_rigid_compliant_regularize!(ts, box_3_name, box_4_name)
 mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=2)
-
-### Set initial condition  # NOTE: All states are zero initialized
-set_state_spq!(mech_scen, box_1_joint, trans=SVector(0.0, 0.0, 2*box_rad), w=SVector(0.0, 0.0, 1.0))
-set_state_spq!(mech_scen, box_2_joint, trans=SVector(0.0, 0.0, 5*box_rad), w=SVector(0.0, 0.0, 2.0))
-set_state_spq!(mech_scen, box_3_joint, trans=SVector(0.0, 0.0, 8*box_rad), w=SVector(0.0, 0.0, 3.0))
-set_state_spq!(mech_scen, box_4_joint, trans=SVector(0.0, 0.0, 11*box_rad), w=SVector(0.0, 0.0, 4.0))
+set_state_spq!(mech_scen, joint_box_1, trans=SVector(0.0, 0.0, 2*box_rad), w=SVector(0.0, 0.0, 1.0))
+set_state_spq!(mech_scen, joint_box_2, trans=SVector(0.0, 0.0, 5*box_rad), w=SVector(0.0, 0.0, 2.0))
+set_state_spq!(mech_scen, joint_box_3, trans=SVector(0.0, 0.0, 8*box_rad), w=SVector(0.0, 0.0, 3.0))
+set_state_spq!(mech_scen, joint_box_4, trans=SVector(0.0, 0.0, 11*box_rad), w=SVector(0.0, 0.0, 4.0))
 x = get_state(mech_scen)
 
 ### Add meshcat visualizer
@@ -74,12 +70,12 @@ color_red   = RGBA{Float32}(1.0, 0.0, 0.0, 1.0)
 color_green = RGBA{Float32}(0.0, 1.0, 0.0, 1.0)
 color_blue  = RGBA{Float32}(0.0, 0.0, 1.0, 1.0)
 mvis = MechanismVisualizer(my_mechanism, vis)
-plane_h_mesh_32 = HomogenousMesh_32(plane_h_mesh, color=color_gray)
+plane_h_mesh_32 = HomogenousMesh_32(eM_half, color=color_gray)
 setobject!(vis[:plane], plane_h_mesh_32)
-set_body_mesh_visual!(mvis, mech_scen, box_1_name, color_red)
-set_body_mesh_visual!(mvis, mech_scen, box_2_name, color_blue)
-set_body_mesh_visual!(mvis, mech_scen, box_3_name, color_green)
-set_body_mesh_visual!(mvis, mech_scen, box_4_name, color_red)
+set_body_mesh_visual!(mvis, mech_scen, name_box_1, color_red)
+set_body_mesh_visual!(mvis, mech_scen, name_box_2, color_blue)
+set_body_mesh_visual!(mvis, mech_scen, name_box_3, color_green)
+set_body_mesh_visual!(mvis, mech_scen, name_box_4, color_red)
 set_configuration!(mech_scen, mvis, x)
 
 ### Run forward dynamics

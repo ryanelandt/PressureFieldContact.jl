@@ -40,6 +40,12 @@ function HomogenousMesh_32(h_mesh::HomogenousMesh; color=RGBA{Float32}(0.5, 0.5,
     return HomogenousMesh(vertices=vertices, faces=faces, color=color)
 end
 
+function HomogenousMesh_32(e_mesh::eMesh{Tri,T2}; color=RGBA{Float32}(0.5, 0.5, 0.5, 1.0)) where {T2}
+    vertices = get_vertices_32(e_mesh)
+    faces = get_faces_32(e_mesh)
+    return HomogenousMesh(vertices=vertices, faces=faces, color=color)
+end
+
 function play_recorded_data(mvis::MechanismVisualizer, mech_scen::MechanismScenario, data_time::Vector{Float64},
         data_state::Matrix{Float64}; dt::Float64=1/60, slowdown::Float64=1.0)
 

@@ -19,10 +19,6 @@ findMesh(mech_scen::MechanismScenario, name::String) = findMesh(mech_scen.MeshCa
 findMesh(ts::TempContactStruct, name::String) = findMesh(ts.MeshCache, name)
 findMesh(ts::MeshCacheDict{MeshCache}, name::String) = ts[findmesh(ts, name)]
 
-# function Radau_for_MechanismScenario(m::MechanismScenario{NX,NQ,Dual{Type_Tag,Float64,NC}}) where {NX,NQ,Type_Tag,NC}
-#     return RadauIntegrator{MechanismScenario, NX, 3, NC}(1.0e-16, m)
-# end
-
 function Radau_for_MechanismScenario(m::MechanismScenario{NX,NQ,Dual{Type_Tag,Float64,NC}}) where {NX,NQ,Type_Tag,NC}
     return makeRadauIntegrator(m, NX, 1.0e-16, 2, NC)
 end

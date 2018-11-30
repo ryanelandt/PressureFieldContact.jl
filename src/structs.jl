@@ -26,20 +26,19 @@ calculateExtrensicCompliance(mat::ContactProperties) = 1 / (mat.Ē * mat.d⁻¹
 struct eTree{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
     tri::Union{Nothing,bin_BB_Tree}
     tet::Union{Nothing,bin_BB_Tree}
-    ϵ::Union{Nothing,Vector{Float64}}
     c_prop::Union{Nothing,ContactProperties}
-    function eTree(e_mesh::eMesh{Tri,Tet}, ϵ::Vector{Float64}, c_prop::ContactProperties)
+    function eTree(e_mesh::eMesh{Tri,Tet}, c_prop::ContactProperties)
         tri = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tri)
         tet = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tet)
-        return new{Tri,Tet}(tri, tet, ϵ, c_prop)
+        return new{Tri,Tet}(tri, tet, c_prop)
     end
-    function eTree(e_mesh::eMesh{Tri,Nothing})
+    function eTree(e_mesh::eMesh{Tri,Nothing}, c_prop::Nothing=nothing)
         tri = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tri)
-        return new{Tri,Nothing}(tri, nothing, nothing, nothing)
+        return new{Tri,Nothing}(tri, nothing, nothing)
     end
-    function eTree(e_mesh::eMesh{Nothing,Tet}, ϵ::Vector{Float64}, c_prop::ContactProperties)
+    function eTree(e_mesh::eMesh{Nothing,Tet}, c_prop::ContactProperties)
         tet = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tet)
-        return new{Nothing,Tet}(nothing, tet, ϵ, c_prop)
+        return new{Nothing,Tet}(nothing, tet, c_prop)
     end
 end
 
@@ -49,79 +48,113 @@ struct InertiaProperties
     function InertiaProperties(;rho::Union{Nothing,Float64}=nothing, d::Union{Nothing,Float64}=nothing)
         (rho == nothing) && error("rho is required")
         if d isa Float64
-            (0.001 <= d < 0.1) || error("thickness in unexpected range.")
+            (0.001 <= d <= 0.1) || error("thickness in unexpected range.")
         end
         (50.0 <= rho < 2000.0) || error("rho in unexpected range.")
         return new(d, rho)
     end
 end
-struct SimplexTree{N}
-    tree::bin_BB_Tree
-    ind::Vector{SVector{N,Int64}}
-    function SimplexTree(h_mesh::HomogenousMesh)
-        point = get_h_mesh_vertices(h_mesh)
-        ind = get_h_mesh_faces(h_mesh)
-        if length(ind) == 1
-            tree = bin_BB_Tree(1, svSvToAABB(point[ind[1]]))
-        else
-            tree = triTetMeshToTreeAABB(point, ind)
-        end
-        return new{3}(tree, ind)
-    end
-    function SimplexTree(point::Vector{SVector{3,Float64}}, ind::Vector{SVector{4,Int64}})
-        tree = triTetMeshToTreeAABB(point, ind)
-        return new{4}(tree, ind)
-    end
-end
 
-struct TetMesh
-    tet::SimplexTree{4}
-    ϵ::Vector{Float64}
-    c_prop::ContactProperties
-    function TetMesh(point::Vector{SVector{3,Float64}}, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
-            c_prop::ContactProperties)
+# struct SimplexTree{N}
+#     tree::bin_BB_Tree
+#     ind::Vector{SVector{N,Int64}}
+#     function SimplexTree(h_mesh::HomogenousMesh)
+#         point = get_h_mesh_vertices(h_mesh)
+#         ind = get_h_mesh_faces(h_mesh)
+#         if length(ind) == 1
+#             tree = bin_BB_Tree(1, svSvToAABB(point[ind[1]]))
+#         else
+#             tree = triTetMeshToTreeAABB(point, ind)
+#         end
+#         return new{3}(tree, ind)
+#     end
+#     function SimplexTree(point::Vector{SVector{3,Float64}}, ind::Vector{SVector{4,Int64}})
+#         tree = triTetMeshToTreeAABB(point, ind)
+#         return new{4}(tree, ind)
+#     end
+# end
 
-        (maximum(ϵ) == 0.0) || error("ϵ needs to be zero on the boundary and negative in the internior")
-        (length(ϵ) == length(point)) || error("there needs to be a strain for each point")
-        tet_simp_tree = SimplexTree(point, tet_ind)
-        return new(tet_simp_tree, ϵ, c_prop)
-    end
-end
+# struct TetMesh
+#     tet::SimplexTree{4}
+#     ϵ::Vector{Float64}
+#     c_prop::ContactProperties
+#     function TetMesh(point::Vector{SVector{3,Float64}}, tet_ind::Vector{SVector{4,Int64}}, ϵ::Vector{Float64},
+#             c_prop::ContactProperties)
+#
+#         (maximum(ϵ) == 0.0) || error("ϵ needs to be zero on the boundary and negative in the internior")
+#         (length(ϵ) == length(point)) || error("there needs to be a strain for each point")
+#         tet_simp_tree = SimplexTree(point, tet_ind)
+#         return new(tet_simp_tree, ϵ, c_prop)
+#     end
+# end
 
-struct MeshCache
-    point::Vector{SVector{3,Float64}}
+struct MeshCache{T1,T2}
+    # point::Vector{SVector{3,Float64}}
     name::String
     BodyID::Union{Nothing,BodyID}
     FrameID::CartesianFrame3D
-    InertiaProperties::Union{Nothing, InertiaProperties}
-    tri::SimplexTree{3}
-    tet::Union{Nothing, TetMesh}
+    # InertiaProperties::Union{Nothing, InertiaProperties}
+    # tri::SimplexTree{3}
+    # tet::Union{Nothing, TetMesh}
+    mesh::eMesh{T1,T2}
+    tree::eTree{T1,T2}
 
-    function MeshCache(name::String, h_mesh::HomogenousMesh, tet_mesh::TetMesh, body::RigidBody{Float64},
-            inertia_prop::Union{Nothing, InertiaProperties}=nothing)
+    function MeshCache(name::String, e_mesh::eMesh{T1,T2}, e_tree::eTree{T1,T2}, body::RigidBody{Float64}
+            # inertia_prop::Union{Nothing,InertiaProperties}=nothing
+            ) where {T1,T2}
 
-        point, tri_ind = extract_HomogenousMesh_face_vertices(h_mesh)
-        tri_simp_tree = SimplexTree(h_mesh)
-        return new(point, name, BodyID(body), default_frame(body), inertia_prop, tri_simp_tree, tet_mesh)
+        return new{T1,T2}(name, BodyID(body), default_frame(body), e_mesh, e_tree)
     end
 
-    function MeshCache(name::String, h_mesh::HomogenousMesh, body::RigidBody{Float64},
-            inertia_prop::Union{Nothing, InertiaProperties}=nothing)
-
-        tri_simp_tree = SimplexTree(h_mesh)
-        point = get_h_mesh_vertices(h_mesh)
-        return new(point, name, BodyID(body), default_frame(body), inertia_prop, tri_simp_tree, nothing)
-    end
+    # function MeshCache(name::String, h_mesh::HomogenousMesh, body::RigidBody{Float64},
+    #         inertia_prop::Union{Nothing, InertiaProperties}=nothing)
+    #
+    #     tri_simp_tree = SimplexTree(h_mesh)
+    #     point = get_h_mesh_vertices(h_mesh)
+    #     return new(point, name, BodyID(body), default_frame(body), inertia_prop, tri_simp_tree, nothing)
+    # end
 end
 
-@inline get_tri_mesh(m::MeshCache) = m.tri.ind
-@inline get_tet_mesh(m::MeshCache) = m.tet.tet.ind
-is_compliant(m::MeshCache) = (m.tet != nothing)
 
-calc_mutual_μ(a::Nothing, b::Nothing) = error("both materials are nothing")
-calc_mutual_μ(a::TetMesh, b::Nothing) = a.c_prop.μ
-calc_mutual_μ(a::Nothing, b::TetMesh) = calc_mutual_μ(b, a)
-calc_mutual_μ(a::TetMesh, b::TetMesh) = sqrt(a.c_prop.μ * b.c_prop.μ)
-calc_mutual_μ(a::MeshCache, b::MeshCache) = calc_mutual_μ(a.tet, b.tet)
+@inline get_tree_tet(m::MeshCache) = m.tree.tet
+@inline get_tree_tri(m::MeshCache) = m.tree.tri
+@inline get_c_prop(m::MeshCache) = m.tree.c_prop
+@inline get_point(m::MeshCache) = m.mesh.point
+@inline get_ind_tri(m::MeshCache) = m.mesh.tri
+@inline get_ind_tet(m::MeshCache) = m.mesh.tet
+@inline get_ϵ(m::MeshCache) = m.mesh.ϵ
 
-get_Ē(m::MeshCache) = m.tet.c_prop.Ē
+is_compliant(m::MeshCache{T1,Tet}) where {T1} = true
+is_compliant(m::MeshCache{T1,Nothing}) where {T1} = false
+
+is_rigid(m::MeshCache{Tri,T2}) where {T2} = true
+is_rigid(m::MeshCache{Nothing,T2}) where {T2} = false
+
+get_Ē(m::MeshCache) = get_c_prop(m).Ē
+
+calc_mutual_μ(a::MeshCache{T1,Tet}, b::MeshCache{T2,Tet}) where {T1,T2} = sqrt(get_c_prop(a).μ * get_c_prop(b).μ)
+calc_mutual_μ(a::MeshCache{T1,Nothing}, b::MeshCache{T2,Tet}) where {T1,T2} = get_c_prop(b).μ
+calc_mutual_μ(a::MeshCache{T1,Tet}, b::MeshCache{T2,Nothing}) where {T1,T2} = get_c_prop(a).μ
+calc_mutual_μ(a::MeshCache{T1,Nothing}, b::MeshCache{T2,Nothing}) where {T1,T2} = error("both meshes are rigid")
+
+
+# function calc_mutual_μ(a, b)
+#     println("PLACEHOLDER")
+#     println("PLACEHOLDER")
+#     println("PLACEHOLDER")
+#     println("PLACEHOLDER")
+#     println("PLACEHOLDER")
+#     return 0.3
+# end
+
+# @inline get_tri_mesh(m::MeshCache) = m.tri.ind
+# @inline get_tet_mesh(m::MeshCache) = m.tet.tet.ind
+# is_compliant(m::MeshCache) = (m.tet != nothing)
+
+# calc_mutual_μ(a::Nothing, b::Nothing) = error("both materials are nothing")
+# calc_mutual_μ(a::TetMesh, b::Nothing) = a.c_prop.μ
+# calc_mutual_μ(a::Nothing, b::TetMesh) = calc_mutual_μ(b, a)
+# calc_mutual_μ(a::TetMesh, b::TetMesh) = sqrt(a.c_prop.μ * b.c_prop.μ)
+# calc_mutual_μ(a::MeshCache, b::MeshCache) = calc_mutual_μ(a.tet, b.tet)
+
+# get_Ē(m::MeshCache) = m.tet.c_prop.Ē

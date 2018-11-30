@@ -119,9 +119,13 @@ function calcTriTetIntersections!(m::MechanismScenario, con_ins_k::ContactInstru
     x_r¹_r² = inv(b.x_rʷ_r¹) * b.x_rʷ_r²
     update_TT_Cache!(m.TT_Cache, translation(x_r¹_r²), rotation(x_r¹_r²))
     if con_ins_k.mutual_compliance
-        tree_tree_intersect(m.TT_Cache, b.mesh_1.tet.tet.tree, b.mesh_2.tet.tet.tree)
+        tree_tree_intersect(m.TT_Cache, get_tree_tet(b.mesh_1), get_tree_tet(b.mesh_2))
+        # b.mesh_1.tet.tet.tree, b.mesh_2.tet.tet.tree)
+        # tree_tree_intersect(m.TT_Cache, b.mesh_1.tet.tet.tree, b.mesh_2.tet.tet.tree)
     else
-        tree_tree_intersect(m.TT_Cache, b.mesh_1.tri.tree, b.mesh_2.tet.tet.tree)
+        tree_tree_intersect(m.TT_Cache, get_tree_tri(b.mesh_1), get_tree_tet(b.mesh_2))
+        # .tet.tree)
+        # tree_tree_intersect(m.TT_Cache, b.mesh_1.tri.tree, b.mesh_2.tet.tet.tree)
     end
     return nothing
 end
@@ -156,10 +160,14 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     # b.ẋ_rʷ_r² = DH_derivative(twist_w_r², b.x_r²_rʷ)
 
     b.μ = con_ins_k.μ_pair
-    mat_2 = b.mesh_2.tet.c_prop
-    b.Ē = mat_2.Ē
-    b.χ = mat_2.χ
-    b.d⁻¹ = mat_2.d⁻¹
+    # mat_2 = b.mesh_2.tet.c_prop
+    # b.Ē = mat_2.Ē
+    # b.χ = mat_2.χ
+    # b.d⁻¹ = mat_2.d⁻¹
+    c_prop = get_c_prop(b.mesh_2)
+    b.Ē = c_prop.Ē
+    b.χ = c_prop.χ
+    b.d⁻¹ = c_prop.d⁻¹
     return nothing
 end
 
@@ -188,15 +196,18 @@ function integrate_over_volume_volume_all!(mesh_1::MeshCache, mesh_2::MeshCache,
 end
 
 function triangle_vertices(i_tri::Int64, m::MeshCache)
-    ind_vert = m.tri.ind[i_tri]
-    return m.point[ind_vert]
+    # ind_vert = m.tri.ind[i_tri]
+    ind_vert = get_ind_tri(m)[i_tri]
+    return get_point(m)[ind_vert]
 end
 
 function tetrahedron_vertices_ϵ(i_tet::Int64, m::MeshCache)
-    ind_vert = m.tet.tet.ind[i_tet]
-    ϵ = m.tet.ϵ[ind_vert]
+    # ind_vert = m.tet.tet.ind[i_tet]
+    ind_vert = get_ind_tet(m)[i_tet]
+    ϵ = get_ϵ(m)[ind_vert]
+    # ϵ = m.tet.ϵ[ind_vert]
     ϵ = SMatrix{1,4,Float64,4}(ϵ)
-    cart_vert = m.point[ind_vert]
+    cart_vert = get_point(m)[ind_vert]
     return cart_vert, ϵ
 end
 
