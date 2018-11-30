@@ -120,12 +120,8 @@ function calcTriTetIntersections!(m::MechanismScenario, con_ins_k::ContactInstru
     update_TT_Cache!(m.TT_Cache, translation(x_r¹_r²), rotation(x_r¹_r²))
     if con_ins_k.mutual_compliance
         tree_tree_intersect(m.TT_Cache, get_tree_tet(b.mesh_1), get_tree_tet(b.mesh_2))
-        # b.mesh_1.tet.tet.tree, b.mesh_2.tet.tet.tree)
-        # tree_tree_intersect(m.TT_Cache, b.mesh_1.tet.tet.tree, b.mesh_2.tet.tet.tree)
     else
         tree_tree_intersect(m.TT_Cache, get_tree_tri(b.mesh_1), get_tree_tet(b.mesh_2))
-        # .tet.tree)
-        # tree_tree_intersect(m.TT_Cache, b.mesh_1.tri.tree, b.mesh_2.tet.tet.tree)
     end
     return nothing
 end
@@ -157,13 +153,7 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     twist_w_r² = twist_wrt_world(tm.state, b.mesh_2.BodyID)
     b.twist_r¹_r² = -twist_w_r² + twist_w_r¹  # velocity of tri wrt tet expressed in world
 
-    # b.ẋ_rʷ_r² = DH_derivative(twist_w_r², b.x_r²_rʷ)
-
     b.μ = con_ins_k.μ_pair
-    # mat_2 = b.mesh_2.tet.c_prop
-    # b.Ē = mat_2.Ē
-    # b.χ = mat_2.χ
-    # b.d⁻¹ = mat_2.d⁻¹
     c_prop = get_c_prop(b.mesh_2)
     b.Ē = c_prop.Ē
     b.χ = c_prop.χ
