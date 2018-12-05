@@ -186,16 +186,13 @@ function integrate_over_volume_volume_all!(mesh_1::MeshCache, mesh_2::MeshCache,
 end
 
 function triangle_vertices(i_tri::Int64, m::MeshCache)
-    # ind_vert = m.tri.ind[i_tri]
     ind_vert = get_ind_tri(m)[i_tri]
     return get_point(m)[ind_vert]
 end
 
 function tetrahedron_vertices_ϵ(i_tet::Int64, m::MeshCache)
-    # ind_vert = m.tet.tet.ind[i_tet]
     ind_vert = get_ind_tet(m)[i_tet]
     ϵ = get_ϵ(m)[ind_vert]
-    # ϵ = m.tet.ϵ[ind_vert]
     ϵ = SMatrix{1,4,Float64,4}(ϵ)
     cart_vert = get_point(m)[ind_vert]
     return cart_vert, ϵ

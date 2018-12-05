@@ -18,6 +18,25 @@ function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCa
     return wrench
 end
 
+function normal_wrench2(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+    wrench = zero(Wrench{T}, frame)
+    int_p_r_dA = zeros(SVector{3,T})
+    int_p_dA = zero(T)
+    # @inbounds begin
+        for k_trac = 1:length(b.TractionCache)
+            trac = b.TractionCache[k_trac]
+            for k = 1:N
+                p_dA = calc_p_dA(trac, k)
+                wrench += Wrench(trac.r_cart[k], p_dA * trac.n̂)
+                int_p_r_dA += trac.r_cart[k].v * p_dA
+                int_p_dA += p_dA
+            end
+        end
+    # end
+    p_center = Point3D(frame, int_p_r_dA / int_p_dA)
+    return wrench, p_center
+end
+
 function veil_clamp_wrench(f_max::Wrench{T}, f_stick::Wrench{T}) where {T}
     function simple_clamp(a::T, b::T) where {T}
         if 0.0 <= b
@@ -96,6 +115,7 @@ function calc_patch_spatial_stiffness(tm::TypedMechanismScenario{N,T}, c_ins::Co
 end
 
 function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+    # TODO: do all calculations relative to patch center
 
     BF = c_ins.BristleFriction
     bristle_id = BF.BristleID
@@ -126,7 +146,32 @@ function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,
     U = cf.U
     U⁻¹ = SMatrix{6,6,T,36}(inv(U))
     δ = U⁻¹ * Δ
-    wrench² = calc_spatial_bristle_force(tm, c_ins, frameᶜ, twist_r¹_r²_r², δ)
+    wrench²_un = calc_spatial_bristle_force(tm, c_ins, frameᶜ, twist_r¹_r²_r², δ)
+
+    ######################
+
+    # println("high")
+    # println("low")
+
+    # x_r²_rʷ
+    # x_rʷ_r²
+
+    τ_s2 = -K * (Δ + BF.τ * v_spatial_rel)
+    wrench_stick_2 = Wrench{T}(frameᶜ, SVector{3,T}(τ_s2[1], τ_s2[2], τ_s2[3]), SVector{3,T}(τ_s2[4], τ_s2[5], τ_s2[6]))
+    wrench_normal, p_center = normal_wrench2(frameʷ, b)
+
+    IM = MMatrix(I + zeros(SMatrix{4,4,T,16}))
+    IM[13:15] .+= SVector{3,T}(p_center.v)
+    x_rw_rϕ = Transform3D(FRAME_ϕ, frameʷ, IM)
+    x_r2_rϕ = b.x_r²_rʷ * x_rw_rϕ
+    x_rϕ_r2 = inv(x_r2_rϕ)
+
+    wrench_stick_phi = transform(wrench_stick_2, x_rϕ_r2)
+    wrench_bristle_phi = transform(wrench²_un, x_rϕ_r2)
+    wrench_corr_phi = clamp_88(wrench_stick_phi, wrench_bristle_phi)
+    wrench² = transform(wrench_corr_phi, x_r2_rϕ)
+
+    ######################
 
     # NOTE:
     # δδ = -τ (δ + K⁻¹ f²)
@@ -137,7 +182,7 @@ function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,
     ΔΔ = get_bristle_d1(tm, bristle_id)
     ΔΔ .= -BF.τ * (Δ  + U⁻¹' * as_static_vector(wrench²))
 
-    return normal_wrench(frameʷ, b) + transform(wrench², b.x_rʷ_r²)
+    return wrench_normal + transform(wrench², b.x_rʷ_r²)
 end
 
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
@@ -178,4 +223,18 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
         end
     end
     return wrench_sum
+end
+
+function clamp_88(w_stick::Wrench{T}, w_bristle::Wrench{T}) where {T}
+    function simple_clamp(a::T, b::T) where {T}
+        if 0.0 <= b
+            return clamp(a, zero(T), b)
+        else
+            return clamp(a, b, zero(T))
+        end
+    end
+
+    @framecheck(w_stick.frame, w_bristle.frame)
+    corrected_ang = simple_clamp.(2 * angular(w_bristle), angular(w_stick))
+    return Wrench{T}(w_bristle.frame, corrected_ang, linear(w_bristle))
 end

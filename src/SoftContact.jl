@@ -32,7 +32,6 @@ include("mechanism_scenario.jl")
 include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
 include("contact_algorithms_friction.jl")
-include("primitive_meshes.jl")
 include("vis_meshcat.jl")
 include("example_integrator.jl")
 include("utility.jl")
@@ -48,8 +47,6 @@ export
     calculateExtrensicCompliance,
     eTree,
     InertiaProperties,
-    get_tri_mesh,
-    get_tet_mesh,
     get_tree_tet,
     get_tree_tri,
     get_c_prop,
@@ -95,6 +92,7 @@ export
     add_body_contact!,
     add_contact!,
     add_body!,
+    add_body_from_inertia!,  # this needs to be here
     findmesh,
     findMesh,
     add_pair_rigid_compliant_regularize!,
@@ -150,12 +148,6 @@ export
     # bristle_deformation,
     # bristle_friction!,
     # bristle_friction_no_contact!,
-
-    # primitive_meshes.jl
-    create_surface_half_plane,
-    create_volume_half_plane,
-    create_surface_box,
-    create_volume_box,
 
     # vis_meshcat.jl
     set_body_mesh_visual!,

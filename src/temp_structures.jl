@@ -48,139 +48,28 @@ function addMesh!(ts::TempContactStruct, mesh::MeshCache)
     return nothing
 end
 
-### Volume
-
-# ADD:
-#
-# contact geometry
-#
-# body inertia properties
-
-# body, joint = add_body_volume!(ts.mechanism, name, h_mesh, tet_mesh, inertia_prop, joint=joint, body_parent=body_parent, dh=dh)
-# add_body_from_inertia!(mechanism, name, mesh_inertia_info, joint=joint, body_parent=body_parent, dh=dh)
-
-# function add_volume(ts::TempContactStruct, name::String, e_mesh::eMesh{T1,Tet}, c_prop::ContactProperties,
-#         i_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}(), body::Union{RigidBody{Float64},Nothing}=nothing,
-#         dh::basic_dh{Float64}=one(basic_dh{Float64})) where {JT<:JointType,T1}
-#     #
-#
-#
-#
-#     return
-# end
-#
-#
-#
-#
-# function add_body_volume_mesh!(ts::TempContactStruct, name::String, e_mesh::eMesh{T1,T2}, c_prop::ContactProperties,
-#         inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}(),
-#         body_parent::Union{RigidBody{Float64},Nothing}=nothing, dh::basic_dh{Float64}=one(basic_dh{Float64})) where {JT<:JointType, T1, T2}
-#     #
-#     # e_tree = eTree(e_mesh, c_prop)
-#     body, joint = add_body_volume!(ts.mechanism, name, h_mesh, tet_mesh, inertia_prop, joint=joint, body_parent=body_parent, dh=dh)
-#     add_volume_mesh!(ts, body, name, h_mesh, tet_mesh, inertia_prop)
-#     return body, joint
-# end
-#
-# function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, e_mesh::eMesh{T1,T2},
-#         c_prop::ContactProperties, inertia_prop::Union{Nothing,InertiaProperties}=nothing)
-#
-#     e_tree = eTree(e_mesh, c_prop)
-#     mesh = MeshCache(name, e_mesh, e_tree, body, inertia_prop)
-#     addMesh!(ts, mesh)
-# end
-#
-# function add_body_volume!(mechanism::Mechanism, name::String, e_mesh::eMesh{T1,T2}, c_prop::ContactProperties,
-#         inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}(),
-#         body_parent::Union{RigidBody{Float64},Nothing}=nothing, dh::basic_dh{Float64}=one(basic_dh{Float64})) where {JT<:JointType}
-#
-#     tet_ind = tet_mesh.tet.ind
-#     point = get_h_mesh_vertices(h_mesh)
-#     # TODO: handle this differently
-#     (inertia_prop.d == nothing) || error("assumed thickness is something but should be nothing")
-#     mesh_inertia_info = make_volume_mesh_inertia_info(point, tet_ind, inertia_prop)
-#     return add_body_from_inertia!(mechanism, name, mesh_inertia_info, joint=joint, body_parent=body_parent, dh=dh)
-# end
-#
-
-# ### Volume ###
-# function add_body_volume_mesh!(ts::TempContactStruct, name::String, h_mesh::HomogenousMesh, tet_mesh::TetMesh,
-#         inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}(),
-#         body_parent::Union{RigidBody{Float64},Nothing}=nothing, dh::basic_dh{Float64}=one(basic_dh{Float64})) where {JT<:JointType}
-#
-#     body, joint = add_body_volume!(ts.mechanism, name, h_mesh, tet_mesh, inertia_prop, joint=joint, body_parent=body_parent, dh=dh)
-#     add_volume_mesh!(ts, body, name, h_mesh, tet_mesh, inertia_prop)
-#     return body, joint
-# end
-#
-# function add_volume_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, h_mesh::HomogenousMesh,
-#         tet_mesh::TetMesh, inertia_prop::Union{Nothing,InertiaProperties}=nothing)
-#
-#     mesh = MeshCache(name, h_mesh, tet_mesh, body, inertia_prop)
-#     addMesh!(ts, mesh)
-# end
-#
-# function add_body_volume!(mechanism::Mechanism, name::String, h_mesh::HomogenousMesh, tet_mesh::TetMesh,
-#         inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}(),
-#         body_parent::Union{RigidBody{Float64},Nothing}=nothing, dh::basic_dh{Float64}=one(basic_dh{Float64})) where {JT<:JointType}
-#
-#     tet_ind = tet_mesh.tet.ind
-#     point = get_h_mesh_vertices(h_mesh)
-#     # TODO: handle this differently
-#     (inertia_prop.d == nothing) || error("assumed thickness is something but should be nothing")
-#     mesh_inertia_info = make_volume_mesh_inertia_info(point, tet_ind, inertia_prop)
-#     return add_body_from_inertia!(mechanism, name, mesh_inertia_info, joint=joint, body_parent=body_parent, dh=dh)
-# end
-#
-# ### Surface ###
-# function add_body_surface_mesh!(ts::TempContactStruct, name::String, h_mesh::HomogenousMesh,
-#         inertia_prop::InertiaProperties; joint::JT=SPQuatFloating{Float64}(),
-#         body_parent::Union{RigidBody{Float64},Nothing}=nothing,
-#         dh::basic_dh{Float64}=one(basic_dh{Float64})) where {JT<:JointType}
-#
-#     body, joint = add_body_surface!(ts.mechanism, name, h_mesh, inertia_prop, joint=joint, body_parent=body_parent, dh=dh)
-#     add_surface_mesh!(ts, body, name, h_mesh, inertia_prop)
-#     return body, joint
-# end
-#
-# function add_surface_mesh!(ts::TempContactStruct, body::RigidBody{Float64}, name::String, h_mesh::HomogenousMesh,
-#         inertia_prop::Union{Nothing,InertiaProperties}=nothing)
-#
-#     mesh = MeshCache(name, h_mesh, body, inertia_prop)
-#     addMesh!(ts, mesh)
-# end
-#
-# function add_body_surface!(mechanism::Mechanism, name::String, h_mesh::HomogenousMesh, inertia_prop::InertiaProperties;
-#         joint::JT=SPQuatFloating{Float64}(), body_parent::Union{RigidBody{Float64},Nothing}=nothing,
-#         dh::basic_dh{Float64}=one(basic_dh{Float64})) where {JT<:JointType}
-#
-#     point, tri_ind = extract_HomogenousMesh_face_vertices(h_mesh)
-#     mesh_inertia_info = make_surface_mesh_inertia_info(point, tri_ind, inertia_prop)
-#     return add_body_from_inertia!(mechanism, name, mesh_inertia_info, joint=joint, body_parent=body_parent, dh=dh)
-# end
-
 function add_body_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
-        c_prop::Union{Nothing,ContactProperties}, i_prop::InertiaProperties,
+        c_prop::Union{Nothing,ContactProperties}, i_prop::InertiaProperties;
         body_parent::Union{RigidBody{Float64},Nothing}=nothing,
         joint_type::JT=SPQuatFloating{Float64}(), dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
     #
-    body, joint = add_body!(ts, name, e_mesh, i_prop, body_parent, joint_type, dh)
-    add_contact!(ts, name, e_mesh, c_prop, body, dh)
+    body, joint = add_body!(ts, name, e_mesh, i_prop, body_parent=body_parent, joint_type=joint_type, dh=dh)
+    add_contact!(ts, name, e_mesh, c_prop, body=body, dh=dh)
     return body, joint
 end
 
 function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
-        c_prop::Union{Nothing,ContactProperties}, body_parent::Union{RigidBody{Float64},Nothing}=nothing,
+        c_prop::Union{Nothing,ContactProperties}; body::Union{RigidBody{Float64},Nothing}=nothing,
         dh::basic_dh=one(basic_dh{Float64}))
     #
-    body_parent = return_body_never_nothing(ts.mechanism, body_parent)
+    body = return_body_never_nothing(ts.mechanism, body)
     e_tree = eTree(e_mesh, c_prop)
-    mesh = MeshCache(name, e_mesh, e_tree, body_parent)
+    mesh = MeshCache(name, e_mesh, e_tree, body)
     addMesh!(ts, mesh)
     return nothing
 end
 
-function add_body!(ts::TempContactStruct, name::String, e_mesh::eMesh, i_prop::InertiaProperties,
+function add_body!(ts::TempContactStruct, name::String, e_mesh::eMesh, i_prop::InertiaProperties;
         body_parent::Union{RigidBody{Float64},Nothing}=nothing, joint_type::JT=SPQuatFloating{Float64}(),
         dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
     #
