@@ -57,8 +57,8 @@ function play_recorded_data(mvis::MechanismVisualizer, mech_scen::MechanismScena
         while (t_last_frame + dt) < data_time[k]  # wait until enough real time has passed
             t_last_frame += dt
             sleep(dt * slowdown)
+            set_configuration!(mech_scen, mvis, data_state[k, :])  # visualize configuration
         end
-        set_configuration!(mech_scen, mvis, data_state[k, :])  # visualize configuration
     end
     return nothing
 end

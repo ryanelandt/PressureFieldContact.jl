@@ -37,25 +37,6 @@ function normal_wrench2(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,
     return wrench, p_center
 end
 
-function veil_clamp_wrench(f_max::Wrench{T}, f_stick::Wrench{T}) where {T}
-    function simple_clamp(a::T, b::T) where {T}
-        if 0.0 <= b
-            return clamp(a, zero(T), b)
-        else
-            return clamp(a, b, zero(T))
-        end
-    end
-
-    frame_f = f_max.frame
-    @framecheck(frame_f, f_stick.frame)
-    f̄ᶿ = simple_clamp.(f_max.angular, f_stick.angular)  # TODO: replace with a double-sided smooth clamp
-    f̄ʳ = simple_clamp.(f_max.linear,  f_stick.linear)  # TODO: replace with a double-sided smooth clamp
-    f̄ᶿ = FreeVector3D(frame_f, f̄ᶿ)
-    f̄ʳ = FreeVector3D(frame_f, f̄ʳ)
-    f̄ = Wrench(f̄ᶿ, f̄ʳ)
-    return f̄ᶿ, f̄ʳ, f̄
-end
-
 function make_stiffness_PD!(K::MMatrix{6,6,T,36}) where {T}
     # NOTE: # diag(SMatrix{6,6,Int64,36}(collect(1:36)))
 
@@ -225,16 +206,28 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     return wrench_sum
 end
 
+# function veil_clamp_wrench(f_max::Wrench{T}, f_stick::Wrench{T}) where {T}
+#     frame_f = f_max.frame
+#     @framecheck(frame_f, f_stick.frame)
+#     f̄ᶿ = smooth_c1_ramp.(f_max.angular, f_stick.angular)
+#     f̄ʳ = smooth_c1_ramp.(f_max.linear,  f_stick.linear)
+#     f̄ᶿ = FreeVector3D(frame_f, f̄ᶿ)
+#     f̄ʳ = FreeVector3D(frame_f, f̄ʳ)
+#     f̄ = Wrench(f̄ᶿ, f̄ʳ)
+#     return f̄ᶿ, f̄ʳ, f̄
+# end
+
 function clamp_88(w_stick::Wrench{T}, w_bristle::Wrench{T}) where {T}
-    function simple_clamp(a::T, b::T) where {T}
-        if 0.0 <= b
-            return clamp(a, zero(T), b)
-        else
-            return clamp(a, b, zero(T))
-        end
-    end
+    # function simple_clamp(a::T, b::T) where {T}
+    #     if 0.0 <= b
+    #         return clamp(a, zero(T), b)
+    #     else
+    #         return clamp(a, b, zero(T))
+    #     end
+    # end
 
     @framecheck(w_stick.frame, w_bristle.frame)
-    corrected_ang = simple_clamp.(2 * angular(w_bristle), angular(w_stick))
+    # corrected_ang = simple_clamp.(2 * angular(w_bristle), angular(w_stick))
+    corrected_ang = smooth_c1_ramp.(2 * angular(w_bristle), angular(w_stick))
     return Wrench{T}(w_bristle.frame, corrected_ang, linear(w_bristle))
 end
