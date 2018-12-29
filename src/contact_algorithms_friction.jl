@@ -18,7 +18,7 @@ function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCa
     return wrench
 end
 
-function normal_wrench2(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+function normal_wrench_patch_center(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
     wrench = zero(Wrench{T}, frame)
     int_p_r_dA = zeros(SVector{3,T})
     int_p_dA = zero(T)
@@ -131,15 +131,9 @@ function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,
 
     ######################
 
-    # println("high")
-    # println("low")
-
-    # x_r²_rʷ
-    # x_rʷ_r²
-
     τ_s2 = -K * (Δ + BF.τ * v_spatial_rel)
     wrench_stick_2 = Wrench{T}(frameᶜ, SVector{3,T}(τ_s2[1], τ_s2[2], τ_s2[3]), SVector{3,T}(τ_s2[4], τ_s2[5], τ_s2[6]))
-    wrench_normal, p_center = normal_wrench2(frameʷ, b)
+    wrench_normal, p_center = normal_wrench_patch_center(frameʷ, b)
 
     IM = MMatrix(I + zeros(SMatrix{4,4,T,16}))
     IM[13:15] .+= SVector{3,T}(p_center.v)
@@ -149,7 +143,7 @@ function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,
 
     wrench_stick_phi = transform(wrench_stick_2, x_rϕ_r2)
     wrench_bristle_phi = transform(wrench²_un, x_rϕ_r2)
-    wrench_corr_phi = clamp_88(wrench_stick_phi, wrench_bristle_phi)
+    wrench_corr_phi = stiction_promoting_soft_clamp(wrench_stick_phi, wrench_bristle_phi)
     wrench² = transform(wrench_corr_phi, x_r2_rϕ)
 
     ######################
@@ -206,28 +200,9 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     return wrench_sum
 end
 
-# function veil_clamp_wrench(f_max::Wrench{T}, f_stick::Wrench{T}) where {T}
-#     frame_f = f_max.frame
-#     @framecheck(frame_f, f_stick.frame)
-#     f̄ᶿ = smooth_c1_ramp.(f_max.angular, f_stick.angular)
-#     f̄ʳ = smooth_c1_ramp.(f_max.linear,  f_stick.linear)
-#     f̄ᶿ = FreeVector3D(frame_f, f̄ᶿ)
-#     f̄ʳ = FreeVector3D(frame_f, f̄ʳ)
-#     f̄ = Wrench(f̄ᶿ, f̄ʳ)
-#     return f̄ᶿ, f̄ʳ, f̄
-# end
-
-function clamp_88(w_stick::Wrench{T}, w_bristle::Wrench{T}) where {T}
-    # function simple_clamp(a::T, b::T) where {T}
-    #     if 0.0 <= b
-    #         return clamp(a, zero(T), b)
-    #     else
-    #         return clamp(a, b, zero(T))
-    #     end
-    # end
+function stiction_promoting_soft_clamp(w_stick::Wrench{T}, w_bristle::Wrench{T}) where {T}
 
     @framecheck(w_stick.frame, w_bristle.frame)
-    # corrected_ang = simple_clamp.(2 * angular(w_bristle), angular(w_stick))
     corrected_ang = smooth_c1_ramp.(2 * angular(w_bristle), angular(w_stick))
     return Wrench{T}(w_bristle.frame, corrected_ang, linear(w_bristle))
 end

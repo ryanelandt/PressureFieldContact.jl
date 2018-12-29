@@ -138,7 +138,7 @@ export
     regularized_friction,
     # calc_point_spatial_stiffness,
     # calc_patch_spatial_stiffness,
-    veil_clamp_wrench,
+    # veil_clamp_wrench,
     # veil_friction!,
     # calc_wrench_to_stick,
     # calc_λ_max,
