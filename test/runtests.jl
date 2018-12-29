@@ -9,6 +9,6 @@ using NumericalTricks
 
 
 include("test_exports.jl")
-include("mesh_box_tests.jl")
+# include("mesh_box_tests.jl")
 # include("test_point_stiffness.jl")
 include("test_friction.jl")
