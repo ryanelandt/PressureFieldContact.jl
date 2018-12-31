@@ -1,9 +1,7 @@
 function newBodyFromInertia(nameBody::String, mesh_inertia_info::MeshInertiaInfo)
-
     com = mesh_inertia_info.com
     m = mesh_inertia_info.mass
     I3 = mesh_inertia_info.tensor_I
-
     skew_com = Spatial.vector_to_skew_symmetric(com)
     term = SMatrix{3,3,Float64}(I3 + m * skew_com * transpose(skew_com))
     return RigidBody(SpatialInertia(CartesianFrame3D(nameBody), term, com * m, m))

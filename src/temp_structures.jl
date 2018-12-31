@@ -4,7 +4,8 @@ struct BristleFriction
     BristleID::BristleID
     τ::Float64
     k̄::Float64
-    BristleFriction(bristle_ID::BristleID; τ::Float64, k̄::Float64) = new(bristle_ID, τ, k̄)
+    fric_pro::Float64
+    BristleFriction(bristle_ID::BristleID; τ::Float64, k̄::Float64, fric_pro::Float64=2.0) = new(bristle_ID, τ, k̄, fric_pro)
 end
 
 mutable struct ContactInstructions
@@ -103,12 +104,14 @@ function findmesh(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this
     return id
 end
 
-function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, name_tri::String, name_tet::String)
-    return add_pair_rigid_compliant!(ts, name_tri, name_tet, nothing)
+function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, name_tri::String, name_tet::String;
+        μ::Union{Nothing,Float64}=nothing)
+
+    return add_pair_rigid_compliant!(ts, name_tri, name_tet, nothing, μ=μ)
 end
 
 function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2::String,
-        friction_model::Union{Nothing,BristleFriction})
+        friction_model::Union{Nothing,BristleFriction}; μ::Union{Nothing,Float64}=nothing)
 
     mesh_id_1 = findmesh(ts.MeshCache, name_1)
     mesh_id_2 = findmesh(ts.MeshCache, name_2)
@@ -121,9 +124,12 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2
     is_compliant_2 = is_compliant(mesh_cache_2)
     !is_compliant_1 && !is_compliant_2 && error("neither mesh is compliant")
     if is_compliant_1 && !is_compliant_2
-        return add_pair_rigid_compliant!(ts, name_2, name_1, friction_model)
+        return add_pair_rigid_compliant!(ts, name_2, name_1, friction_model, μ=μ)
     else
-        μ = calc_mutual_μ(mesh_cache_1, mesh_cache_2)
+        if μ == nothing
+            @warn("unspecified μ replaced with 0.5")
+            μ = 0.5
+        end
         mutual_compliance = is_compliant_1 && is_compliant_2
         new_contact = ContactInstructions(mesh_id_1, mesh_id_2, mutual_compliance, μ, friction_model)
         push!(ts.ContactInstructions, new_contact)
@@ -132,10 +138,10 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2
 end
 
 function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=30.0,
-        k̄=1.0e4)
+        k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing)
 
     bristle_id = BristleID(1 + length(ts.bristle_ids))
-    bf = BristleFriction(bristle_id, τ=τ, k̄=k̄)  # , K_θ=K_θ, K_r=K_r)
+    bf = BristleFriction(bristle_id, τ=τ, k̄=k̄, fric_pro=fric_pro)
     ts.bristle_ids = Base.OneTo(bristle_id)
-    return add_pair_rigid_compliant!(ts, name_tri, name_tet, bf)
+    return add_pair_rigid_compliant!(ts, name_tri, name_tet, bf, μ=μ)
 end

@@ -8,16 +8,16 @@ end
 
 struct ContactProperties
     Ē::Float64
-    μ::Float64
+    # μ::Float64
     d⁻¹::Float64
     χ::Float64
-    function ContactProperties(;Ē::Float64, μ::Float64, d::Float64, χ::Float64)
+    function ContactProperties(;Ē::Float64, d::Float64, χ::Float64)
         (1.0e4 <= Ē <= 3.0e11) || error("E_effective in unexpected range.")
-        (0.0 <= μ <= 3.0) || error("mu in unexpected range.")
+        # (0.0 <= μ <= 3.0) || error("mu in unexpected range.")
         (0.001 <= d <= 1.0) || error("thickness in unexpected range.")
         d⁻¹ = 1 / d
         (0.001 <= χ <= 5.0) || error("hc_velocity_damping in unexpected range.")
-        return new(Ē, μ, d⁻¹, χ)
+        return new(Ē, d⁻¹, χ)
     end
 end
 
@@ -82,7 +82,7 @@ is_rigid(m::MeshCache{Nothing,T2}) where {T2} = false
 
 get_Ē(m::MeshCache) = get_c_prop(m).Ē
 
-calc_mutual_μ(a::MeshCache{T1,Tet}, b::MeshCache{T2,Tet}) where {T1,T2} = sqrt(get_c_prop(a).μ * get_c_prop(b).μ)
-calc_mutual_μ(a::MeshCache{T1,Nothing}, b::MeshCache{T2,Tet}) where {T1,T2} = get_c_prop(b).μ
-calc_mutual_μ(a::MeshCache{T1,Tet}, b::MeshCache{T2,Nothing}) where {T1,T2} = get_c_prop(a).μ
-calc_mutual_μ(a::MeshCache{T1,Nothing}, b::MeshCache{T2,Nothing}) where {T1,T2} = error("both meshes are rigid")
+# calc_mutual_μ(a::MeshCache{T1,Tet}, b::MeshCache{T2,Tet}) where {T1,T2} = sqrt(get_c_prop(a).μ * get_c_prop(b).μ)
+# calc_mutual_μ(a::MeshCache{T1,Nothing}, b::MeshCache{T2,Tet}) where {T1,T2} = get_c_prop(b).μ
+# calc_mutual_μ(a::MeshCache{T1,Tet}, b::MeshCache{T2,Nothing}) where {T1,T2} = get_c_prop(a).μ
+# calc_mutual_μ(a::MeshCache{T1,Nothing}, b::MeshCache{T2,Nothing}) where {T1,T2} = error("both meshes are rigid")

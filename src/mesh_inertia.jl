@@ -1,17 +1,4 @@
 
-# function make_volume_mesh_inertia_info(m::MeshCache)
-#     (m.InertiaProperties == nothing) && error("mesh has no InertiaProperties")
-#     (m.tet == nothing) && error("mesh has no tet mesh")
-#     return make_volume_mesh_inertia_info(m.point, get_tet_mesh(m), m.InertiaProperties)
-# end
-#
-# function make_surface_mesh_inertia_info(m::MeshCache)
-#     (m.InertiaProperties == nothing) && error("mesh has no InertiaProperties")
-#     (m.tet == nothing) || error("mesh has a volume mesh")
-#     (m.tri == nothing) && error("mesh has no tri information")
-#     return make_surface_mesh_inertia_info(m.point, get_tri_mesh(m), m.InertiaProperties)
-# end
-
 function makeInertiaInfoTri(e_mesh::eMesh{Tri,T2}, i_prop::InertiaProperties) where {T2}
     (i_prop.d == nothing) && error("InertiaProperties must have depth to calculate inertia from surface")
     return makeInertiaTensor(getTriQuadRule(3), e_mesh.point, e_mesh.tri, i_prop)

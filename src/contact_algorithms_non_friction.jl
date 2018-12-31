@@ -342,7 +342,7 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
     ϵϵ = dot(ϵ_tet, (x_ζ²_r² * ṙ²).v)
     damp_term = fastSoftPlus(1.0 - b.χ * ϵϵ)
     p = -ϵ_quad * b.Ē
-    p_hc = p * damp_term  # -ϵ_quad * damp_term * b.Ē
+    p_hc = p * damp_term
     dA = b.quad.w[k] * area_quad_k
     return p_cart_qp, ṙ, dA, p_hc
 end

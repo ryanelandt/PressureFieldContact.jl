@@ -143,7 +143,7 @@ function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,
 
     wrench_stick_phi = transform(wrench_stick_2, x_rϕ_r2)
     wrench_bristle_phi = transform(wrench²_un, x_rϕ_r2)
-    wrench_corr_phi = stiction_promoting_soft_clamp(wrench_stick_phi, wrench_bristle_phi)
+    wrench_corr_phi = stiction_promoting_soft_clamp(BF.fric_pro, wrench_stick_phi, wrench_bristle_phi)
     wrench² = transform(wrench_corr_phi, x_r2_rϕ)
 
     ######################
@@ -200,9 +200,9 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     return wrench_sum
 end
 
-function stiction_promoting_soft_clamp(w_stick::Wrench{T}, w_bristle::Wrench{T}) where {T}
+function stiction_promoting_soft_clamp(fric_pro::Float64, w_stick::Wrench{T}, w_bristle::Wrench{T}) where {T}
 
     @framecheck(w_stick.frame, w_bristle.frame)
-    corrected_ang = smooth_c1_ramp.(2 * angular(w_bristle), angular(w_stick))
+    corrected_ang = smooth_c1_ramp.(fric_pro * angular(w_bristle), angular(w_stick))
     return Wrench{T}(w_bristle.frame, corrected_ang, linear(w_bristle))
 end
