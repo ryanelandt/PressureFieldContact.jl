@@ -88,7 +88,7 @@ function calc_patch_spatial_stiffness(tm::TypedMechanismScenario{N,T}, c_ins::Co
             Q_22_sum += p_dA * Q_22
         end
     end
-    μ = c_ins.μ_pair
+    μ = b.μ
     K[1:3, 1:3] .= μ * Q_11_sum
     K[1:3, 4:6] .= μ * Q_12_sum
     K[4:6, 4:6] .= μ * Q_22_sum
@@ -194,7 +194,7 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     tc = b.TractionCache
     BF = c_ins.BristleFriction
     τ⁻¹ = 1 / BF.τ
-    μ = c_ins.μ_pair
+    μ = b.μ
     frameʷ = tm.frame_world
     k̄ = BF.k̄
     vʳᵉˡ = as_static_vector(twist_r¹_r²_r²)

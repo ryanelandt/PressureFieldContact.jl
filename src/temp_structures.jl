@@ -9,15 +9,19 @@ struct BristleFriction
 end
 
 mutable struct ContactInstructions
-    id_1::MeshID  # tri or tet
+    id_1::MeshID
     id_2::MeshID
     mutual_compliance::Bool
-    μ_pair::Float64
     BristleFriction::Union{Nothing,BristleFriction}
-    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, mutual_compliance::Bool, μ_pair::Float64,
-            fric_model::Union{Nothing,BristleFriction})
+    μ::Float64
+    χ::Float64
+    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, mutual_compliance::Bool,
+            fric_model::Union{Nothing,BristleFriction}; μ::Float64, χ::Float64)
 
-        return new(id_tri, id_tet, mutual_compliance, μ_pair, fric_model)
+        (0.001 <= χ <= 5.0) || error("hc_velocity_damping in unexpected range.")
+        (0.0 <= μ <= 3.0) || error("mu in unexpected range.")
+
+        return new(id_tri, id_tet, mutual_compliance, fric_model, μ, χ)
     end
 end
 
@@ -105,13 +109,14 @@ function findmesh(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this
 end
 
 function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, name_tri::String, name_tet::String;
-        μ::Union{Nothing,Float64}=nothing)
+        μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing)
 
-    return add_pair_rigid_compliant!(ts, name_tri, name_tet, nothing, μ=μ)
+    return add_pair_rigid_compliant!(ts, name_tri, name_tet, nothing, μ=μ, χ=χ)
 end
 
 function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2::String,
-        friction_model::Union{Nothing,BristleFriction}; μ::Union{Nothing,Float64}=nothing)
+        friction_model::Union{Nothing,BristleFriction}; μ::Union{Nothing,Float64}=nothing,
+        χ::Union{Nothing,Float64}=nothing)
 
     mesh_id_1 = findmesh(ts.MeshCache, name_1)
     mesh_id_2 = findmesh(ts.MeshCache, name_2)
@@ -122,26 +127,57 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2
     mesh_cache_2 = ts.MeshCache[mesh_id_2]
     is_compliant_1 = is_compliant(mesh_cache_1)
     is_compliant_2 = is_compliant(mesh_cache_2)
-    !is_compliant_1 && !is_compliant_2 && error("neither mesh is compliant")
-    if is_compliant_1 && !is_compliant_2
-        return add_pair_rigid_compliant!(ts, name_2, name_1, friction_model, μ=μ)
-    else
-        if μ == nothing
-            @warn("unspecified μ replaced with 0.5")
-            μ = 0.5
-        end
-        mutual_compliance = is_compliant_1 && is_compliant_2
-        new_contact = ContactInstructions(mesh_id_1, mesh_id_2, mutual_compliance, μ, friction_model)
-        push!(ts.ContactInstructions, new_contact)
-        return nothing
+    is_compliant_1 || is_compliant_2 || error("neither mesh is compliant")
+    if is_compliant_1
+        mesh_id_1, mesh_id_2 = mesh_id_2, mesh_id_1
     end
+    if μ == nothing
+        @warn("unspecified μ replaced with 0.3")
+        μ = 0.3
+    end
+    if χ == nothing
+        @warn("unspecified χ replaced with 0.5")
+        χ = 0.5
+    end
+    mutual_compliance = is_compliant_1 && is_compliant_2
+    new_contact = ContactInstructions(mesh_id_1, mesh_id_2, mutual_compliance, friction_model, μ=μ, χ=χ)
+    push!(ts.ContactInstructions, new_contact)
+    return nothing
+    # is_rigid_1 = is_rigid(mesh_cache_1)
+    # is_rigid_2 = is_rigid(mesh_cache_2)
+    #
+    # if is_compliant_1 && is_compliant_2
+    #
+    # mutual_compliance = is_compliant_1 && is_compliant_2
+    # if is_rigid_1 && is_compliant_2
+    #
+    #
+    #
+    # if is_compliant_1
+    # !is_compliant_1 && !is_compliant_2 && error("neither mesh is compliant")
+    #
+    # if is_compliant_1 && !is_compliant_2
+    #     return add_pair_rigid_compliant!(ts, name_2, name_1, friction_model, μ=μ, χ=χ)
+    # else
+    #     # if μ == nothing
+    #     #     @warn("unspecified μ replaced with 0.3")
+    #     #     μ = 0.3
+    #     # end
+    #     # if χ == nothing
+    #     #     @warn("unspecified χ replaced with 0.5")
+    #     #     χ = 0.5
+    #     # end
+    #     # new_contact = ContactInstructions(mesh_id_1, mesh_id_2, mutual_compliance, friction_model, μ=μ, χ=χ)
+    #     # push!(ts.ContactInstructions, new_contact)
+    #     # return nothing
+    # end
 end
 
 function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=30.0,
-        k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing)
+        k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing)
 
     bristle_id = BristleID(1 + length(ts.bristle_ids))
     bf = BristleFriction(bristle_id, τ=τ, k̄=k̄, fric_pro=fric_pro)
     ts.bristle_ids = Base.OneTo(bristle_id)
-    return add_pair_rigid_compliant!(ts, name_tri, name_tet, bf, μ=μ)
+    return add_pair_rigid_compliant!(ts, name_tri, name_tet, bf, μ=μ, χ=χ)
 end

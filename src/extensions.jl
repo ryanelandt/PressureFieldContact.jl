@@ -12,12 +12,6 @@ function NumericalTricks.vec_sub_vec_proj(vec_in::FreeVector3D{SVector{3, TD}}, 
     @framecheck(vec_in.frame, n̂.frame)
     return FreeVector3D(vec_in.frame, vec_sub_vec_proj(vec_in.v, n̂.v))
 end
-# function NumericalTricks.soft_clamp(fv::FreeVector3D{SVector{3,T}}, bound::FreeVector3D{SVector{3,T}}) where {T}  # TODO soften this
-#     @framecheck(fv.frame, bound.frame)
-#     abs_bound = abs.(bound.v)
-#     fv_clamp = soft_clamp.(fv.v, abs_bound)
-#     return FreeVector3D(bound.frame, fv_clamp)
-# end
 @inline NumericalTricks.norm_squared(fv::FreeVector3D{SVector{3,T}}) where {T} = norm_squared(fv.v)
 
 ### Tri_Tet_Intersections ###

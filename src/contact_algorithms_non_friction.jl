@@ -153,10 +153,11 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     twist_w_r² = twist_wrt_world(tm.state, b.mesh_2.BodyID)
     b.twist_r¹_r² = -twist_w_r² + twist_w_r¹  # velocity of tri wrt tet expressed in world
 
-    b.μ = con_ins_k.μ_pair
+    b.μ = con_ins_k.μ
+    b.χ = con_ins_k.χ
+
     c_prop = get_c_prop(b.mesh_2)
     b.Ē = c_prop.Ē
-    b.χ = c_prop.χ
     b.d⁻¹ = c_prop.d⁻¹
     return nothing
 end
