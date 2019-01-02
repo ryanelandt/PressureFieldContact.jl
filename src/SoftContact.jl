@@ -2,6 +2,7 @@
 
 module SoftContact
 
+using Printf
 using StaticArrays
 using Rotations: Quat, Rotation, SPQuat, RotMatrix
 using ForwardDiff: Dual

@@ -118,11 +118,34 @@ function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,
     make_stiffness_PD!(K.data)
     K.data .*= BF.k̄
 
+    K_err = Matrix(K)
+    if isposdef(K_err)
+        #
+    else
+        println("")
+        for k_33 = 1:6
+            println(K_err[k_33, 1:6])
+        end
+        println("")
+        println("smoking_gun = [")
+        for k = 1:36
+            a4 = K[k]
+            @printf("%.17f", a4)
+            (k == 36) || (print(","))
+        end
+        println("]")
+        println("")
+        println("length(b.TractionCache): ", length(b.TractionCache))
+        println("")
+        error("something is very very wrong")
+    end
+
     # NOTE:
     # Forward       Inverse
     # K = Uᵀ U      K⁻¹ = U⁻¹ U⁻ᵀ
     # Δ = U δ       δ = U⁻¹ Δ
     # ΔΔ = U δδ     δδ = U⁻¹ ΔΔ
+
     cf = cholesky(K)
     U = cf.U
     U⁻¹ = SMatrix{6,6,T,36}(inv(U))
