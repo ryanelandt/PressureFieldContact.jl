@@ -1,7 +1,8 @@
 
-function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}, c_ins::ContactInstructions) where {N,T}
     wrench = zero(Wrench{T}, frame)
 
+    v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         for k = 1:N
@@ -9,7 +10,7 @@ function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCa
             n̂ = trac.n̂
             cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
             mag_vel_t = safe_norm(cart_vel_t.v)
-            μ_reg = b.μ * fastSigmoid(mag_vel_t)
+            μ_reg = b.μ * fastSigmoid(mag_vel_t, v_tol⁻¹)
             p_dA = calc_p_dA(trac, k)
             traction_k = p_dA * (n̂ - μ_reg * safe_normalize(cart_vel_t))
             wrench += Wrench(trac.r_cart[k], traction_k)
@@ -52,7 +53,7 @@ function make_stiffness_PD!(K::MMatrix{6,6,T,36}) where {T}
 end
 
 function veil_friction_no_contact!(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
-    BF = c_ins.BristleFriction
+    BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     segments_s = get_bristle_d0(tm, bristle_id)
     segments_ṡ = get_bristle_d1(tm, bristle_id)
@@ -98,7 +99,7 @@ end
 function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     # TODO: do all calculations relative to patch center
 
-    BF = c_ins.BristleFriction
+    BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     Δ = get_bristle_d0(tm, bristle_id)
     Δ = SVector{6,T}(Δ[1], Δ[2], Δ[3], Δ[4], Δ[5], Δ[6])
@@ -192,7 +193,7 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
 
     b = tm.bodyBodyCache
     tc = b.TractionCache
-    BF = c_ins.BristleFriction
+    BF = c_ins.FrictionModel
     τ⁻¹ = 1 / BF.τ
     μ = b.μ
     frameʷ = tm.frame_world

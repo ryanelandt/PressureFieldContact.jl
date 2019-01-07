@@ -5,8 +5,8 @@ function verify_bristle_ids!(m::MechanismScenario{NX,NQ,T}, x::Vector{Float64}) 
     bristle_done = falses(m.bristle_ids)
     for k = 1:length(m.ContactInstructions)
         con_ins_k = m.ContactInstructions[k]
-        if con_ins_k.BristleFriction != nothing
-            bristle_id = con_ins_k.BristleFriction.BristleID
+        if typeof(con_ins_k.FrictionModel) == Bristle
+            bristle_id = con_ins_k.FrictionModel.BristleID
             (bristle_done[bristle_id] == true) && error("BristleID $bristle_id assigned twice")
             bristle_done[bristle_id] = true
         end
@@ -68,7 +68,7 @@ function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::Typed
         con_ins_k = m.ContactInstructions[k]
         calcTriTetIntersections!(m, con_ins_k)
         is_intersections = (0 != length(m.TT_Cache))
-        is_bristle = (con_ins_k.BristleFriction != nothing)
+        is_bristle = typeof(con_ins_k.FrictionModel) == Bristle
         is_no_wrench = true
         if is_intersections | is_bristle
             if is_intersections
@@ -79,7 +79,7 @@ function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::Typed
                     if is_bristle
                         wrench = veil_friction!(m.frame_world, tm, con_ins_k)
                     else
-                        wrench = regularized_friction(m.frame_world, tm.bodyBodyCache)
+                        wrench = regularized_friction(m.frame_world, tm.bodyBodyCache, con_ins_k)
                     end
                     tm.bodyBodyCache.wrench = wrench
                     addGeneralizedForcesThirdLaw!(wrench, tm, con_ins_k)

@@ -86,7 +86,8 @@ export
 
     # temp_structures.jl
     BristleID,
-    BristleFriction,
+    Bristle,
+    Regularized,
     ContactInstructions,
     TempContactStruct,
     addMesh!,
