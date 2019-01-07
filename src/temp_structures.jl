@@ -1,22 +1,27 @@
 @RigidBodyDynamics.indextype BristleID
 
-struct BristleFriction
+struct Bristle
     BristleID::BristleID
     τ::Float64
     k̄::Float64
     fric_pro::Float64
-    BristleFriction(bristle_ID::BristleID; τ::Float64, k̄::Float64, fric_pro::Float64=2.0) = new(bristle_ID, τ, k̄, fric_pro)
+    Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64, fric_pro::Float64=2.0) = new(bristle_ID, τ, k̄, fric_pro)
+end
+
+struct Regularized
+    v_tol⁻¹::Float64
+    Regularized(v_tol) = new(1 / v_tol)
 end
 
 mutable struct ContactInstructions
     id_1::MeshID
     id_2::MeshID
     mutual_compliance::Bool
-    BristleFriction::Union{Nothing,BristleFriction}
+    FrictionModel::Union{Regularized,Bristle}
     μ::Float64
     χ::Float64
     function ContactInstructions(id_tri::MeshID, id_tet::MeshID, mutual_compliance::Bool,
-            fric_model::Union{Nothing,BristleFriction}; μ::Float64, χ::Float64)
+            fric_model::Union{Regularized,Bristle}; μ::Float64, χ::Float64)
 
         # (0.001 <= χ <= 5.0) || error("hc_velocity_damping in unexpected range.")
         (0.0 <= μ <= 3.0) || error("mu in unexpected range.")
@@ -109,13 +114,18 @@ function findmesh(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this
 end
 
 function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, name_tri::String, name_tet::String;
-        μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing)
-
-    return add_pair_rigid_compliant!(ts, name_tri, name_tet, nothing, μ=μ, χ=χ)
+        μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing, v_tol::Union{Nothing,Float64}=nothing)
+    #
+    if v_tol == nothing
+        @warn("unspecified v_tol replaced with 0.25")
+        v_tol = 0.25
+    end
+    regularized = Regularized(v_tol)
+    return add_pair_rigid_compliant!(ts, name_tri, name_tet, regularized, μ=μ, χ=χ)
 end
 
 function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2::String,
-        friction_model::Union{Nothing,BristleFriction}; μ::Union{Nothing,Float64}=nothing,
+        friction_model::Union{Regularized,Bristle}; μ::Union{Nothing,Float64}=nothing,
         χ::Union{Nothing,Float64}=nothing)
 
     mesh_id_1 = findmesh(ts.MeshCache, name_1)
@@ -148,7 +158,7 @@ function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::Stri
         k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing)
 
     bristle_id = BristleID(1 + length(ts.bristle_ids))
-    bf = BristleFriction(bristle_id, τ=τ, k̄=k̄, fric_pro=fric_pro)
+    bf = Bristle(bristle_id, τ=τ, k̄=k̄, fric_pro=fric_pro)
     ts.bristle_ids = Base.OneTo(bristle_id)
     return add_pair_rigid_compliant!(ts, name_tri, name_tet, bf, μ=μ, χ=χ)
 end
