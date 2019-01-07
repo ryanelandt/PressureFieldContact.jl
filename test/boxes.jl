@@ -19,7 +19,7 @@ BLAS.set_num_threads(1)  # NOTE: comment out this line if using IntelMKL
 box_rad = 0.05
 i_prop_compliant = InertiaProperties(rho=400.0)
 i_prop_rigid = InertiaProperties(rho=400.0, d=0.09)
-c_prop_compliant = ContactProperties(Ē=1.0e6, μ=0.2, d=box_rad, χ=0.2)
+c_prop_compliant = ContactProperties(Ē=1.0e6, d=box_rad)
 eM_box_rigid = as_tri_eMesh(output_eMesh_box(box_rad))
 eM_box_compliant = output_eMesh_box(box_rad)
 
@@ -37,7 +37,7 @@ name_box_4 = "box_4"
 ### Plane
 d_plane = 1.0
 eM_half = output_eMesh_half_plane(d_plane)
-add_contact!(ts, name_plane, eM_half, ContactProperties(Ē=1.0e6, μ=0.0, d=d_plane, χ=2.2))
+add_contact!(ts, name_plane, eM_half, ContactProperties(Ē=1.0e6, d=d_plane))
 
 ### Boxes
 body_box_1, joint_box_1 = add_body_contact!(ts, name_box_1, eM_box_rigid, nothing, i_prop_rigid)
@@ -46,10 +46,10 @@ body_box_3, joint_box_3 = add_body_contact!(ts, name_box_3, eM_box_rigid, nothin
 body_box_4, joint_box_4 = add_body_contact!(ts, name_box_4, eM_box_compliant, c_prop_compliant, i_prop_compliant)
 
 ### Friction
-add_pair_rigid_compliant_regularize!(ts, name_plane, name_box_1)
-add_pair_rigid_compliant_regularize!(ts, name_box_2, name_box_1)
-add_pair_rigid_compliant_regularize!(ts, name_box_2, name_box_3)
-add_pair_rigid_compliant_regularize!(ts, name_box_4, name_box_3)
+add_pair_rigid_compliant_regularize!(ts, name_plane, name_box_1, μ=0.0, χ=2.2)
+add_pair_rigid_compliant_regularize!(ts, name_box_2, name_box_1, μ=0.2, χ=0.2)
+add_pair_rigid_compliant_regularize!(ts, name_box_2, name_box_3, μ=0.2, χ=0.2)
+add_pair_rigid_compliant_regularize!(ts, name_box_4, name_box_3, μ=0.2, χ=0.2)
 
 mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=2)
 set_state_spq!(mech_scen, joint_box_1, trans=SVector(0.0, 0.0, 2*box_rad), w=SVector(0.0, 0.0, 1.0))
