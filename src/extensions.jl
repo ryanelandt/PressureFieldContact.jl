@@ -22,6 +22,13 @@ function Tri_Tet_Intersections.unPad(p::Point4D{SVector{4,T}}) where {T}
     return Point3D(p.frame, SVector{3,T}(p.v[1], p.v[2], p.v[3]))
 end
 
+### Binary_BB_Trees
+Binary_BB_Trees.fit_tri_obb(eM::eMesh{Tri,T2}, k::Int64) where {T2} = fit_tri_obb(eM.point[eM.tri[k]])
+function Binary_BB_Trees.fit_tet_obb(eM::eMesh{Tri,T2}, k::Int64) where {T2}
+    i = eM.tet[k]
+    return fit_tet_obb(eM.point[i], eM.ϵ[i])
+end
+
 ### Base ###
 function Base.copyto!(dest::TypedMechanismScenario{N,T}, src::AbstractVector{T}) where {N,T}
     nq = num_positions(dest.state)

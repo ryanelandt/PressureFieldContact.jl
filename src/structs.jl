@@ -8,18 +8,12 @@ end
 
 struct ContactProperties
     Ē::Float64
-    # μ::Float64
     d⁻¹::Float64
-    # χ::Float64
     function ContactProperties(;Ē::Float64, d::Float64)
-        # , χ::Float64)
         (1.0e4 <= Ē <= 3.0e11) || error("E_effective in unexpected range.")
         (0.0001 <= d <= 1.0) || error("thickness in unexpected range.")
         d⁻¹ = 1 / d
-        # (0.0 <= μ <= 3.0) || error("mu in unexpected range.")
-        # (0.001 <= χ <= 5.0) || error("hc_velocity_damping in unexpected range.")
         return new(Ē, d⁻¹)
-        # , χ)
     end
 end
 
@@ -41,6 +35,16 @@ struct eTree{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
     function eTree(e_mesh::eMesh{Nothing,Tet}, c_prop::ContactProperties)
         tet = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tet)
         return new{Nothing,Tet}(nothing, tet, c_prop)
+    end
+    ###
+    function eTree(tri::Nothing, tet::bin_BB_Tree, c_prop::ContactProperties)
+        return new{Nothing,Tet}(tri, tet, c_prop)
+    end
+    function eTree(tri::bin_BB_Tree, tet::Nothing, c_prop::Nothing)
+        return new{Tri,Nothing}(tri, tet, c_prop)
+    end
+    function eTree(tri::bin_BB_Tree, tet::bin_BB_Tree, c_prop::ContactProperties)
+        return new{Tri,Tet}(tri, tet, c_prop)
     end
 end
 

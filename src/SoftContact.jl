@@ -92,6 +92,7 @@ export
     TempContactStruct,
     addMesh!,
     add_body_contact!,
+    make_eTree_obb,
     add_contact!,
     add_body!,
     add_body_from_inertia!,  # this needs to be here

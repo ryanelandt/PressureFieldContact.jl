@@ -23,25 +23,24 @@ mutable struct ContactInstructions
     function ContactInstructions(id_tri::MeshID, id_tet::MeshID, mutual_compliance::Bool,
             fric_model::Union{Regularized,Bristle}; μ::Float64, χ::Float64)
 
-        # (0.001 <= χ <= 5.0) || error("hc_velocity_damping in unexpected range.")
         (0.0 <= μ <= 3.0) || error("mu in unexpected range.")
-
         return new(id_tri, id_tet, mutual_compliance, fric_model, μ, χ)
     end
 end
 
 mutable struct TempContactStruct
+    is_aabb::Bool
     mechanism::Mechanism
     mesh_ids::Base.OneTo{MeshID}
     bristle_ids::Base.OneTo{BristleID}
     MeshCache::RigidBodyDynamics.CustomCollections.CacheIndexDict{MeshID,Base.OneTo{MeshID},MeshCache}
     ContactInstructions::Vector{ContactInstructions}
-    function TempContactStruct(mechanism::Mechanism)
+    function TempContactStruct(mechanism::Mechanism, is_aabb::Bool=true)
         bristle_ids = Base.OneTo(BristleID(0))
         mesh_ids = Base.OneTo(MeshID(0))
         mesh_cache = MeshCacheDict{MeshCache}(mesh_ids)
         vec_ins = Vector{ContactInstructions}()
-        return new(mechanism, mesh_ids, bristle_ids, mesh_cache, vec_ins)
+        return new(is_aabb, mechanism, mesh_ids, bristle_ids, mesh_cache, vec_ins)
     end
 end
 
@@ -68,12 +67,37 @@ function add_body_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
     return body, joint
 end
 
+
+
+function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
+    e_tree = eTree(eM_box, c_prop)
+
+    if T1 != Nothing
+        all_obb_tri = [fit_tri_obb(eM_box, k) for k = 1:n_tri(eM_box)]
+        obb_tri = obb_tree_from_aabb(e_tree.tri, all_obb_tri)
+    else
+        obb_tri = nothing
+    end
+    if T2 != Nothing
+        all_obb_tet = [fit_tet_obb(eM_box, k) for k = 1:n_tet(eM_box)]
+        obb_tet = obb_tree_from_aabb(e_tree.tet, all_obb_tet)
+    else
+        obb_tet = nothing
+    end
+
+    return eTree(obb_tri, obb_tet, c_prop)
+end
+
 function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
         c_prop::Union{Nothing,ContactProperties}; body::Union{RigidBody{Float64},Nothing}=nothing,
         dh::basic_dh=one(basic_dh{Float64}))
     #
     body = return_body_never_nothing(ts.mechanism, body)
-    e_tree = eTree(e_mesh, c_prop)
+    if ts.is_aabb
+        e_tree = eTree(e_mesh, c_prop)
+    else
+        e_tree = make_eTree_obb(e_mesh, c_prop)
+    end
     mesh = MeshCache(name, e_mesh, e_tree, body)
     addMesh!(ts, mesh)
     return nothing
