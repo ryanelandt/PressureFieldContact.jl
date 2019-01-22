@@ -69,7 +69,7 @@ end
 ### Add meshes to visualizer
 mvis = MechanismVisualizer(my_mechanism, vis)
 color_pad = RGBA{Float32}(1.0, 0.792, 0.588, 1.0)
-setobject!(vis[:lo], HomogenousMesh_32(eM_box_compliant, color=color_pad))
+set_mesh_visual!(mvis, mech_scen, name_lo, color_pad)
 set_body_mesh_visual!(mvis, mech_scen, name_spoon, [0.5, 0.5, 0.5, 1.0])
 set_body_mesh_visual!(mvis, mech_scen, name_up, color_pad)
 
