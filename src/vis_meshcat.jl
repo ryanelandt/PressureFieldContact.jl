@@ -7,6 +7,11 @@ function MeshCatMechanisms.set_configuration!(mech_scen::MechanismScenario, mvis
     return nothing
 end
 
+function MeshCatMechanisms.set_configuration!(mech_scen::MechanismScenario, mvis::MechanismVisualizer)
+    x = get_state(mech_scen)
+    set_configuration!(mech_scen, mvis, x)
+end
+
 function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, name::String, color)
     body = findbody(mech_scen.float.state.mechanism, name)
     mesh = findMesh(mech_scen.MeshCache, name)
@@ -60,7 +65,6 @@ function play_recorded_data(mvis::MechanismVisualizer, mech_scen::MechanismScena
 
     t_last_frame = data_time[i0] - dt
     for k = i0:i1
-    # for k = 1:length(data_time)
         while (t_last_frame + dt) < data_time[k]  # wait until enough real time has passed
             t_last_frame += dt
             sleep(dt * slowdown)

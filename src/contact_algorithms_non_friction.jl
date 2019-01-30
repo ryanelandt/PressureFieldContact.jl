@@ -35,28 +35,21 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
         tm::TypedMechanismScenario{NQ,T1}, t::Float64=0.0) where {NX,NQ,T1,T2}
 
     state = tm.state
-    # any(isnan.(x)) && error("nan in x")
     copyto!(tm, x)
-    # any(isnan.(state.q)) && error("nan in state.q")  # isnan
-    # any(isnan.(state.v)) && error("nan in state.v")  # isnan
     H = tm.result.massmatrix
     mass_matrix!(H, state)
     dynamics_bias!(tm.result, state)
     configuration_derivative!(tm.result.q̇, state)
     forceAllElasticIntersections!(m, tm)
     f_generalized = tm.f_generalized
-    # any(isnan.(f_generalized)) && error("nan in tm.f_gen_cum")  # isnan
-    # C = tm.result.dynamicsbias.parent
-    # rhs = -C + f_generalized + m.τ_ext
     rhs = tm.result.dynamicsbias.parent
     rhs .*= -1.0
     rhs .+= f_generalized
     rhs .+= m.τ_ext
-    #
-    # tm.result.v̇ .= H \ rhs
+
     chol_fact = LinearAlgebra.cholesky!(H)
     ldiv!(tm.result.v̇.parent, chol_fact, rhs)
-    #
+
     copyto!(xx, tm, tm.result)
     return nothing
 end

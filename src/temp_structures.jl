@@ -67,8 +67,6 @@ function add_body_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
     return body, joint
 end
 
-
-
 function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
     e_tree = eTree(eM_box, c_prop)
 
