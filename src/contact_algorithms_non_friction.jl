@@ -215,7 +215,7 @@ function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache
 
     plane_1_rʷ = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_rʷ.mat)
     plane_2_rʷ = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_rʷ.mat)
-    plane_rʷ = plane_2_rʷ - plane_1_rʷ  # pressure_2 - pressure_1
+    plane_rʷ = plane_2_rʷ - plane_1_rʷ
 
     poly_rʷ = clip_plane_tet(plane_rʷ, x_rʷ_ζ¹.mat)
     if 3 <= length(poly_rʷ)
