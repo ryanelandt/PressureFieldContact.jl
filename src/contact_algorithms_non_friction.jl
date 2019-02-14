@@ -213,6 +213,7 @@ function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache
     x_rʷ_ζ¹, x_ζ¹_rʷ, x_ζ¹_r¹ = calc_ζ_transforms(FRAME_ζ¹, mesh_1.FrameID, vert_1, x_r¹_rʷ, x_rʷ_r¹)
     x_rʷ_ζ², x_ζ²_rʷ, x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
 
+    # TODO: make this better
     plane_1_rʷ = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_rʷ.mat)
     plane_2_rʷ = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_rʷ.mat)
     plane_rʷ = plane_2_rʷ - plane_1_rʷ
