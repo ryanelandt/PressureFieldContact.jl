@@ -37,15 +37,9 @@ struct eTree{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
         return new{Nothing,Tet}(nothing, tet, c_prop)
     end
     ###
-    function eTree(tri::Nothing, tet::bin_BB_Tree, c_prop::ContactProperties)
-        return new{Nothing,Tet}(tri, tet, c_prop)
-    end
-    function eTree(tri::bin_BB_Tree, tet::Nothing, c_prop::Nothing)
-        return new{Tri,Nothing}(tri, tet, c_prop)
-    end
-    function eTree(tri::bin_BB_Tree, tet::bin_BB_Tree, c_prop::ContactProperties)
-        return new{Tri,Tet}(tri, tet, c_prop)
-    end
+    eTree(tri::Nothing,     tet::bin_BB_Tree, c_prop::ContactProperties) = new{Nothing,Tet}(tri, tet, c_prop)
+    eTree(tri::bin_BB_Tree, tet::Nothing,     c_prop::Nothing)           = new{Tri,Nothing}(tri, tet, c_prop)
+    eTree(tri::bin_BB_Tree, tet::bin_BB_Tree, c_prop::ContactProperties) = new{Tri,Tet}(tri, tet, c_prop)
 end
 
 struct InertiaProperties

@@ -108,7 +108,7 @@ end
 
 function calcTriTetIntersections!(m::MechanismScenario, con_ins_k::ContactInstructions) # where {N,T}
     b = m.float.bodyBodyCache  # this can be float because intersection is assumed to not depend on partials
-    refreshBodyBodyTransform!(m, m.float, con_ins_k)
+    refreshBodyBodyTransform!(m, m.float, con_ins_k)  # TODO: isn't b.x_r¹_rʷ already calculated?
     x_r¹_r² = inv(b.x_rʷ_r¹) * b.x_rʷ_r²
     update_TT_Cache!(m.TT_Cache, translation(x_r¹_r²), rotation(x_r¹_r²))
     if con_ins_k.mutual_compliance
@@ -125,12 +125,10 @@ function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScena
     b = tm.bodyBodyCache
     b.mesh_1 = m.MeshCache[con_ins_k.id_1]
     b.mesh_2 = m.MeshCache[con_ins_k.id_2]
-
     b.x_rʷ_r¹ = transform_to_root(tm.state, b.mesh_1.BodyID)  # TODO: add safe=false
     b.x_rʷ_r² = transform_to_root(tm.state, b.mesh_2.BodyID)  # TODO: add safe=false
     b.x_r²_rʷ = inv(b.x_rʷ_r²)
     b.x_r¹_rʷ = inv(b.x_rʷ_r¹)
-
     return nothing
 end
 
@@ -200,9 +198,7 @@ function calc_ζ_transforms(frame_ζ::CartesianFrame3D, frame_b ::CartesianFrame
     return x_rʷ_ζ, x_ζ_rʷ, x_ζ_r¹
 end
 
-function find_plane_tet(E::Float64, ϵ::SMatrix{1,4,Float64,4}, X_r_w)
-    return (E * ϵ) * X_r_w
-end
+find_plane_tet(E::Float64, ϵ::SMatrix{1,4,Float64,4}, X_r_w) = (E * ϵ) * X_r_w
 
 function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache, mesh_2::MeshCache,
         x_rʷ_r¹::Transform3D{T}, x_rʷ_r²::Transform3D{T}, x_r¹_rʷ::Transform3D{T}, x_r²_rʷ::Transform3D{T},
