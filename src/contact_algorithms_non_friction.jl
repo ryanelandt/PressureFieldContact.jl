@@ -254,7 +254,7 @@ function integrate_over_surface_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCach
     n̂_r¹ = FreeVector3D(mesh_1.FrameID, -triangleNormal(vert_1))  # pressure is applied opposite the trianle normal
     n̂_rʷ = x_rʷ_r¹ * n̂_r¹
 
-    poly_rʷ = poly_eight(vert_1)
+    poly_rʷ = poly_eight(vert_1.data)
     poly_ζ² = one_pad_then_mul(x_ζ²_r¹.mat, poly_rʷ)
     poly_ζ² = clip_in_tet_coordinates(poly_ζ²)
     if 3 <= length(poly_ζ²)
