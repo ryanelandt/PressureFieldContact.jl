@@ -96,8 +96,8 @@ export
     add_contact!,
     add_body!,
     add_body_from_inertia!,  # this needs to be here
-    findmesh,
-    findMesh,
+    find_mesh,
+    find_mesh_id,
     add_pair_rigid_compliant_regularize!,
     add_pair_rigid_compliant!,
     add_pair_rigid_compliant_bristle!,

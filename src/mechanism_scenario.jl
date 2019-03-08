@@ -10,7 +10,7 @@ end
 @inline calc_p_dA(t::TractionCache, k::Int64) = t.p[k] * t.dA[k]
 
 mutable struct TypedElasticBodyBodyCache{N,T}
-    K::Symmetric{T,MMatrix{6,6,T,36}}
+    K::Symmetric{T,MMatrix{6,6,T,36}}  # TODO: remove this
     frame_world::CartesianFrame3D
     quad::TriTetQuadRule{3,N}
     TractionCache::VectorCache{TractionCache{N,T}}

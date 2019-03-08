@@ -4,8 +4,13 @@ struct Bristle
     BristleID::BristleID
     τ::Float64
     k̄::Float64
+    K_diag_min::SVector{6,Float64}
     fric_pro::Float64
-    Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64, fric_pro::Float64=2.0) = new(bristle_ID, τ, k̄, fric_pro)
+    function Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64, K_diag_min::SVector{6,Float64},
+        fric_pro::Float64=2.0)
+
+        return new(bristle_ID, τ, k̄, K_diag_min, fric_pro)
+    end
 end
 
 struct Regularized
@@ -89,7 +94,7 @@ end
 function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
         c_prop::Union{Nothing,ContactProperties}; body::Union{RigidBody{Float64},Nothing}=nothing,
         dh::basic_dh=one(basic_dh{Float64}))
-    #
+
     body = return_body_never_nothing(ts.mechanism, body)
     if ts.is_aabb
         e_tree = eTree(e_mesh, c_prop)
@@ -104,7 +109,7 @@ end
 function add_body!(ts::TempContactStruct, name::String, e_mesh::eMesh, i_prop::InertiaProperties;
         body_parent::Union{RigidBody{Float64},Nothing}=nothing, joint_type::JT=SPQuatFloating{Float64}(),
         dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
-    #
+
     mesh_inertia_info = makeInertiaInfo(e_mesh, i_prop)
     return add_body_from_inertia!(ts.mechanism, name, mesh_inertia_info, joint=joint_type, body_parent=body_parent, dh=dh)
 end
@@ -123,7 +128,7 @@ function add_body_from_inertia!(mechanism::Mechanism, name::String, mesh_inertia
     return body_child, j_parent_child
 end
 
-function findmesh(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this function more elegant
+function find_mesh_id(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this function more elegant
     id = MeshID(-9999)
     for k = keys(ts)
         if ts[k].name == name
@@ -135,33 +140,46 @@ function findmesh(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this
     return id
 end
 
-function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, name_tri::String, name_tet::String;
+function find_mesh_id(ts::MeshCacheDict{MeshCache}, mc::MeshCache)  # TODO: make this function more elegant
+    id = MeshID(-9999)
+    for k = keys(ts)
+        if ts[k] == mc
+            (id == MeshID(-9999)) || error("multiple")
+            id = k
+        end
+    end
+    (id == MeshID(-9999)) && error("no mesh found by name: $(mc.name)")
+    return id
+end
+
+find_mesh_id(ts::TempContactStruct, input_2) = find_mesh_id(ts.MeshCache, input_2)
+
+find_mesh(ts::MeshCacheDict{MeshCache}, name::String) = ts[find_mesh_id(ts, name)]
+find_mesh(ts::TempContactStruct, name::String) = find_mesh(ts.MeshCache, name)
+
+function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_2::MeshID;
         μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing, v_tol::Union{Nothing,Float64}=nothing)
-    #
+    
     if v_tol == nothing
         @warn("unspecified v_tol replaced with 0.25")
         v_tol = 0.25
     end
     regularized = Regularized(v_tol)
-    return add_pair_rigid_compliant!(ts, name_tri, name_tet, regularized, μ=μ, χ=χ)
+    return add_pair_rigid_compliant!(ts, mesh_1, mesh_2, regularized, μ=μ, χ=χ)
 end
 
-function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2::String,
+function add_pair_rigid_compliant!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::MeshID,
         friction_model::Union{Regularized,Bristle}; μ::Union{Nothing,Float64}=nothing,
         χ::Union{Nothing,Float64}=nothing)
 
-    mesh_id_1 = findmesh(ts.MeshCache, name_1)
-    mesh_id_2 = findmesh(ts.MeshCache, name_2)
-    (1 <= mesh_id_1) || error("invalid 1 mesh id $mesh_id_1")
-    (1 <= mesh_id_2) || error("invalid 2 mesh id $mesh_id_2")
-    (mesh_id_1 == mesh_id_2) && error("1_mesh and tet_mesh id are the same $mesh_id_1")
-    mesh_cache_1 = ts.MeshCache[mesh_id_1]
-    mesh_cache_2 = ts.MeshCache[mesh_id_2]
-    is_compliant_1 = is_compliant(mesh_cache_1)
-    is_compliant_2 = is_compliant(mesh_cache_2)
-    is_compliant_1 || is_compliant_2 || error("neither mesh is compliant")
+    mesh_1 = ts.MeshCache[mesh_id_1]
+    mesh_c = ts.MeshCache[mesh_id_c]
+    (mesh_1 == mesh_c) && error("mesh_1 and mesh_c are the same")
+    is_compliant_1 = is_compliant(mesh_1)
+    is_compliant_c = is_compliant(mesh_c)
+    is_compliant_1 || is_compliant_c || error("neither mesh is compliant")
     if is_compliant_1
-        mesh_id_1, mesh_id_2 = mesh_id_2, mesh_id_1
+        mesh_id_1, mesh_id_c = mesh_id_c, mesh_id_1
     end
     if μ == nothing
         @warn("unspecified μ replaced with 0.3")
@@ -171,17 +189,38 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, name_1::String, name_2
         @warn("unspecified χ replaced with 0.5")
         χ = 0.5
     end
-    mutual_compliance = is_compliant_1 && is_compliant_2
-    push!(ts.ContactInstructions, ContactInstructions(mesh_id_1, mesh_id_2, mutual_compliance, friction_model, μ=μ, χ=χ))
+    mutual_compliance = is_compliant_1 && is_compliant_c
+    push!(ts.ContactInstructions, ContactInstructions(mesh_id_1, mesh_id_c, mutual_compliance, friction_model, μ=μ, χ=χ))
     return nothing
 end
 
-function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=30.0,
-        k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing)
+function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::MeshID;
+        τ::Float64=30.0, k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing,
+        small_rad::Float64=0.0005)
 
     isa(μ, Nothing) || (0 < μ) || error("μ cannot be 0 for bristle friction")
     bristle_id = BristleID(1 + length(ts.bristle_ids))
-    bf = Bristle(bristle_id, τ=τ, k̄=k̄, fric_pro=fric_pro)
+
+    min_mass = Inf
+    mesh_1 = ts.MeshCache[mesh_id_1]
+    mesh_c = ts.MeshCache[mesh_id_c]
+    inertia_1 = bodies(ts.mechanism)[mesh_1.BodyID].inertia
+    inertia_c = bodies(ts.mechanism)[mesh_c.BodyID].inertia
+    if inertia_1 != nothing
+        min_mass = min(min_mass, inertia_1.mass)
+    end
+    if inertia_c != nothing
+        min_mass = min(min_mass, inertia_c.mass)
+    end
+    (min_mass == Inf) && error("at least one object must have mass")
+
+    mag_g = norm(ts.mechanism.gravitational_acceleration)
+    c = k̄ * mag_g * min_mass / 1000
+    K_diag_min_θ = c * ones(SVector{3,Float64}) * small_rad^2
+    K_diag_min_r = c * ones(SVector{3,Float64})
+    K_diag_min = vcat(K_diag_min_θ, K_diag_min_r)
+
+    bf = Bristle(bristle_id, τ=τ, k̄=k̄, K_diag_min=K_diag_min, fric_pro=fric_pro)
     ts.bristle_ids = Base.OneTo(bristle_id)
-    return add_pair_rigid_compliant!(ts, name_tri, name_tet, bf, μ=μ, χ=χ)
+    return add_pair_rigid_compliant!(ts, mesh_id_1, mesh_id_c, bf, μ=μ, χ=χ)
 end

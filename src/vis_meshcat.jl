@@ -14,7 +14,7 @@ end
 
 function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, name::String, color)
     body = findbody(mech_scen.float.state.mechanism, name)
-    mesh = findMesh(mech_scen.MeshCache, name)
+    mesh = find_mesh(mech_scen.MeshCache, name)
     return set_body_mesh_visual!(mvis, mech_scen, body, mesh, color)
 end
 
@@ -28,7 +28,7 @@ function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismSc
 end
 
 function set_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, name::String, color)
-    mesh_cache = findMesh(mech_scen.MeshCache, name)
+    mesh_cache = find_mesh(mech_scen.MeshCache, name)
     body = root_body(mech_scen.float.state.mechanism)
     color = as_rgba(color)
     my_vis_ele = VisualElement(default_frame(body), asHomogenousMesh(mesh_cache), color, Translation(0,0,0))
