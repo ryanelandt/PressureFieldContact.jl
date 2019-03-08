@@ -179,6 +179,7 @@ end
 function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, name_tri::String, name_tet::String; τ::Float64=30.0,
         k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing)
 
+    isa(μ, Nothing) || (0 < μ) || error("μ cannot be 0 for bristle friction")
     bristle_id = BristleID(1 + length(ts.bristle_ids))
     bf = Bristle(bristle_id, τ=τ, k̄=k̄, fric_pro=fric_pro)
     ts.bristle_ids = Base.OneTo(bristle_id)
