@@ -49,7 +49,6 @@ function veil_friction_no_contact!(tm::TypedMechanismScenario{N,T}, c_ins::Conta
 end
 
 function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
-    # TODO: do all calculations relative to patch center
     # TODO: improve this to resist slipping
 
     BF = c_ins.FrictionModel
@@ -58,8 +57,6 @@ function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,
     frameᶜ = b.mesh_2.FrameID
     twist_r¹_r²_rʷ = b.twist_r¹_r²
 
-    δϕ = get_bristle_d0(tm, bristle_id)
-    δϕ = SVector{6,T}(δϕ[1], δϕ[2], δϕ[3], δϕ[4], δϕ[5], δϕ[6])
 
     wrenchʷ_normal, pʷ_center = normal_wrench_patch_center(frameʷ, b)
     p_centerᶜ = transform(pʷ_center, b.x_r²_rʷ)
@@ -72,13 +69,67 @@ function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,
     twist_r¹_r²_rϕ = transform(twist_r¹_r²_rʷ, x_rϕ_rʷ)
 
     K, K̇ = calc_patch_spatial_stiffness_and_derivative_offset(tm, BF, c_ins, twist_r¹_r²_rϕ, x_rϕ_rʷ)
-    wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
 
+    b.K.data .= K
     K⁻¹ = inv(K)
-    δδϕ_work = -0.5 * K⁻¹ * K̇ * δϕ
+    cf = cholesky(b.K)
+    U = cf.U
+
+    # U = sqrtm(K)
+    U⁻¹ = inv(U)
+
+    Δϕ = get_bristle_d0(tm, bristle_id)
+    Δϕ = SVector{6,T}(Δϕ[1], Δϕ[2], Δϕ[3], Δϕ[4], Δϕ[5], Δϕ[6])
+    δϕ = U⁻¹ * Δϕ
+    δϕ = SVector{6,T}(δϕ[1], δϕ[2], δϕ[3], δϕ[4], δϕ[5], δϕ[6])
+
+
+    wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
     δδϕ_star = -BF.τ * (δϕ + K⁻¹ * as_static_vector(wrench_ϕ))
-    δδϕ = get_bristle_d1(tm, bristle_id)
-    δδϕ .= δδϕ_star + δδϕ_work
+
+    ΔΔϕ = get_bristle_d1(tm, bristle_id)
+    ΔΔϕ .= U * δδϕ_star
+
+
+    #     U⁻¹ = SMatrix{6,6,T,36}(inv(U))
+    #     δ = U⁻¹ * Δ
+
+
+    # K⁻¹ = inv(K)
+    #
+    #
+    # τϕ = τϕ * bbb
+    # # τ = K δ
+    # # δ = K⁻¹ τ
+    # δϕ =  K⁻¹ * τϕ
+    #
+    #
+    # δδϕ_work = -0.5 * K⁻¹ * K̇ * δϕ
+    # δδϕ = δδϕ_star + δδϕ_work
+    # # ττϕ .= K * (δδϕ_star + δδϕ_work)
+    # ττϕ = get_bristle_d1(tm, bristle_id)
+    # ττϕ .= K * δδϕ + K̇ * δϕ
+    # ττϕ .= ττϕ * (1 / bbb)
+
+    # bbb = 1.0e6
+    #
+    # τϕ = get_bristle_d0(tm, bristle_id)
+    # τϕ = SVector{6,T}(τϕ[1], τϕ[2], τϕ[3], τϕ[4], τϕ[5], τϕ[6])
+    # τϕ = τϕ * bbb
+    # # τ = K δ
+    # # δ = K⁻¹ τ
+    # δϕ =  K⁻¹ * τϕ
+    #
+    # wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
+    #
+    # δδϕ_work = -0.5 * K⁻¹ * K̇ * δϕ
+    # δδϕ_star = -BF.τ * (δϕ + K⁻¹ * as_static_vector(wrench_ϕ))
+    # δδϕ = δδϕ_star + δδϕ_work
+    # # ττϕ .= K * (δδϕ_star + δδϕ_work)
+    # ττϕ = get_bristle_d1(tm, bristle_id)
+    # ττϕ .= K * δδϕ + K̇ * δϕ
+    # ττϕ .= ττϕ * (1 / bbb)
+
     return wrenchʷ_normal + transform(wrench_ϕ, inv(x_rϕ_rʷ))
 end
 

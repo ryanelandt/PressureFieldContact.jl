@@ -1,4 +1,3 @@
-# cd(expanduser("~") * "/.julia/dev/SoftContact/src")
 
 module SoftContact
 
