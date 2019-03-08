@@ -159,13 +159,13 @@ find_mesh(ts::TempContactStruct, name::String) = find_mesh(ts.MeshCache, name)
 
 function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_2::MeshID;
         μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing, v_tol::Union{Nothing,Float64}=nothing)
-    
+
     if v_tol == nothing
         @warn("unspecified v_tol replaced with 0.25")
         v_tol = 0.25
     end
     regularized = Regularized(v_tol)
-    return add_pair_rigid_compliant!(ts, mesh_1, mesh_2, regularized, μ=μ, χ=χ)
+    return add_pair_rigid_compliant!(ts, mesh_id_1, mesh_id_2, regularized, μ=μ, χ=χ)
 end
 
 function add_pair_rigid_compliant!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::MeshID,

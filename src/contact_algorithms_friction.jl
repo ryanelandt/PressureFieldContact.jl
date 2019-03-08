@@ -40,12 +40,56 @@ end
 
 ##########################
 
-function calc_patch_spatial_stiffness_and_derivative_offset(tm::TypedMechanismScenario{N,T}, BF,
-        c_ins::ContactInstructions, twist_r¹_r²_r², p_centerᶜ) where {N,T}
+function veil_friction_no_contact!(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+    BF = c_ins.FrictionModel
+    bristle_id = BF.BristleID
+    segments_ṡ = get_bristle_d1(tm, bristle_id)
+    segments_ṡ .= -BF.τ * get_bristle_d0(tm, bristle_id)
+    return nothing
+end
 
-    # TODO: make work for 2 compliant objects. Currently 1 is rigid and 2 is compliant
+function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+    # TODO: do all calculations relative to patch center
+    # TODO: improve this to resist slipping
+
+    BF = c_ins.FrictionModel
+    bristle_id = BF.BristleID
     b = tm.bodyBodyCache
     frameᶜ = b.mesh_2.FrameID
+    twist_r¹_r²_rʷ = b.twist_r¹_r²
+
+    δϕ = get_bristle_d0(tm, bristle_id)
+    δϕ = SVector{6,T}(δϕ[1], δϕ[2], δϕ[3], δϕ[4], δϕ[5], δϕ[6])
+
+    wrenchʷ_normal, pʷ_center = normal_wrench_patch_center(frameʷ, b)
+    p_centerᶜ = transform(pʷ_center, b.x_r²_rʷ)
+
+    ### want to calculate in a frame aligned with the compliant body frame and instaneously coincident with the center of pressure
+    IM = MMatrix(I + zeros(SMatrix{4,4,T,16}))
+    IM[13:15] .+= SVector{3,T}(-p_centerᶜ.v)
+    x_rϕ_rᶜ = Transform3D(frameᶜ, FRAME_ϕ, IM)
+    x_rϕ_rʷ = x_rϕ_rᶜ * b.x_r²_rʷ
+    twist_r¹_r²_rϕ = transform(twist_r¹_r²_rʷ, x_rϕ_rʷ)
+
+    K, K̇ = calc_patch_spatial_stiffness_and_derivative_offset(tm, BF, c_ins, twist_r¹_r²_rϕ, x_rϕ_rʷ)
+    wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
+
+    K⁻¹ = inv(K)
+    δδϕ_work = -0.5 * K⁻¹ * K̇ * δϕ
+    δδϕ_star = -BF.τ * (δϕ + K⁻¹ * as_static_vector(wrench_ϕ))
+    δδϕ = get_bristle_d1(tm, bristle_id)
+    δδϕ .= δδϕ_star + δδϕ_work
+    return wrenchʷ_normal + transform(wrench_ϕ, inv(x_rϕ_rʷ))
+end
+
+spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
+
+function calc_patch_spatial_stiffness_and_derivative_offset(tm::TypedMechanismScenario{N,T}, BF,
+    c_ins::ContactInstructions, twist_cf, transform_cf) where {N,T}
+
+    # TODO: make work for 2 compliant objects. Currently 1 is rigid and 2 is compliant
+
+    b = tm.bodyBodyCache
     tc = b.TractionCache
     K_11_sum = zeros(SMatrix{3,3,T,9})
     K_12_sum = zeros(SMatrix{3,3,T,9})
@@ -55,18 +99,18 @@ function calc_patch_spatial_stiffness_and_derivative_offset(tm::TypedMechanismSc
     K̇_22_sum = zeros(SMatrix{3,3,T,9})
     for k = 1:length(tc)
         trac = tc.vec[k]
-        n̂² = transform(trac.n̂, b.x_r²_rʷ)
+        n̂² = transform(trac.n̂, transform_cf)
         I_minus_n̂n̂ = I - n̂².v * n̂².v'  # suprisingly fast
         for k_qp = 1:N
             p_dA = calc_p_dA(trac, k_qp)
-            r² = transform(trac.r_cart[k_qp], b.x_r²_rʷ)
+            r² = transform(trac.r_cart[k_qp], transform_cf)
             r²_skew = vector_to_skew_symmetric(r².v)
             rx_I_minus_n̂n̂ = r²_skew * I_minus_n̂n̂
             K_11_sum += -p_dA * rx_I_minus_n̂n̂ * r²_skew
             K_12_sum +=  p_dA * rx_I_minus_n̂n̂
             K_22_sum +=  p_dA *    I_minus_n̂n̂
-            DOT_n̂² = cross(angular(twist_r¹_r²_r²), n̂².v)  # works because r2 is rigid  works because point is treated as fixed at this instant
-            DOT_r²_skew = vector_to_skew_symmetric(point_velocity(twist_r¹_r²_r², r²).v)
+            DOT_n̂² = cross(angular(twist_cf), n̂².v)  # works because r2 is rigid  works because point is treated as fixed at this instant
+            DOT_r²_skew = vector_to_skew_symmetric(point_velocity(twist_cf, r²).v)
             DOT_I_minus_n̂n̂ = -(DOT_n̂² * n̂².v' + n̂².v * DOT_n̂²')
             DOT_rx_I_minus_n̂n̂ = DOT_I_minus_n̂n̂ * r²_skew + I_minus_n̂n̂ * DOT_r²_skew
             K̇_11_sum += -p_dA * (DOT_rx_I_minus_n̂n̂ * r²_skew + rx_I_minus_n̂n̂ * DOT_r²_skew)
@@ -77,102 +121,40 @@ function calc_patch_spatial_stiffness_and_derivative_offset(tm::TypedMechanismSc
     μ = b.μ
     K = (BF.k̄ * μ) * vcat(hcat(K_11_sum, K_12_sum), hcat(K_12_sum', K_22_sum))
     K̇ = (BF.k̄ * μ) * vcat(hcat(K̇_11_sum, K̇_12_sum), hcat(K̇_12_sum', K̇_22_sum))
-    II = one(SMatrix{3,3,Float64,9})
-    ZZ = zeros(SMatrix{3,3,Float64,9})
-    pᶜ_center_skew = vector_to_skew_symmetric(p_centerᶜ.v)
-    XL = vcat(hcat(II, ZZ), hcat(-pᶜ_center_skew, II))
-    XR = vcat(hcat(II, ZZ), hcat(+pᶜ_center_skew, II))
-    K = XL * K * XR
     K += SMatrix{6,6,Float64,36}(diagm(0=>BF.K_diag_min))
-    K = XR * K * XL
     return K, K̇
 end
 
-function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
-    # TODO: do all calculations relative to patch center
-
-    BF = c_ins.FrictionModel
-    bristle_id = BF.BristleID
-    δ² = get_bristle_d0(tm, bristle_id)
-    δ² = SVector{6,T}(δ²[1], δ²[2], δ²[3], δ²[4], δ²[5], δ²[6])
-    b = tm.bodyBodyCache
-    frameᶜ = b.mesh_2.FrameID
-    twist_r¹_r²_rʷ = b.twist_r¹_r²
-    twist_r¹_r²_r² = transform(twist_r¹_r²_rʷ, b.x_r²_rʷ)
-    @framecheck(twist_r¹_r²_r².frame, frameᶜ)
-    v²_spatial_rel = as_static_vector(twist_r¹_r²_r²)
-
-    wrenchʷ_normal, pʷ_center = normal_wrench_patch_center(frameʷ, b)
-    p_centerᶜ = transform(pʷ_center, b.x_r²_rʷ)
-    K, K̇ = calc_patch_spatial_stiffness_and_derivative_offset(tm, BF, c_ins, twist_r¹_r²_r², p_centerᶜ)
-    τ²_s = -K * (δ² + BF.τ * v²_spatial_rel)
-    wrench_stick_2 = Wrench{T}(frameᶜ, SVector{3,T}(τ²_s[1], τ²_s[2], τ²_s[3]), SVector{3,T}(τ²_s[4], τ²_s[5], τ²_s[6]))
-    # TODO: improve this to resist slipping
-
-    δ²_ = Wrench(frameᶜ, first_3_of_6(δ²), last_3_of_6(δ²))
-    δʷ = transform(δ²_, b.x_r²_rʷ)
-    δʷ = as_static_vector(δʷ)
-    wrench² = calc_spatial_bristle_force_world(tm, c_ins, δʷ, twist_r¹_r²_rʷ)
-    # wrench² = calc_spatial_bristle_force_world(tm, c_ins, frameᶜ, twist_r¹_r²_r², δ²)
-    # println("K: ")
-    # for k55 = 1:6
-    #     println(K[k55, :])
-    # end
-    #
-    # println("K̇: ")
-    # for k55 = 1:6
-    #     println(K̇[k55, :])
-    # end
-    K⁻¹ = inv(K)
-    δδ²_work = -0.5 * K⁻¹ * K̇ * δ²
-    δδ_star = -BF.τ * (δ² + K⁻¹ * as_static_vector(wrench²))
-    δδ² = get_bristle_d1(tm, bristle_id)
-    δδ² .= δδ_star + δδ²_work
-    return wrenchʷ_normal + transform(wrench², b.x_rʷ_r²)
-end
-
-function veil_friction_no_contact!(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
-    BF = c_ins.FrictionModel
-    bristle_id = BF.BristleID
-    segments_ṡ = get_bristle_d1(tm, bristle_id)
-    segments_ṡ .= -BF.τ * get_bristle_d0(tm, bristle_id)
-    return nothing
-end
-
-spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
-
-function calc_spatial_bristle_force_world(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δʷ::SVector{6,T},
-    twist_r¹_r²_rʷ::Twist{T}, ) where {N,T}
+function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δ_cf::SVector{6,T},
+    twist_cf, transform_cf) where {N,T}
 
     b = tm.bodyBodyCache
     tc = b.TractionCache
     BF = c_ins.FrictionModel
     τ⁻¹ = 1 / BF.τ
     μ = b.μ
-    frameʷ = tm.frame_world
     k̄ = BF.k̄
-    vʳᵉˡ = as_static_vector(twist_r¹_r²_rʷ)
-    wrench_sum = zero(Wrench{T}, frameʷ)
+    vʳᵉˡ = as_static_vector(twist_cf)
+    wrench_sum = zero(Wrench{T}, FRAME_ϕ)
     for k = 1:length(tc)
         trac = tc.vec[k]
-        n̂ʷ = trac.n̂
+        n̂_cf = transform(trac.n̂, transform_cf)
         for k_qp = 1:N
-            rʷ = trac.r_cart[k_qp]
-            x̄_δʷ = spatial_vel_formula(δʷ, rʷ.v)
-            x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, rʷ.v)
-            term = x̄_δʷ + τ⁻¹ * x̄x̄_vʳᵉˡ
+            r_cf = transform(trac.r_cart[k_qp], transform_cf)
+            x̄_δ_cf = spatial_vel_formula(δ_cf, r_cf.v)
+            x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, r_cf.v)
+            term = x̄_δ_cf + τ⁻¹ * x̄x̄_vʳᵉˡ
             p_dA = calc_p_dA(trac, k_qp)
             λ_s = -k̄ * p_dA * term
-            λ_s = vec_sub_vec_proj(λ_s, n̂ʷ.v)
+            λ_s = vec_sub_vec_proj(λ_s, n̂_cf.v)
             norm_λ_s = norm(λ_s)
             max_fric = μ * p_dA
             if max_fric < norm_λ_s
                 λ_s = λ_s * (max_fric / norm_λ_s)
             end
-            wrench_sum += Wrench(rʷ, FreeVector3D(frameʷ, λ_s))
+            wrench_sum += Wrench(r_cf, FreeVector3D(FRAME_ϕ, λ_s))
         end
     end
-    wrench_sum = transform(wrench_sum, b.x_r²_rʷ)
     return wrench_sum
 end
 
@@ -182,6 +164,41 @@ function stiction_promoting_soft_clamp(fric_pro::Float64, w_stick::Wrench{T}, w_
     corrected_ang = smooth_c1_ramp.(fric_pro * angular(w_bristle), angular(w_stick))
     return Wrench{T}(w_bristle.frame, corrected_ang, linear(w_bristle))
 end
+
+# function calc_spatial_bristle_force_world(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δʷ::SVector{6,T},
+#     twist_r¹_r²_rʷ::Twist{T}, ) where {N,T}
+#
+#     b = tm.bodyBodyCache
+#     tc = b.TractionCache
+#     BF = c_ins.FrictionModel
+#     τ⁻¹ = 1 / BF.τ
+#     μ = b.μ
+#     frameʷ = tm.frame_world
+#     k̄ = BF.k̄
+#     vʳᵉˡ = as_static_vector(twist_r¹_r²_rʷ)
+#     wrench_sum = zero(Wrench{T}, frameʷ)
+#     for k = 1:length(tc)
+#         trac = tc.vec[k]
+#         n̂ʷ = trac.n̂
+#         for k_qp = 1:N
+#             rʷ = trac.r_cart[k_qp]
+#             x̄_δʷ = spatial_vel_formula(δʷ, rʷ.v)
+#             x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, rʷ.v)
+#             term = x̄_δʷ + τ⁻¹ * x̄x̄_vʳᵉˡ
+#             p_dA = calc_p_dA(trac, k_qp)
+#             λ_s = -k̄ * p_dA * term
+#             λ_s = vec_sub_vec_proj(λ_s, n̂ʷ.v)
+#             norm_λ_s = norm(λ_s)
+#             max_fric = μ * p_dA
+#             if max_fric < norm_λ_s
+#                 λ_s = λ_s * (max_fric / norm_λ_s)
+#             end
+#             wrench_sum += Wrench(rʷ, FreeVector3D(frameʷ, λ_s))
+#         end
+#     end
+#     wrench_sum = transform(wrench_sum, b.x_r²_rʷ)
+#     return wrench_sum
+# end
 
 
 
