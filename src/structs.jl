@@ -55,7 +55,7 @@ struct InertiaProperties
         return new(d, rho)
     end
     function InertiaProperties(rho::Float64; d::Union{Nothing,Float64}=nothing)
-        (isa(d, Float64) && (0.001 <= d <= 0.1)) || error("thickness in unexpected range.")
+        isa(d, Nothing) || (0.001 <= d <= 0.1) || error("thickness in unexpected range.")
         (50.0 <= rho) || error("rho in unexpected range.")
         return new(d, rho)
     end

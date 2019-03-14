@@ -9,6 +9,37 @@ end
 
 @inline calc_p_dA(t::TractionCache, k::Int64) = t.p[k] * t.dA[k]
 
+# mutable struct MutableContactCache{T}
+#     mesh_1::MeshCache
+#     mesh_2::MeshCache
+#     x_rʷ_r¹::Transform3D{T}
+#     x_rʷ_r²::Transform3D{T}
+#     x_r²_rʷ::Transform3D{T}
+#     x_r¹_rʷ::Transform3D{T}
+#     twist_r¹_r²::Twist{T}
+#     χ::Float64
+#     μ::Float64
+#     Ē::Float64
+#     d⁻¹::Float64
+#     wrench::Wrench{T}
+#     # function TypedElasticBodyBodyCache{N,T}() where {N,T}
+#     #     K = Hermitian(Size(6,6)(zeros(T,6,6)))
+#     #     return new{N,T}(K, frame_world, quad, trac_cache)
+#     # end
+# end
+#
+# struct StaticContactCache{N,T}
+#     K::Hermitian{T,SizedArray{Tuple{6,6},T,2,2}}
+#     frame_world::CartesianFrame3D
+#     quad::TriTetQuadRule{3,N}
+#     TractionCache::VectorCache{TractionCache{N,T}}
+#     function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
+#         K = Hermitian(Size(6,6)(zeros(T,6,6)))
+#         trac_cache = VectorCache{TractionCache{N, T}}()
+#         return new{N,T}(K, frame_world, quad, trac_cache)
+#     end
+# end
+
 mutable struct TypedElasticBodyBodyCache{N,T}
     K::Hermitian{T,SizedArray{Tuple{6,6},T,2,2}}
     frame_world::CartesianFrame3D
@@ -52,8 +83,10 @@ struct TypedMechanismScenario{N,T}
                 if path_k != nothing  # body has no meshes attached to it
                     if body_id_k != BodyID(root_body(state.mechanism))
                         new_jac = geometric_jacobian(state, path_k)
-                        new_jac.linear .= NaN
-                        new_jac.angular .= NaN
+                        fill!(new_jac.linear, NaN + zero(T))
+                        fill!(new_jac.angular, NaN + zero(T))
+                        # new_jac.linear .= NaN
+                        # new_jac.angular .= NaN
                         v_jac[body_id_k] = new_jac
                     end
                 end
@@ -109,15 +142,14 @@ struct MechanismScenario{NX,NQ,T}
 
         mechanism = ts.mechanism
         body_ids = Base.OneTo(last(bodies(mechanism)).id)
-        mesh_ids = ts.mesh_ids
         bristle_ids = ts.bristle_ids
         n_bristle_pairs = length(bristle_ids)
 
-        n_positions = num_positions(mechanism)
-        n_velocities = num_velocities(mechanism)
-        (n_positions == n_velocities) || error("n_positions ($n_positions) and n_velocities ($n_velocities) are different. Replace QuaternionFloating joints with SPQuatFloating joints.")
+        n_q = num_positions(mechanism)
+        n_v = num_velocities(mechanism)
+        (n_q == n_v) || error("n_q ($n_q) and n_v ($n_v) are different. Replace QuaternionFloating joints with SPQuatFloating joints.")
 
-        NX = n_positions + n_velocities + 6 * n_bristle_pairs
+        NX = n_q + n_v + 6 * n_bristle_pairs
 
         T = Dual{Nothing,Float64,N_chunk}
         frame_world = root_frame(mechanism)
@@ -127,7 +159,7 @@ struct MechanismScenario{NX,NQ,T}
         cache_float = TypedMechanismScenario{NQ,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         cache_dual = TypedMechanismScenario{NQ,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         vec_instructions = ts.ContactInstructions
-        return new{NX,NQ,T}(body_ids, mesh_ids, bristle_ids, frame_world, TT_Cache(), τ_ext, cache_float, cache_dual,
+        return new{NX,NQ,T}(body_ids, ts.mesh_ids, bristle_ids, frame_world, TT_Cache(), τ_ext, cache_float, cache_dual,
             cache_path, mesh_cache, vec_instructions, de, MVector{1,Float64}(0.0))
     end
 end

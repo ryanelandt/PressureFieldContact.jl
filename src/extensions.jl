@@ -12,15 +12,12 @@ function NumericalTricks.vec_sub_vec_proj(vec_in::FreeVector3D{SVector{3, TD}}, 
     @framecheck(vec_in.frame, n̂.frame)
     return FreeVector3D(vec_in.frame, vec_sub_vec_proj(vec_in.v, n̂.v))
 end
-@inline NumericalTricks.norm_squared(fv::FreeVector3D{SVector{3,T}}) where {T} = norm_squared(fv.v)
+@inline NumericalTricks.norm²(fv::FreeVector3D{SVector{3,T}}) where {T} = norm²(fv.v)
 
 ### Tri_Tet_Intersections ###
 Tri_Tet_Intersections.area(p1::Point3D{T}, p2::Point3D{T}, p3::Point3D{T}) where {T} = area(p1.v, p2.v, p3.v)
 Tri_Tet_Intersections.getTop(m::MatrixTransform{4,N2,T,N3}) where {N2,T,N3} = MatrixTransform(m.from, m.to, getTop(m.mat))
-
-function Tri_Tet_Intersections.unPad(p::Point4D{SVector{4,T}}) where {T}
-    return Point3D(p.frame, SVector{3,T}(p.v[1], p.v[2], p.v[3]))
-end
+Tri_Tet_Intersections.unPad(p::Point4D{SVector{4,T}}) where {T} = Point3D(p.frame, SVector{3,T}(p.v[1], p.v[2], p.v[3]))
 
 ### Binary_BB_Trees
 Binary_BB_Trees.fit_tri_obb(eM::eMesh{Tri,T2}, k::Int64) where {T2} = fit_tri_obb(eM.point[eM.tri[k]])
