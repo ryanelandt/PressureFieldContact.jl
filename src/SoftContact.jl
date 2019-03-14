@@ -120,7 +120,6 @@ export
     principal_value!,
 
     # contact_algorithms_non_friction.jl
-    verify_bristle_ids!,
     calcXd!,
     refreshJacobians!,
     normal_wrench,
@@ -129,8 +128,6 @@ export
     refreshBodyBodyCache!,
     integrate_over_logic!,
     addGeneralizedForcesThirdLaw!,
-    regularized_friction,
-
 
     # contact_algorithms_normal.jl
 
