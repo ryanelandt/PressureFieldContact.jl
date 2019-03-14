@@ -27,7 +27,7 @@ function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NX,NQ,Du
     t_cumulative = data_time[i_start]
     x = data_state[i_start, :]
 
-    verify_bristle_ids!(mech_scen, x)  # make sure than any bristle friction variables are used exactly once
+    # verify_bristle_ids!(mech_scen, x)  # make sure than any bristle friction variables are used exactly once
     for k = i_start .+ (1:max_steps)
         is_disp_count && println(k)
         h, x = solveRadau(rr, x, t_cumulative)

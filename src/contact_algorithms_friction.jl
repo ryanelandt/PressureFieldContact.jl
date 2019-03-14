@@ -1,7 +1,7 @@
 
-function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}, c_ins::ContactInstructions) where {N,T}
+function yes_contact!(fric_type::Regularized, frame::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     wrench = zero(Wrench{T}, frame)
-
+    b = tm.bodyBodyCache
     v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
@@ -21,16 +21,15 @@ end
 
 ##########################
 
-function veil_friction_no_contact!(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+no_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T} = nothing
+function no_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     segments_ṡ = get_bristle_d1(tm, bristle_id)
     segments_ṡ .= -(1 / BF.τ) * get_bristle_d0(tm, bristle_id)
-    return nothing
 end
 
-function my_matrix_sqrt_and_inv(K::SizedArray{Tuple{6,6},T,2,2}) where {T}
-    Hermitian_K = Hermitian(K)
+function my_matrix_sqrt_and_inv(Hermitian_K::Hermitian{T,SizedArray{Tuple{6,6},T,2,2}}) where {T}
     EF = eigen(Hermitian_K)
     sef = sqrt.(EF.values)
     sqrt_K = EF.vectors * Diagonal(sef) * EF.vectors'
@@ -38,33 +37,31 @@ function my_matrix_sqrt_and_inv(K::SizedArray{Tuple{6,6},T,2,2}) where {T}
     return sqrt_K, sqrt_K⁻¹
 end
 
-function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
-    # TODO: improve this to resist slipping
-    # TODO: make K in b.K of type Hermitian{Float64,SizedArray{Tuple{6,6},Float64,2,2}}
+function calc_patch_coordinate_system(frameʷ::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+    frameᶜ = b.mesh_2.FrameID
+    wrenchʷ_normal, pʷ_center = normal_wrench_patch_center(frameʷ, b)
+    p_centerᶜ = transform(pʷ_center, b.x_r²_rʷ)
+    ### want to calculate in a frame aligned with the compliant body frame and instaneously coincident with the center of pressure
+    IM = I + zeros(MMatrix{4,4,T,16})
+    IM[13:15] .+= SVector{3,T}(-p_centerᶜ.v)
+    x_rϕ_rʷ = Transform3D(frameᶜ, FRAME_ϕ, IM) * b.x_r²_rʷ
+    return x_rϕ_rʷ, wrenchʷ_normal
+end
+
+function yes_contact!(fric_type::Bristle, frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+    # TODO: improve this to resist slipping more "accurately"
     # TODO: correctly deal with the derivative of delta given the center is moving
+    # TODO: make work for 2 compliant objects. Currently 1 is rigid and 2 is compliant
 
     BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     b = tm.bodyBodyCache
-    frameᶜ = b.mesh_2.FrameID
-    twist_r¹_r²_rʷ = b.twist_r¹_r²
-
-    wrenchʷ_normal, pʷ_center = normal_wrench_patch_center(frameʷ, b)
-    p_centerᶜ = transform(pʷ_center, b.x_r²_rʷ)
-
-    ### want to calculate in a frame aligned with the compliant body frame and instaneously coincident with the center of pressure
-    IM = MMatrix(I + zeros(SMatrix{4,4,T,16}))
-    IM[13:15] .+= SVector{3,T}(-p_centerᶜ.v)
-    x_rϕ_rᶜ = Transform3D(frameᶜ, FRAME_ϕ, IM)
-    x_rϕ_rʷ = x_rϕ_rᶜ * b.x_r²_rʷ
-    twist_r¹_r²_rϕ = transform(twist_r¹_r²_rʷ, x_rϕ_rʷ)
-
-    K = calc_patch_spatial_stiffness_and_derivative_offset(tm, BF, c_ins, twist_r¹_r²_rϕ, x_rϕ_rʷ)
-    K = Size(6,6)(Matrix(K))
-    b.K.data .= K.data
-    sqrt_K, sqrt_K⁻¹ = my_matrix_sqrt_and_inv(K)
+    x_rϕ_rʷ, wrenchʷ_normal = calc_patch_coordinate_system(frameʷ, b)
+    calc_patch_spatial_stiffness!(tm, BF, x_rϕ_rʷ)
+    sqrt_K, sqrt_K⁻¹ = my_matrix_sqrt_and_inv(b.K)
 
     δϕ = sqrt_K⁻¹ * get_bristle_d0(tm, bristle_id)
+    twist_r¹_r²_rϕ = transform(b.twist_r¹_r², x_rϕ_rʷ)
     wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
 
     get_bristle_d1(tm, bristle_id) .= -(1.0 / BF.τ) * (sqrt_K * δϕ + sqrt_K⁻¹ * as_static_vector(wrench_ϕ))
@@ -76,10 +73,7 @@ spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v)
 
 make_3x3_PD(A::SMatrix{3,3,T,9}, tol = 1.0e-4) where {T} = A + I * (tol * (A[1] + A[5] + A[9]))
 
-function calc_patch_spatial_stiffness_and_derivative_offset(tm::TypedMechanismScenario{N,T}, BF,
-    c_ins::ContactInstructions, twist_cf, transform_cf) where {N,T}
-    # TODO: make work for 2 compliant objects. Currently 1 is rigid and 2 is compliant
-
+function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF, transform_cf) where {N,T}
     b = tm.bodyBodyCache
     tc = b.TractionCache
     K_11_sum = zeros(SMatrix{3,3,T,9})
@@ -99,10 +93,11 @@ function calc_patch_spatial_stiffness_and_derivative_offset(tm::TypedMechanismSc
             K_22_sum +=  p_dA *    I_minus_n̂n̂
         end
     end
-
-    K_11_sum = make_3x3_PD(K_11_sum)
-    K_22_sum = make_3x3_PD(K_22_sum)
-    return (BF.k̄ * b.μ) * vcat(hcat(K_11_sum, K_12_sum), hcat(K_12_sum', K_22_sum))
+    b.K.data.data[1:3,1:3] .= make_3x3_PD(K_11_sum)
+    b.K.data.data[1:3,4:6] .= K_12_sum
+    b.K.data.data[4:6,1:3] .= K_12_sum'
+    b.K.data.data[4:6,4:6] .= make_3x3_PD(K_22_sum)
+    b.K.data.data .*= (BF.k̄ * b.μ)
 end
 
 function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δ_cf::SVector{6,T},
@@ -123,9 +118,8 @@ function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::C
             r_cf = transform(trac.r_cart[k_qp], transform_cf)
             x̄_δ_cf = spatial_vel_formula(δ_cf, r_cf.v)
             x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, r_cf.v)
-            term = x̄_δ_cf + τ * x̄x̄_vʳᵉˡ
             p_dA = calc_p_dA(trac, k_qp)
-            λ_s = -k̄ * p_dA * term
+            λ_s = -k̄ * p_dA * (x̄_δ_cf + τ * x̄x̄_vʳᵉˡ)
             λ_s = vec_sub_vec_proj(λ_s, n̂_cf.v)
             norm_λ_s = norm(λ_s)
             max_fric = μ * p_dA
@@ -139,7 +133,6 @@ function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::C
 end
 
 function stiction_promoting_soft_clamp(fric_pro::Float64, w_stick::Wrench{T}, w_bristle::Wrench{T}) where {T}
-
     @framecheck(w_stick.frame, w_bristle.frame)
     corrected_ang = smooth_c1_ramp.(fric_pro * angular(w_bristle), angular(w_stick))
     return Wrench{T}(w_bristle.frame, corrected_ang, linear(w_bristle))

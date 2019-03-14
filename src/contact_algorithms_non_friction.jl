@@ -1,28 +1,4 @@
 
-function verify_bristle_ids!(m::MechanismScenario{NX,NQ,T}, x::Vector{Float64}) where {NX,NQ,T}
-    copyto!(m.float, x)
-
-    bristle_done = falses(m.bristle_ids)
-    for k = 1:length(m.ContactInstructions)
-        con_ins_k = m.ContactInstructions[k]
-        if typeof(con_ins_k.FrictionModel) == Bristle
-            bristle_id = con_ins_k.FrictionModel.BristleID
-            (bristle_done[bristle_id] == true) && error("BristleID $bristle_id assigned twice")
-            bristle_done[bristle_id] = true
-        end
-    end
-    for bristle_id = m.bristle_ids
-        if !bristle_done[bristle_id]
-            segments_s = get_bristle_d0(m.float, bristle_id)
-            fill!(segments_s, 0.0)
-            println("BristleID $bristle_id not assigned")
-        end
-    end
-
-    copyto!(x, m.float)
-    return nothing
-end
-
 function calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{NX,NQ,T}, t::Float64=0.0) where {NX,NQ,T}
     return calcXd!(xx, x, m, m.dual, t)
 end
@@ -58,30 +34,26 @@ function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::Typed
     refreshJacobians!(m, tm)
     tm.f_generalized .= zero(T2)
     for k = 1:length(m.ContactInstructions)
-        con_ins_k = m.ContactInstructions[k]
-        calcTriTetIntersections!(m, con_ins_k)
-        is_intersections = (0 != length(m.TT_Cache))
-        is_bristle = typeof(con_ins_k.FrictionModel) == Bristle
-        is_no_wrench = true
-        if is_intersections | is_bristle
-            if is_intersections
-                refreshBodyBodyCache!(m, tm, con_ins_k)
-                integrate_over_logic!(tm.bodyBodyCache, m.TT_Cache)
-                if !isempty(tm.bodyBodyCache.TractionCache)
-                    is_no_wrench = false
-                    if is_bristle
-                        wrench = veil_friction!(m.frame_world, tm, con_ins_k)
-                    else
-                        wrench = regularized_friction(m.frame_world, tm.bodyBodyCache, con_ins_k)
-                    end
-                    tm.bodyBodyCache.wrench = wrench
-                    addGeneralizedForcesThirdLaw!(wrench, tm, con_ins_k)
-                end
-            end
-        end
-        (is_bristle & is_no_wrench) && veil_friction_no_contact!(tm, con_ins_k)
+        c_ins = m.ContactInstructions[k]
+        force_single_elastic_intersection!(m, tm, c_ins)
     end
     return nothing
+end
+
+function force_single_elastic_intersection!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2},
+    c_ins::ContactInstructions) where {NX,NQ,T1,T2}
+
+    calcTriTetIntersections!(m, c_ins)
+    if (0 != length(m.TT_Cache))  # yes intersections
+        refreshBodyBodyCache!(m, tm, c_ins)
+        integrate_over_logic!(tm.bodyBodyCache, m.TT_Cache)
+        if !isempty(tm.bodyBodyCache.TractionCache)
+            wrench = yes_contact!(c_ins.FrictionModel, m.frame_world, tm, c_ins)
+            addGeneralizedForcesThirdLaw!(wrench, tm, c_ins)
+            return wrench
+        end
+    end
+    no_contact!(c_ins.FrictionModel, tm, c_ins)
 end
 
 function refreshJacobians!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NX,NQ,T1,T2}
@@ -92,39 +64,23 @@ function refreshJacobians!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismSce
     return nothing
 end
 
-function normal_wrench(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-    wrench = zero(Wrench{T}, frame)
-    @inbounds begin
-    for k_trac = 1:length(b.TractionCache)
-        trac = b.TractionCache[k_trac]
-        for k = 1:N
-            p_dA = calc_p_dA(trac, k)
-            wrench += Wrench(trac.r_cart[k], p_dA * trac.n̂)
-        end
-    end
-    end
-    return wrench
-end
-
-function calcTriTetIntersections!(m::MechanismScenario, con_ins_k::ContactInstructions) # where {N,T}
+function calcTriTetIntersections!(m::MechanismScenario, c_ins::ContactInstructions) # where {N,T}
     b = m.float.bodyBodyCache  # this can be float because intersection is assumed to not depend on partials
-    refreshBodyBodyTransform!(m, m.float, con_ins_k)  # TODO: isn't b.x_r¹_rʷ already calculated?
+    refreshBodyBodyTransform!(m, m.float, c_ins)  # TODO: isn't b.x_r¹_rʷ already calculated?
     x_r¹_r² = inv(b.x_rʷ_r¹) * b.x_rʷ_r²
     update_TT_Cache!(m.TT_Cache, translation(x_r¹_r²), rotation(x_r¹_r²))
-    if con_ins_k.mutual_compliance
-        tree_tree_intersect(m.TT_Cache, get_tree_tet(b.mesh_1), get_tree_tet(b.mesh_2))
-    else
-        tree_tree_intersect(m.TT_Cache, get_tree_tri(b.mesh_1), get_tree_tet(b.mesh_2))
-    end
+    tree_2 = get_tree_tet(b.mesh_2)
+    tree_1 = ifelse(c_ins.mutual_compliance, get_tree_tet, get_tree_tri)(b.mesh_1)
+    tree_tree_intersect(m.TT_Cache, tree_1, tree_2)
     return nothing
 end
 
 function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScenario{N,T},
-        con_ins_k::ContactInstructions) where {N,T}
+        c_ins::ContactInstructions) where {N,T}
 
     b = tm.bodyBodyCache
-    b.mesh_1 = m.MeshCache[con_ins_k.id_1]
-    b.mesh_2 = m.MeshCache[con_ins_k.id_2]
+    b.mesh_1 = m.MeshCache[c_ins.id_1]
+    b.mesh_2 = m.MeshCache[c_ins.id_2]
     b.x_rʷ_r¹ = transform_to_root(tm.state, b.mesh_1.BodyID)  # TODO: add safe=false
     b.x_rʷ_r² = transform_to_root(tm.state, b.mesh_2.BodyID)  # TODO: add safe=false
     b.x_r²_rʷ = inv(b.x_rʷ_r²)
@@ -133,19 +89,19 @@ function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScena
 end
 
 function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{N,T},
-        con_ins_k::ContactInstructions) where {N,T}
+        c_ins::ContactInstructions) where {N,T}
 
     b = tm.bodyBodyCache
     empty!(b.TractionCache)
-    refreshBodyBodyTransform!(m, tm, con_ins_k)
+    refreshBodyBodyTransform!(m, tm, c_ins)
 
     # Rates
     twist_w_r¹ = twist_wrt_world(tm.state, b.mesh_1.BodyID)
     twist_w_r² = twist_wrt_world(tm.state, b.mesh_2.BodyID)
     b.twist_r¹_r² = -twist_w_r² + twist_w_r¹  # velocity of tri wrt tet expressed in world
 
-    b.μ = con_ins_k.μ
-    b.χ = con_ins_k.χ
+    b.μ = c_ins.μ
+    b.χ = c_ins.χ
 
     c_prop = get_c_prop(b.mesh_2)
     b.Ē = c_prop.Ē
@@ -160,7 +116,7 @@ function integrate_over_logic!(b::TypedElasticBodyBodyCache{N,T}, ttCache::TT_Ca
     x_rʷ_r² = b.x_rʷ_r²
     x_r¹_rʷ = b.x_r¹_rʷ
     x_r²_rʷ = b.x_r²_rʷ
-    if is_compliant(mesh_1)
+    if is_compliant(mesh_1)  # this is not right
         integrate_over_volume_volume_all!(mesh_1, mesh_2, x_rʷ_r¹, x_rʷ_r², x_r¹_rʷ, x_r²_rʷ, b, ttCache)
     else
         integrate_over_surface_volume_all!(mesh_1, mesh_2, x_rʷ_r¹, x_rʷ_r², x_r¹_rʷ, x_r²_rʷ, b, ttCache)

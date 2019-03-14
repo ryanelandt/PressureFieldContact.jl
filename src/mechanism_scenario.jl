@@ -10,7 +10,7 @@ end
 @inline calc_p_dA(t::TractionCache, k::Int64) = t.p[k] * t.dA[k]
 
 mutable struct TypedElasticBodyBodyCache{N,T}
-    K::Symmetric{T,MMatrix{6,6,T,36}}  # TODO: remove this
+    K::Hermitian{T,SizedArray{Tuple{6,6},T,2,2}}
     frame_world::CartesianFrame3D
     quad::TriTetQuadRule{3,N}
     TractionCache::VectorCache{TractionCache{N,T}}
@@ -27,7 +27,7 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     d⁻¹::Float64
     wrench::Wrench{T}
     function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
-        K = Symmetric(zeros(MMatrix{6,6,T,36}), :U)
+        K = Hermitian(Size(6,6)(zeros(T,6,6)))
         trac_cache = VectorCache{TractionCache{N, T}}()
         return new{N,T}(K, frame_world, quad, trac_cache)
     end
