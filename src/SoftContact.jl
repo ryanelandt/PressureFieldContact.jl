@@ -16,6 +16,7 @@ using Binary_BB_Trees
 using NumericalTricks
 using LinearAlgebra
 using Radau
+using GenericLinearAlgebra
 
 
 const FRAME_ζ¹ = CartesianFrame3D("FRAME_ζ¹")
@@ -32,6 +33,7 @@ include("mechanism_scenario.jl")
 include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
 include("contact_algorithms_friction.jl")
+include("contact_algorithms_normal.jl")
 include("vis_meshcat.jl")
 include("example_integrator.jl")
 include("utility.jl")
@@ -126,30 +128,12 @@ export
     calcTriTetIntersections!,
     refreshBodyBodyCache!,
     integrate_over_logic!,
-    # triangle_vertices,
-    # tetrahedron_vertices_ϵ,
-    # calc_ζ_transforms,
-    # find_plane_tet,
-    # fillTractionCacheForTriangle!,
-    # fillTractionCacheInnerLoop!,
-    # calcTangentialVelocity,
     addGeneralizedForcesThirdLaw!,
-    # addGeneralizedForcesExternal!,
-
-    # contact_algorithms_friction.jl
     regularized_friction,
-    # calc_point_spatial_stiffness,
-    # calc_patch_spatial_stiffness,
-    # veil_clamp_wrench,
-    # veil_friction!,
-    # calc_wrench_to_stick,
-    # calc_λ_max,
-    # veil_friction_no_contact!,
-    # find_contact_pressure_center,
-    # calc_point_spatial_stiffness,
-    # bristle_deformation,
-    # bristle_friction!,
-    # bristle_friction_no_contact!,
+
+
+    # contact_algorithms_normal.jl
+
 
     # vis_meshcat.jl
     set_body_mesh_visual!,

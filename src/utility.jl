@@ -26,5 +26,8 @@ end
 as_static_vector(f::Wrench{T}) where {T} = vcat(angular(f), linear(f))
 as_static_vector(f::Twist{T}) where {T} = vcat(angular(f), linear(f))
 
-@inline get_bristle_d0(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T} = segments(tm.s)[bristle_id]
+function get_bristle_d0(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T}
+    s = segments(tm.s)[bristle_id]
+    return SVector{6,T}(s[1], s[2], s[3], s[4], s[5], s[6])
+end
 @inline get_bristle_d1(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T} = segments(tm.ṡ)[bristle_id]

@@ -19,44 +19,35 @@ function regularized_friction(frame::CartesianFrame3D, b::TypedElasticBodyBodyCa
     return wrench
 end
 
-function normal_wrench_patch_center(frame::CartesianFrame3D, b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-    wrench = zero(Wrench{T}, frame)
-    int_p_r_dA = zeros(SVector{3,T})
-    int_p_dA = zero(T)
-    # @inbounds begin
-        for k_trac = 1:length(b.TractionCache)
-            trac = b.TractionCache[k_trac]
-            for k = 1:N
-                p_dA = calc_p_dA(trac, k)
-                wrench += Wrench(trac.r_cart[k], p_dA * trac.n̂)
-                int_p_r_dA += trac.r_cart[k].v * p_dA
-                int_p_dA += p_dA
-            end
-        end
-    # end
-    p_center = Point3D(frame, int_p_r_dA / int_p_dA)
-    return wrench, p_center
-end
-
 ##########################
 
 function veil_friction_no_contact!(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     segments_ṡ = get_bristle_d1(tm, bristle_id)
-    segments_ṡ .= -BF.τ * get_bristle_d0(tm, bristle_id)
+    segments_ṡ .= -(1 / BF.τ) * get_bristle_d0(tm, bristle_id)
     return nothing
+end
+
+function my_matrix_sqrt_and_inv(K::SizedArray{Tuple{6,6},T,2,2}) where {T}
+    Hermitian_K = Hermitian(K)
+    EF = eigen(Hermitian_K)
+    sef = sqrt.(EF.values)
+    sqrt_K = EF.vectors * Diagonal(sef) * EF.vectors'
+    sqrt_K⁻¹ = EF.vectors * Diagonal(1.0 ./ sef) * EF.vectors'
+    return sqrt_K, sqrt_K⁻¹
 end
 
 function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     # TODO: improve this to resist slipping
+    # TODO: make K in b.K of type Hermitian{Float64,SizedArray{Tuple{6,6},Float64,2,2}}
+    # TODO: correctly deal with the derivative of delta given the center is moving
 
     BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     b = tm.bodyBodyCache
     frameᶜ = b.mesh_2.FrameID
     twist_r¹_r²_rʷ = b.twist_r¹_r²
-
 
     wrenchʷ_normal, pʷ_center = normal_wrench_patch_center(frameʷ, b)
     p_centerᶜ = transform(pʷ_center, b.x_r²_rʷ)
@@ -68,76 +59,25 @@ function veil_friction!(frameʷ::CartesianFrame3D, tm::TypedMechanismScenario{N,
     x_rϕ_rʷ = x_rϕ_rᶜ * b.x_r²_rʷ
     twist_r¹_r²_rϕ = transform(twist_r¹_r²_rʷ, x_rϕ_rʷ)
 
-    K, K̇ = calc_patch_spatial_stiffness_and_derivative_offset(tm, BF, c_ins, twist_r¹_r²_rϕ, x_rϕ_rʷ)
+    K = calc_patch_spatial_stiffness_and_derivative_offset(tm, BF, c_ins, twist_r¹_r²_rϕ, x_rϕ_rʷ)
+    K = Size(6,6)(Matrix(K))
+    b.K.data .= K.data
+    sqrt_K, sqrt_K⁻¹ = my_matrix_sqrt_and_inv(K)
 
-    b.K.data .= K
-    K⁻¹ = inv(K)
-    cf = cholesky(b.K)
-    U = cf.U
-
-    # U = sqrtm(K)
-    U⁻¹ = inv(U)
-
-    Δϕ = get_bristle_d0(tm, bristle_id)
-    Δϕ = SVector{6,T}(Δϕ[1], Δϕ[2], Δϕ[3], Δϕ[4], Δϕ[5], Δϕ[6])
-    δϕ = U⁻¹ * Δϕ
-    δϕ = SVector{6,T}(δϕ[1], δϕ[2], δϕ[3], δϕ[4], δϕ[5], δϕ[6])
-
-
+    δϕ = sqrt_K⁻¹ * get_bristle_d0(tm, bristle_id)
     wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
-    δδϕ_star = -BF.τ * (δϕ + K⁻¹ * as_static_vector(wrench_ϕ))
 
-    ΔΔϕ = get_bristle_d1(tm, bristle_id)
-    ΔΔϕ .= U * δδϕ_star
-
-
-    #     U⁻¹ = SMatrix{6,6,T,36}(inv(U))
-    #     δ = U⁻¹ * Δ
-
-
-    # K⁻¹ = inv(K)
-    #
-    #
-    # τϕ = τϕ * bbb
-    # # τ = K δ
-    # # δ = K⁻¹ τ
-    # δϕ =  K⁻¹ * τϕ
-    #
-    #
-    # δδϕ_work = -0.5 * K⁻¹ * K̇ * δϕ
-    # δδϕ = δδϕ_star + δδϕ_work
-    # # ττϕ .= K * (δδϕ_star + δδϕ_work)
-    # ττϕ = get_bristle_d1(tm, bristle_id)
-    # ττϕ .= K * δδϕ + K̇ * δϕ
-    # ττϕ .= ττϕ * (1 / bbb)
-
-    # bbb = 1.0e6
-    #
-    # τϕ = get_bristle_d0(tm, bristle_id)
-    # τϕ = SVector{6,T}(τϕ[1], τϕ[2], τϕ[3], τϕ[4], τϕ[5], τϕ[6])
-    # τϕ = τϕ * bbb
-    # # τ = K δ
-    # # δ = K⁻¹ τ
-    # δϕ =  K⁻¹ * τϕ
-    #
-    # wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
-    #
-    # δδϕ_work = -0.5 * K⁻¹ * K̇ * δϕ
-    # δδϕ_star = -BF.τ * (δϕ + K⁻¹ * as_static_vector(wrench_ϕ))
-    # δδϕ = δδϕ_star + δδϕ_work
-    # # ττϕ .= K * (δδϕ_star + δδϕ_work)
-    # ττϕ = get_bristle_d1(tm, bristle_id)
-    # ττϕ .= K * δδϕ + K̇ * δϕ
-    # ττϕ .= ττϕ * (1 / bbb)
+    get_bristle_d1(tm, bristle_id) .= -(1.0 / BF.τ) * (sqrt_K * δϕ + sqrt_K⁻¹ * as_static_vector(wrench_ϕ))
 
     return wrenchʷ_normal + transform(wrench_ϕ, inv(x_rϕ_rʷ))
 end
 
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
 
+make_3x3_PD(A::SMatrix{3,3,T,9}, tol = 1.0e-4) where {T} = A + I * (tol * (A[1] + A[5] + A[9]))
+
 function calc_patch_spatial_stiffness_and_derivative_offset(tm::TypedMechanismScenario{N,T}, BF,
     c_ins::ContactInstructions, twist_cf, transform_cf) where {N,T}
-
     # TODO: make work for 2 compliant objects. Currently 1 is rigid and 2 is compliant
 
     b = tm.bodyBodyCache
@@ -145,9 +85,6 @@ function calc_patch_spatial_stiffness_and_derivative_offset(tm::TypedMechanismSc
     K_11_sum = zeros(SMatrix{3,3,T,9})
     K_12_sum = zeros(SMatrix{3,3,T,9})
     K_22_sum = zeros(SMatrix{3,3,T,9})
-    K̇_11_sum = zeros(SMatrix{3,3,T,9})
-    K̇_12_sum = zeros(SMatrix{3,3,T,9})
-    K̇_22_sum = zeros(SMatrix{3,3,T,9})
     for k = 1:length(tc)
         trac = tc.vec[k]
         n̂² = transform(trac.n̂, transform_cf)
@@ -160,20 +97,12 @@ function calc_patch_spatial_stiffness_and_derivative_offset(tm::TypedMechanismSc
             K_11_sum += -p_dA * rx_I_minus_n̂n̂ * r²_skew
             K_12_sum +=  p_dA * rx_I_minus_n̂n̂
             K_22_sum +=  p_dA *    I_minus_n̂n̂
-            DOT_n̂² = cross(angular(twist_cf), n̂².v)  # works because r2 is rigid  works because point is treated as fixed at this instant
-            DOT_r²_skew = vector_to_skew_symmetric(point_velocity(twist_cf, r²).v)
-            DOT_I_minus_n̂n̂ = -(DOT_n̂² * n̂².v' + n̂².v * DOT_n̂²')
-            DOT_rx_I_minus_n̂n̂ = DOT_I_minus_n̂n̂ * r²_skew + I_minus_n̂n̂ * DOT_r²_skew
-            K̇_11_sum += -p_dA * (DOT_rx_I_minus_n̂n̂ * r²_skew + rx_I_minus_n̂n̂ * DOT_r²_skew)
-            K̇_12_sum +=  p_dA * DOT_rx_I_minus_n̂n̂
-            K̇_22_sum +=  p_dA * DOT_I_minus_n̂n̂
         end
     end
-    μ = b.μ
-    K = (BF.k̄ * μ) * vcat(hcat(K_11_sum, K_12_sum), hcat(K_12_sum', K_22_sum))
-    K̇ = (BF.k̄ * μ) * vcat(hcat(K̇_11_sum, K̇_12_sum), hcat(K̇_12_sum', K̇_22_sum))
-    K += SMatrix{6,6,Float64,36}(diagm(0=>BF.K_diag_min))
-    return K, K̇
+
+    K_11_sum = make_3x3_PD(K_11_sum)
+    K_22_sum = make_3x3_PD(K_22_sum)
+    return (BF.k̄ * b.μ) * vcat(hcat(K_11_sum, K_12_sum), hcat(K_12_sum', K_22_sum))
 end
 
 function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δ_cf::SVector{6,T},
@@ -182,7 +111,7 @@ function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::C
     b = tm.bodyBodyCache
     tc = b.TractionCache
     BF = c_ins.FrictionModel
-    τ⁻¹ = 1 / BF.τ
+    τ = BF.τ
     μ = b.μ
     k̄ = BF.k̄
     vʳᵉˡ = as_static_vector(twist_cf)
@@ -194,7 +123,7 @@ function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::C
             r_cf = transform(trac.r_cart[k_qp], transform_cf)
             x̄_δ_cf = spatial_vel_formula(δ_cf, r_cf.v)
             x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, r_cf.v)
-            term = x̄_δ_cf + τ⁻¹ * x̄x̄_vʳᵉˡ
+            term = x̄_δ_cf + τ * x̄x̄_vʳᵉˡ
             p_dA = calc_p_dA(trac, k_qp)
             λ_s = -k̄ * p_dA * term
             λ_s = vec_sub_vec_proj(λ_s, n̂_cf.v)
@@ -215,6 +144,101 @@ function stiction_promoting_soft_clamp(fric_pro::Float64, w_stick::Wrench{T}, w_
     corrected_ang = smooth_c1_ramp.(fric_pro * angular(w_bristle), angular(w_stick))
     return Wrench{T}(w_bristle.frame, corrected_ang, linear(w_bristle))
 end
+
+
+
+# K̇_11_sum = zeros(SMatrix{3,3,T,9})
+# K̇_12_sum = zeros(SMatrix{3,3,T,9})
+# K̇_22_sum = zeros(SMatrix{3,3,T,9})
+#
+# DOT_n̂² = cross(angular(twist_cf), n̂².v)  # works because r2 is rigid  works because point is treated as fixed at this instant
+# DOT_r²_skew = vector_to_skew_symmetric(point_velocity(twist_cf, r²).v)
+# DOT_I_minus_n̂n̂ = -(DOT_n̂² * n̂².v' + n̂².v * DOT_n̂²')
+# DOT_rx_I_minus_n̂n̂ = DOT_I_minus_n̂n̂ * r²_skew + I_minus_n̂n̂ * DOT_r²_skew
+# K̇_11_sum += -p_dA * (DOT_rx_I_minus_n̂n̂ * r²_skew + rx_I_minus_n̂n̂ * DOT_r²_skew)
+# K̇_12_sum +=  p_dA * DOT_rx_I_minus_n̂n̂
+# K̇_22_sum +=  p_dA * DOT_I_minus_n̂n̂
+#
+# K̇ = (BF.k̄ * μ) * vcat(hcat(K̇_11_sum, K̇_12_sum), hcat(K̇_12_sum', K̇_22_sum))
+
+# δδϕ_star = -BF.τ * (δϕ + sqrt_K⁻¹ * (sqrt_K⁻¹ * as_static_vector(wrench_ϕ)) )
+# γγ .= sqrt_K * δδϕ_star
+
+# b.K.data .= K
+# K⁻¹ = inv(K)
+# cf = cholesky(b.K)
+# U = cf.U
+#
+# # U = sqrtm(K)
+# U⁻¹ = inv(U)
+#
+# Δϕ = get_bristle_d0(tm, bristle_id)
+# Δϕ = SVector{6,T}(Δϕ[1], Δϕ[2], Δϕ[3], Δϕ[4], Δϕ[5], Δϕ[6])
+# δϕ = U⁻¹ * Δϕ
+# δϕ = SVector{6,T}(δϕ[1], δϕ[2], δϕ[3], δϕ[4], δϕ[5], δϕ[6])
+#
+#
+#
+# ΔΔϕ = get_bristle_d1(tm, bristle_id)
+# ΔΔϕ .= U * δδϕ_star
+
+# b.K.data .= K
+# K⁻¹ = inv(K)
+# cf = cholesky(b.K)
+# U = cf.U
+#
+# # U = sqrtm(K)
+# U⁻¹ = inv(U)
+#
+# Δϕ = get_bristle_d0(tm, bristle_id)
+# Δϕ = SVector{6,T}(Δϕ[1], Δϕ[2], Δϕ[3], Δϕ[4], Δϕ[5], Δϕ[6])
+# δϕ = U⁻¹ * Δϕ
+# δϕ = SVector{6,T}(δϕ[1], δϕ[2], δϕ[3], δϕ[4], δϕ[5], δϕ[6])
+#
+#
+# wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
+# δδϕ_star = -BF.τ * (δϕ + K⁻¹ * as_static_vector(wrench_ϕ))
+#
+# ΔΔϕ = get_bristle_d1(tm, bristle_id)
+# ΔΔϕ .= U * δδϕ_star
+
+#     U⁻¹ = SMatrix{6,6,T,36}(inv(U))
+#     δ = U⁻¹ * Δ
+
+# K⁻¹ = inv(K)
+#
+#
+# τϕ = τϕ * bbb
+# # τ = K δ
+# # δ = K⁻¹ τ
+# δϕ =  K⁻¹ * τϕ
+#
+#
+# δδϕ_work = -0.5 * K⁻¹ * K̇ * δϕ
+# δδϕ = δδϕ_star + δδϕ_work
+# # ττϕ .= K * (δδϕ_star + δδϕ_work)
+# ττϕ = get_bristle_d1(tm, bristle_id)
+# ττϕ .= K * δδϕ + K̇ * δϕ
+# ττϕ .= ττϕ * (1 / bbb)
+
+# bbb = 1.0e6
+#
+# τϕ = get_bristle_d0(tm, bristle_id)
+# τϕ = SVector{6,T}(τϕ[1], τϕ[2], τϕ[3], τϕ[4], τϕ[5], τϕ[6])
+# τϕ = τϕ * bbb
+# # τ = K δ
+# # δ = K⁻¹ τ
+# δϕ =  K⁻¹ * τϕ
+#
+# wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
+#
+# δδϕ_work = -0.5 * K⁻¹ * K̇ * δϕ
+# δδϕ_star = -BF.τ * (δϕ + K⁻¹ * as_static_vector(wrench_ϕ))
+# δδϕ = δδϕ_star + δδϕ_work
+# # ττϕ .= K * (δδϕ_star + δδϕ_work)
+# ττϕ = get_bristle_d1(tm, bristle_id)
+# ττϕ .= K * δδϕ + K̇ * δϕ
+# ττϕ .= ττϕ * (1 / bbb)
 
 # function calc_spatial_bristle_force_world(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δʷ::SVector{6,T},
 #     twist_r¹_r²_rʷ::Twist{T}, ) where {N,T}
@@ -336,19 +360,7 @@ end
 #     return K, K̇
 # end
 
-# function make_stiffness_PD!(K::MMatrix{6,6,T,36}) where {T}
-#     # NOTE: # diag(SMatrix{6,6,Int64,36}(collect(1:36)))
-#
-#     tol = 1.0e-4
-#     ang_K = tol * (K[1] + K[8] + K[15])
-#     K[1] += ang_K
-#     K[8] += ang_K
-#     K[15] += ang_K
-#     lin_K = tol * (K[22] + K[29] + K[36])
-#     K[22] += lin_K
-#     K[29] += lin_K
-#     K[36] += lin_K
-# end
+
 
 # function calc_patch_spatial_stiffness(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, K) where {N,T}
 #

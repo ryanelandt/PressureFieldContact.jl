@@ -195,7 +195,7 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, mesh_id_1::MeshID, mes
 end
 
 function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::MeshID;
-        τ::Float64=30.0, k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing,
+        τ::Float64=0.05, k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing,
         small_rad::Float64=0.0005)
 
     isa(μ, Nothing) || (0 < μ) || error("μ cannot be 0 for bristle friction")
