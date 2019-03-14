@@ -25,8 +25,7 @@ no_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c_ins::Cont
 function no_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
-    segments_ṡ = get_bristle_d1(tm, bristle_id)
-    segments_ṡ .= -(1 / BF.τ) * get_bristle_d0(tm, bristle_id)
+    get_bristle_d1(tm, bristle_id) .= -(1 / BF.τ) * get_bristle_d0(tm, bristle_id)
 end
 
 function my_matrix_sqrt_and_inv(Hermitian_K::Hermitian{T,SizedArray{Tuple{6,6},T,2,2}}) where {T}
@@ -72,6 +71,45 @@ end
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
 
 make_3x3_PD(A::SMatrix{3,3,T,9}, tol = 1.0e-4) where {T} = A + I * (tol * (A[1] + A[5] + A[9]))
+
+function calc_patch_spatial_stiffness2!(tm::TypedMechanismScenario{N,T}, BF, transform_cf) where {N,T}
+    b = tm.bodyBodyCache
+    tc = b.TractionCache
+    K_11_sum = zeros(SMatrix{3,3,T,9})
+    K_12_sum = zeros(SMatrix{3,3,T,9})
+    K_22_sum = zeros(SMatrix{3,3,T,9})
+
+    vʳᵉˡ = as_static_vector()
+
+
+    for k = 1:length(tc)
+        trac = tc.vec[k]
+        n̂² = transform(trac.n̂, transform_cf)
+        I_minus_n̂n̂ = I - n̂².v * n̂².v'  # suprisingly fast
+        for k_qp = 1:N
+            p_dA = calc_p_dA(trac, k_qp)
+            r² = transform(trac.r_cart[k_qp], transform_cf)
+            r²_skew = vector_to_skew_symmetric(r².v)
+            rx_I_minus_n̂n̂ = r²_skew * I_minus_n̂n̂
+            #
+            block_r = hcat(-r²_skew * I_minus_n̂n̂, I_minus_n̂n̂)
+            
+
+
+            #
+
+
+            K_11_sum += -p_dA * rx_I_minus_n̂n̂ * r²_skew
+            K_12_sum +=  p_dA * rx_I_minus_n̂n̂
+            K_22_sum +=  p_dA *    I_minus_n̂n̂
+        end
+    end
+    b.K.data.data[1:3,1:3] .= make_3x3_PD(K_11_sum)
+    b.K.data.data[1:3,4:6] .= K_12_sum
+    b.K.data.data[4:6,1:3] .= K_12_sum'
+    b.K.data.data[4:6,4:6] .= make_3x3_PD(K_22_sum)
+    b.K.data.data .*= (BF.k̄ * b.μ)
+end
 
 function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF, transform_cf) where {N,T}
     b = tm.bodyBodyCache
@@ -132,13 +170,12 @@ function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::C
     return wrench_sum
 end
 
-function stiction_promoting_soft_clamp(fric_pro::Float64, w_stick::Wrench{T}, w_bristle::Wrench{T}) where {T}
-    @framecheck(w_stick.frame, w_bristle.frame)
-    corrected_ang = smooth_c1_ramp.(fric_pro * angular(w_bristle), angular(w_stick))
-    return Wrench{T}(w_bristle.frame, corrected_ang, linear(w_bristle))
-end
 
-
+# function stiction_promoting_soft_clamp(fric_pro::Float64, w_stick::Wrench{T}, w_bristle::Wrench{T}) where {T}
+#     @framecheck(w_stick.frame, w_bristle.frame)
+#     corrected_ang = smooth_c1_ramp.(fric_pro * angular(w_bristle), angular(w_stick))
+#     return Wrench{T}(w_bristle.frame, corrected_ang, linear(w_bristle))
+# end
 
 # K̇_11_sum = zeros(SMatrix{3,3,T,9})
 # K̇_12_sum = zeros(SMatrix{3,3,T,9})

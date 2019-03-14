@@ -4,12 +4,9 @@ struct Bristle
     BristleID::BristleID
     τ::Float64
     k̄::Float64
-    K_diag_min::SVector{6,Float64}
     fric_pro::Float64
-    function Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64, K_diag_min::SVector{6,Float64},
-        fric_pro::Float64=2.0)
-
-        return new(bristle_ID, τ, k̄, K_diag_min, fric_pro)
+    function Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64, fric_pro::Float64=2.0)
+        return new(bristle_ID, τ, k̄, fric_pro)
     end
 end
 
@@ -195,32 +192,32 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, mesh_id_1::MeshID, mes
 end
 
 function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::MeshID;
-        τ::Float64=0.05, k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing,
-        small_rad::Float64=0.0005)
+        τ::Float64=0.05, k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing)
 
     isa(μ, Nothing) || (0 < μ) || error("μ cannot be 0 for bristle friction")
     bristle_id = BristleID(1 + length(ts.bristle_ids))
-
-    min_mass = Inf
-    mesh_1 = ts.MeshCache[mesh_id_1]
-    mesh_c = ts.MeshCache[mesh_id_c]
-    inertia_1 = bodies(ts.mechanism)[mesh_1.BodyID].inertia
-    inertia_c = bodies(ts.mechanism)[mesh_c.BodyID].inertia
-    if inertia_1 != nothing
-        min_mass = min(min_mass, inertia_1.mass)
-    end
-    if inertia_c != nothing
-        min_mass = min(min_mass, inertia_c.mass)
-    end
-    (min_mass == Inf) && error("at least one object must have mass")
-
-    mag_g = norm(ts.mechanism.gravitational_acceleration)
-    c = k̄ * mag_g * min_mass / 1000
-    K_diag_min_θ = c * ones(SVector{3,Float64}) * small_rad^2
-    K_diag_min_r = c * ones(SVector{3,Float64})
-    K_diag_min = vcat(K_diag_min_θ, K_diag_min_r)
-
-    bf = Bristle(bristle_id, τ=τ, k̄=k̄, K_diag_min=K_diag_min, fric_pro=fric_pro)
+    bf = Bristle(bristle_id, τ=τ, k̄=k̄, fric_pro=fric_pro)
     ts.bristle_ids = Base.OneTo(bristle_id)
     return add_pair_rigid_compliant!(ts, mesh_id_1, mesh_id_c, bf, μ=μ, χ=χ)
 end
+
+# min_mass = Inf
+# mesh_1 = ts.MeshCache[mesh_id_1]
+# mesh_c = ts.MeshCache[mesh_id_c]
+# inertia_1 = bodies(ts.mechanism)[mesh_1.BodyID].inertia
+# inertia_c = bodies(ts.mechanism)[mesh_c.BodyID].inertia
+# if inertia_1 != nothing
+#     min_mass = min(min_mass, inertia_1.mass)
+# end
+# if inertia_c != nothing
+#     min_mass = min(min_mass, inertia_c.mass)
+# end
+# (min_mass == Inf) && error("at least one object must have mass")
+#
+# mag_g = norm(ts.mechanism.gravitational_acceleration)
+# c = k̄ * mag_g * min_mass / 1000
+# K_diag_min_θ = c * ones(SVector{3,Float64}) * small_rad^2
+# K_diag_min_r = c * ones(SVector{3,Float64})
+# K_diag_min = vcat(K_diag_min_θ, K_diag_min_r)
+#
+# bf = Bristle(bristle_id, τ=τ, k̄=k̄, K_diag_min=K_diag_min, fric_pro=fric_pro)
