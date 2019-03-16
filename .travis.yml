@@ -16,22 +16,6 @@ before_script:
   - julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/ryanelandt/Binary_BB_Trees.jl.git"))'
   - julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/ryanelandt/Radau.jl.git"))'
 
-  # - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/NumericalTricks.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
-  # - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/Tri_Tet_Intersections.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
-  # - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/Binary_BB_Trees.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
-  # - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/ryanelandt/Radau.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
-
-  # TODO: remove me when Radau does not have this dependency
-  # - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/andreasnoack/GenericLinearAlgebra.jl.git", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
-
-  # TODO: remove when default version has principal_value!
-  # - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/JuliaRobotics/RigidBodyDynamics.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
-
-# script:
- # - $TESTCMD -e 'import Pkg; Pkg.add(Pkg.PackageSpec(path=pwd())); Pkg.build(Binary_BB_Trees"); Pkg.test("Binary_BB_Trees"; coverage=true)'
 after_success:
   # push coverage results to Codecov
   - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
-
-# after_success:
-#   - julia --project -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
