@@ -33,24 +33,32 @@ function calc_patch_coordinate_system(b::TypedElasticBodyBodyCache{N,T}) where {
     frameᶜ = b.mesh_2.FrameID
     wrenchʷ_normal, pʷ_center = normal_wrench_patch_center(b)
     p_centerᶜ = transform(pʷ_center, b.x_r²_rʷ)
-    ### want to calculate in a frame aligned with the compliant body frame and instaneously coincident with the center of pressure
+    ### want to calculate in a frame aligned with the compliant body frame and instaneously coincident with the COP
     IM = I + zeros(MMatrix{4,4,T,16})
     IM[13:15] .+= SVector{3,T}(-p_centerᶜ.v)
     x_rϕ_rʷ = Transform3D(frameᶜ, FRAME_ϕ, IM) * b.x_r²_rʷ
     return x_rϕ_rʷ, wrenchʷ_normal
 end
 
-function decompose_stiffness(K_bad)
-    trace_11 = sqrt(0.33333333333333333 * sum(diag(K_bad)[1:3]))
-    trace_22 = sqrt(0.33333333333333333 * sum(diag(K_bad)[4:6]))
-    S_u = Diagonal([trace_11, trace_11, trace_11, trace_22, trace_22, trace_22])
-    S_u⁻¹ = inv(S_u)
-    K̄ = S_u⁻¹ * K_bad * S_u⁻¹
+function decompose_stiffness!(s::spatialStiffness)
+    trace_11 = sqrt(0.33333333333333333 * sum(diag(s.K)[1:3]))
+    trace_22 = sqrt(0.33333333333333333 * sum(diag(s.K)[4:6]))
+    s.S = Diagonal(SVector(trace_11, trace_11, trace_11, trace_22, trace_22, trace_22))
+    s.S⁻¹ = inv(s.S)
+    K̄ = s.S⁻¹ * s.K * s.S⁻¹
     mean_val = sum(diag(K̄)) / 6
-    K̄ = K̄ + I * mean_val * 1.0e-8
-    Ū = cholesky(Hermitian(K̄)).U
-    Ū⁻¹ = inv(Ū)
-    return S_u, S_u⁻¹, Ū, Ū⁻¹
+    s.K̄ = Hermitian(K̄ + I * mean_val * 1.0e-8)
+    s.Ū = cholesky(s.K̄).U
+    s.Ū⁻¹ = inv(s.Ū)
+end
+
+calc_δ(s::spatialStiffness{T}, Δ) where {T} = s.S⁻¹ * (s.Ū⁻¹ * Δ)
+calc_Δ(s::spatialStiffness{T}, δ) where {T} = s.Ū * (s.S * δ)
+
+function calc_ΔΔ(τ::Float64, Δ::SVector{6,T}, s::spatialStiffness{T}, wrench_ϕ::Wrench{T}) where {T}
+    wrench_ϕ = as_static_vector(wrench_ϕ)
+    τ⁻¹ = 1.0 / τ
+    return -τ⁻¹ * (Δ + s.Ū⁻¹ * (s.S⁻¹ * wrench_ϕ))
 end
 
 function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
@@ -61,23 +69,50 @@ function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins
     BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     b = tm.bodyBodyCache
+    s = b.spatialStiffness
     x_rϕ_rʷ, wrenchʷ_normal = calc_patch_coordinate_system(b)
     calc_patch_spatial_stiffness!(tm, BF, x_rϕ_rʷ)
-
-    S_u, S_u⁻¹, Ū, Ū⁻¹ = decompose_stiffness(b.K)
-
+    decompose_stiffness!(s)
     Δ = get_bristle_d0(tm, bristle_id)
-    δϕ = S_u⁻¹ * Ū⁻¹ * Δ
-    δϕ = SVector{6,T}(δϕ[1], δϕ[2], δϕ[3], δϕ[4], δϕ[5], δϕ[6])
+    δ = calc_δ(s, Δ)
+    wrench = calc_spatial_bristle_force_cf(tm, c_ins, δ, b.twist_r¹_r², b.x_r²_rʷ)
+    get_bristle_d1(tm, bristle_id) .= calc_ΔΔ(BF.τ, Δ, s, wrench)
+    return wrenchʷ_normal + transform(wrench, b.x_rʷ_r²)
 
-    twist_r¹_r²_rϕ = transform(b.twist_r¹_r², x_rϕ_rʷ)
-    wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
-    get_bristle_d1(tm, bristle_id) .= -(1.0 / BF.τ) * (Δ + transpose(Ū⁻¹) * (S_u⁻¹ * as_static_vector(wrench_ϕ)))
+    # BF = c_ins.FrictionModel
+    # bristle_id = BF.BristleID
+    # b = tm.bodyBodyCache
+    # s = b.spatialStiffness
+    # x_rϕ_rʷ, wrenchʷ_normal = calc_patch_coordinate_system(b)
+    # calc_patch_spatial_stiffness!(tm, BF, x_rϕ_rʷ)
+    # decompose_stiffness!(s)
+    # Δ = get_bristle_d0(tm, bristle_id)
+    # δϕ = calc_δ(s, Δ)
+    #
+    # twist_r¹_r²_rϕ = transform(b.twist_r¹_r², x_rϕ_rʷ)
+    # wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
+    # # get_bristle_d1(tm, bristle_id) .= -(1.0 / BF.τ) * (Δ + transpose(s.Ū⁻¹) * (s.S⁻¹ * as_static_vector(wrench_ϕ)))
+    # get_bristle_d1(tm, bristle_id) .= calc_ΔΔ(BF.τ, Δ, s, wrench_ϕ)
+    # # -(1.0 / BF.τ) * (Δ + transpose(s.Ū⁻¹) * (s.S⁻¹ * as_static_vector(wrench_ϕ)))
+    #
+    # return wrenchʷ_normal + transform(wrench_ϕ, inv(x_rϕ_rʷ))
 
-    return wrenchʷ_normal + transform(wrench_ϕ, inv(x_rϕ_rʷ))
 end
 
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
+
+function transform_stiffness!(s::spatialStiffness, x_rϕ_rʷ)
+    # see table 2.5 in RBDA
+    R = rotation(x_rϕ_rʷ)
+    rx = vector_to_skew_symmetric(translation(x_rϕ_rʷ))
+    X_L = zeros(6,6)
+    X_L[1:3, 1:3] = R
+    X_L[4:6, 4:6] = R
+    X_R = X_L'
+    X_L[1:3, 4:6] = -R * rx
+    X_R[4:6, 1:3] = rx * R'
+    s.K = X_L * s.K * X_R
+end
 
 function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF, transform_cf) where {N,T}
     b = tm.bodyBodyCache
@@ -99,16 +134,14 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF, tran
             K_22_sum +=  p_dA *    I_minus_n̂n̂
         end
     end
-    b.K.data.data[1:3,1:3] .= K_11_sum
-    b.K.data.data[1:3,4:6] .= K_12_sum
-    b.K.data.data[4:6,1:3] .= K_12_sum'
-    b.K.data.data[4:6,4:6] .= K_22_sum
-    b.K.data.data .*= BF.k̄
+    b.spatialStiffness.K = BF.k̄ * vcat(hcat(K_11_sum, K_12_sum), hcat(K_12_sum', K_22_sum))
+    transform_stiffness!(b.spatialStiffness, transform_cf)
 end
 
 function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δ_cf::SVector{6,T},
     twist_cf, transform_cf) where {N,T}
 
+    frame_now = transform_cf.to
     b = tm.bodyBodyCache
     tc = b.TractionCache
     BF = c_ins.FrictionModel
@@ -116,7 +149,7 @@ function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::C
     μ = b.μ
     k̄ = BF.k̄
     vʳᵉˡ = as_static_vector(twist_cf)
-    wrench_sum = zero(Wrench{T}, FRAME_ϕ)
+    wrench_sum = zero(Wrench{T}, frame_now)
     for k = 1:length(tc)
         trac = tc.vec[k]
         n̂_cf = transform(trac.n̂, transform_cf)
@@ -132,7 +165,7 @@ function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::C
             if max_fric < norm_λ_s
                 λ_s = λ_s * (max_fric / norm_λ_s)
             end
-            wrench_sum += Wrench(r_cf, FreeVector3D(FRAME_ϕ, λ_s))
+            wrench_sum += Wrench(r_cf, FreeVector3D(frame_now, λ_s))
         end
     end
     return wrench_sum

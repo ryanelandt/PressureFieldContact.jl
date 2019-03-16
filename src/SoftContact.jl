@@ -105,6 +105,7 @@ export
     # mechanism_scenario
     TractionCache,
     calc_p_dA,
+    spatialStiffness,
     TypedElasticBodyBodyCache,
     TypedMechanismScenario,
     makePaths,
