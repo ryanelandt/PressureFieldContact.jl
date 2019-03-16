@@ -56,4 +56,10 @@
     f_spring = -b.K * δϕ
 
     @test all((f_spring ./ f_calc_force_cf) .≈ 1.0)
+
+    S_u, S_u⁻¹, Ū, Ū⁻¹ = SoftContact.decompose_stiffness(b.K)
+    K_back = S_u * Ū' * Ū * S_u
+    @test K_back ≈ b.K
+
+
 end

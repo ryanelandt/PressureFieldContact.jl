@@ -40,6 +40,19 @@ function calc_patch_coordinate_system(b::TypedElasticBodyBodyCache{N,T}) where {
     return x_rϕ_rʷ, wrenchʷ_normal
 end
 
+function decompose_stiffness(K_bad)
+    trace_11 = sqrt(0.33333333333333333 * sum(diag(K_bad)[1:3]))
+    trace_22 = sqrt(0.33333333333333333 * sum(diag(K_bad)[4:6]))
+    S_u = Diagonal([trace_11, trace_11, trace_11, trace_22, trace_22, trace_22])
+    S_u⁻¹ = inv(S_u)
+    K̄ = S_u⁻¹ * K_bad * S_u⁻¹
+    mean_val = sum(diag(K̄)) / 6
+    K̄ = K̄ + I * mean_val * 1.0e-8
+    Ū = cholesky(Hermitian(K̄)).U
+    Ū⁻¹ = inv(Ū)
+    return S_u, S_u⁻¹, Ū, Ū⁻¹
+end
+
 function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     # TODO: improve this to resist slipping more "accurately"
     # TODO: correctly deal with the derivative of delta given the center is moving
@@ -51,18 +64,7 @@ function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins
     x_rϕ_rʷ, wrenchʷ_normal = calc_patch_coordinate_system(b)
     calc_patch_spatial_stiffness!(tm, BF, x_rϕ_rʷ)
 
-    K_bad = b.K
-    m2u = sqrt(sum(diag(K_bad)[4:6]) / sum(diag(K_bad)[1:3]))
-    S_u = Diagonal(sqrt.([1/m2u, 1/m2u, 1/m2u, m2u, m2u, m2u]))
-    S_u⁻¹ = inv(S_u)
-    K̄ = S_u⁻¹ * K_bad * S_u⁻¹
-
-    mean_val = sum(diag(K̄)) / 6
-
-    K̄ = K̄ + I * mean_val * 1.0e-8
-
-    Ū = cholesky(Hermitian(K̄)).U
-    Ū⁻¹ = inv(Ū)
+    S_u, S_u⁻¹, Ū, Ū⁻¹ = decompose_stiffness(b.K)
 
     Δ = get_bristle_d0(tm, bristle_id)
     δϕ = S_u⁻¹ * Ū⁻¹ * Δ
