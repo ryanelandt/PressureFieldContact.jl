@@ -48,7 +48,7 @@ function force_single_elastic_intersection!(m::MechanismScenario{NX,NQ,T1}, tm::
         refreshBodyBodyCache!(m, tm, c_ins)
         integrate_over_logic!(tm.bodyBodyCache, m.TT_Cache)
         if !isempty(tm.bodyBodyCache.TractionCache)
-            wrench = yes_contact!(c_ins.FrictionModel, m.frame_world, tm, c_ins)
+            wrench = yes_contact!(c_ins.FrictionModel, tm, c_ins)
             addGeneralizedForcesThirdLaw!(wrench, tm, c_ins)
             return wrench
         end
