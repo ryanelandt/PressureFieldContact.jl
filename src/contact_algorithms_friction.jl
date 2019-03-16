@@ -72,7 +72,7 @@ function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins
 
     twist_r¹_r²_rϕ = transform(b.twist_r¹_r², x_rϕ_rʷ)
     wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
-    get_bristle_d1(tm, bristle_id) .= -(1.0 / BF.τ) * (Δ + transpose(Ū⁻¹) * S_u⁻¹ * as_static_vector(wrench_ϕ))
+    get_bristle_d1(tm, bristle_id) .= -(1.0 / BF.τ) * (Δ + transpose(Ū⁻¹) * (S_u⁻¹ * as_static_vector(wrench_ϕ)))
 
     return wrenchʷ_normal + transform(wrench_ϕ, inv(x_rϕ_rʷ))
 end
