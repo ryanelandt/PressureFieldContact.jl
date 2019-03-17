@@ -14,6 +14,21 @@
     @test norm(i66 - s.K) < 1.0e-13
 end
 
+@testset "spatialStiffness" begin
+    s = spatialStiffness{Float64}()
+    s.K = rand_pd(6)
+    SoftContact.decompose_stiffness!(s)
+    τ = 0.1
+    τ⁻¹ = 1.0 / τ
+    Δ = randn(SVector{6,Float64})
+    f = randn(SVector{6,Float64})
+    wrench_f = Wrench(CartesianFrame3D(), first_3_of_6(f), last_3_of_6(f))
+    ΔΔ_check = -τ⁻¹ * (Δ + (s.Ū⁻¹)' * (s.S⁻¹ * f))
+    ΔΔ = SoftContact.calc_ΔΔ(τ, Δ, s, wrench_f)
+    @test (ΔΔ ≈ ΔΔ_check)
+    @test s.K ≈ s.S * (s.Ū' * s.Ū) * s.S
+end
+
 @testset "bristle friction" begin
     ### Box properties
     box_rad = 0.05
@@ -71,9 +86,9 @@ end
     tm = mech_scen.float
     b = tm.bodyBodyCache
     s = b.spatialStiffness
-    SoftContact.decompose_stiffness!(s)
-    K_back = s.S * (s.Ū' * s.Ū) * s.S
-    @test K_back ≈ b.spatialStiffness.K
+    # SoftContact.decompose_stiffness!(s)
+    # K_back = s.S * (s.Ū' * s.Ū) * s.S
+    # @test K_back ≈ b.spatialStiffness.K
 
     ### Test 3 -- see if spring force calculated both ways agrees
     c_ins = mech_scen.ContactInstructions[1]

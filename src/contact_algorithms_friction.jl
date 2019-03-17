@@ -47,7 +47,7 @@ calc_Δ(s::spatialStiffness{T}, δ) where {T} = s.Ū * (s.S * δ)
 function calc_ΔΔ(τ::Float64, Δ::SVector{6,T}, s::spatialStiffness{T}, wrench_ϕ::Wrench{T}) where {T}
     wrench_ϕ = as_static_vector(wrench_ϕ)
     τ⁻¹ = 1.0 / τ
-    return -τ⁻¹ * (Δ + s.Ū⁻¹ * (s.S⁻¹ * wrench_ϕ))
+    return -τ⁻¹ * (Δ + transpose(s.Ū⁻¹) * (s.S⁻¹ * wrench_ϕ))  # TODO: Fix this issue
 end
 
 function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
