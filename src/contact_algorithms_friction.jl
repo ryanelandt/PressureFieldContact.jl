@@ -62,22 +62,39 @@ function calc_ΔΔ(τ::Float64, Δ::SVector{6,T}, s::spatialStiffness{T}, wrench
 end
 
 function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+    wrenchʷ_normal, wrenchʷ_fric = bristle_wrench_in_world(tm, c_ins)
+    return wrenchʷ_normal + wrenchʷ_fric
+end
+
+function transform_δ(v::SVector{6,T}, x) where {T}
+    # transform_spatial_motion(angular(twist), linear(twist), rotation(tf), translation(tf))
+    ang = SVector{3,T}(v[1], v[2], v[3])
+    lin = SVector{3,T}(v[4], v[5], v[6])
+    ang, lin = RigidBodyDynamics.Spatial.transform_spatial_motion(ang, lin, rotation(x), translation(x))
+    return vcat(ang, lin)
+end
+
+function bristle_wrench_in_world(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     # TODO: improve this to resist slipping more "accurately"
-    # TODO: correctly deal with the derivative of delta given the center is moving
     # TODO: make work for 2 compliant objects. Currently 1 is rigid and 2 is compliant
 
     BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     b = tm.bodyBodyCache
     s = b.spatialStiffness
-    x_rϕ_rʷ, wrenchʷ_normal = calc_patch_coordinate_system(b)
-    calc_patch_spatial_stiffness!(tm, BF, x_rϕ_rʷ)
+
+    wrenchʷ_normal, pʷ_center = normal_wrench_patch_center(b)
+    calc_patch_spatial_stiffness!(tm, BF)
+    transform_stiffness!(s, b.x_r²_rʷ)
+
     decompose_stiffness!(s)
-    Δ = get_bristle_d0(tm, bristle_id)
-    δ = calc_δ(s, Δ)
-    wrench = calc_spatial_bristle_force_cf(tm, c_ins, δ, b.twist_r¹_r², b.x_r²_rʷ)
-    get_bristle_d1(tm, bristle_id) .= calc_ΔΔ(BF.τ, Δ, s, wrench)
-    return wrenchʷ_normal + transform(wrench, b.x_rʷ_r²)
+    Δ² = get_bristle_d0(tm, bristle_id)
+    δ² = calc_δ(s, Δ²)
+    δʷ = transform_δ(δ², b.x_rʷ_r²)
+    wrenchʷ_fric = calc_spatial_bristle_force(tm, c_ins, δʷ, b.twist_r¹_r²)
+    wrench²_fric = transform(wrenchʷ_fric, b.x_r²_rʷ)
+    get_bristle_d1(tm, bristle_id) .= calc_ΔΔ(BF.τ, Δ², s, wrench²_fric)
+    return wrenchʷ_normal, wrenchʷ_fric
 
     # BF = c_ins.FrictionModel
     # bristle_id = BF.BristleID
@@ -96,25 +113,25 @@ function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins
     # # -(1.0 / BF.τ) * (Δ + transpose(s.Ū⁻¹) * (s.S⁻¹ * as_static_vector(wrench_ϕ)))
     #
     # return wrenchʷ_normal + transform(wrench_ϕ, inv(x_rϕ_rʷ))
-
 end
+
 
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
 
-function transform_stiffness!(s::spatialStiffness, x_rϕ_rʷ)
+function transform_stiffness!(s::spatialStiffness, x_r²_rʷ)
     # see table 2.5 in RBDA
-    R = rotation(x_rϕ_rʷ)
-    rx = vector_to_skew_symmetric(translation(x_rϕ_rʷ))
+    R = rotation(x_r²_rʷ)
+    rx = vector_to_skew_symmetric(translation(x_r²_rʷ))
     X_L = zeros(6,6)
     X_L[1:3, 1:3] = R
     X_L[4:6, 4:6] = R
     X_R = X_L'
     X_L[1:3, 4:6] = -R * rx
     X_R[4:6, 1:3] = rx * R'
-    s.K = X_L * s.K * X_R
+    s.K = X_L * s.Kʷ * X_R
 end
 
-function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF, transform_cf) where {N,T}
+function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) where {N,T}
     b = tm.bodyBodyCache
     tc = b.TractionCache
     K_11_sum = zeros(SMatrix{3,3,T,9})
@@ -122,52 +139,53 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF, tran
     K_22_sum = zeros(SMatrix{3,3,T,9})
     for k = 1:length(tc)
         trac = tc.vec[k]
-        n̂² = transform(trac.n̂, transform_cf)
-        I_minus_n̂n̂ = I - n̂².v * n̂².v'  # suprisingly fast
+        n̂ = trac.n̂
+        I_minus_n̂n̂ = I - n̂.v * n̂.v'  # suprisingly fast
         for k_qp = 1:N
             p_dA = calc_p_dA(trac, k_qp)
-            r² = transform(trac.r_cart[k_qp], transform_cf)
-            r²_skew = vector_to_skew_symmetric(r².v)
-            rx_I_minus_n̂n̂ = r²_skew * I_minus_n̂n̂
-            K_11_sum += -p_dA * rx_I_minus_n̂n̂ * r²_skew
+            r = trac.r_cart[k_qp]
+            r_skew = vector_to_skew_symmetric(r.v)
+            rx_I_minus_n̂n̂ = r_skew * I_minus_n̂n̂
+            K_11_sum += -p_dA * rx_I_minus_n̂n̂ * r_skew
             K_12_sum +=  p_dA * rx_I_minus_n̂n̂
             K_22_sum +=  p_dA *    I_minus_n̂n̂
         end
     end
-    b.spatialStiffness.K = BF.k̄ * vcat(hcat(K_11_sum, K_12_sum), hcat(K_12_sum', K_22_sum))
-    transform_stiffness!(b.spatialStiffness, transform_cf)
+    b.spatialStiffness.Kʷ = BF.k̄ * vcat(hcat(K_11_sum, K_12_sum), hcat(K_12_sum', K_22_sum))
+    # transform_stiffness!(b.spatialStiffness, transform_cf)
 end
 
-function calc_spatial_bristle_force_cf(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δ_cf::SVector{6,T},
-    twist_cf, transform_cf) where {N,T}
+function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δ::SVector{6,T},
+    twist) where {N,T}
 
-    frame_now = transform_cf.to
+    frame_now = tm.frame_world
     b = tm.bodyBodyCache
     tc = b.TractionCache
     BF = c_ins.FrictionModel
     τ = BF.τ
     μ = b.μ
     k̄ = BF.k̄
-    vʳᵉˡ = as_static_vector(twist_cf)
+    vʳᵉˡ = as_static_vector(twist)
     wrench_sum = zero(Wrench{T}, frame_now)
     for k = 1:length(tc)
         trac = tc.vec[k]
-        n̂_cf = transform(trac.n̂, transform_cf)
+        n̂ = trac.n̂
         for k_qp = 1:N
-            r_cf = transform(trac.r_cart[k_qp], transform_cf)
-            x̄_δ_cf = spatial_vel_formula(δ_cf, r_cf.v)
-            x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, r_cf.v)
+            r = trac.r_cart[k_qp]
+            x̄_δ = spatial_vel_formula(δ, r.v)
+            x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, r.v)
             p_dA = calc_p_dA(trac, k_qp)
-            λ_s = -k̄ * p_dA * (x̄_δ_cf + τ * x̄x̄_vʳᵉˡ)
-            λ_s = vec_sub_vec_proj(λ_s, n̂_cf.v)
+            λ_s = -k̄ * p_dA * (x̄_δ + τ * x̄x̄_vʳᵉˡ)
+            λ_s = vec_sub_vec_proj(λ_s, n̂.v)
             norm_λ_s = norm(λ_s)
             max_fric = μ * p_dA
             if max_fric < norm_λ_s
                 λ_s = λ_s * (max_fric / norm_λ_s)
             end
-            wrench_sum += Wrench(r_cf, FreeVector3D(frame_now, λ_s))
+            wrench_sum += Wrench(r, FreeVector3D(frame_now, λ_s))
         end
     end
+
     return wrench_sum
 end
 

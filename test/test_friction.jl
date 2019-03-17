@@ -38,8 +38,13 @@
     mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=2)
     x = get_state(mech_scen)
 
-    tm = mech_scen.float
     c_ins = mech_scen.ContactInstructions[1]
+    tm = mech_scen.float
+    b = tm.bodyBodyCache
+
+
+
+    SoftContact.force_single_elastic_intersection!(mech_scen, tm, c_ins)  # populate the cache
 
     ### Test 1
     # see if stiffness was decomposed correctly
@@ -50,13 +55,11 @@
 
     ### Test 2
     # see if spring force calculated both ways agrees
-    SoftContact.force_single_elastic_intersection!(mech_scen, tm, c_ins)  # populate the cache
     δ = (rand(SVector{6,Float64}) + 0.5) * 1.0e-8
-    b = tm.bodyBodyCache
-    x_rϕ_rʷ = SoftContact.calc_patch_coordinate_system(b)[1]
-    SoftContact.calc_patch_spatial_stiffness!(tm, c_ins.FrictionModel, x_rϕ_rʷ)
-    wrench = SoftContact.calc_spatial_bristle_force_cf(tm, c_ins, δ, b.twist_r¹_r², b.x_r²_rʷ)
-    f_calc_force_cf = as_static_vector(wrench)
-    f_spring = -b.spatialStiffness.K * δ
-    @test all((f_spring ./ f_calc_force_cf) .≈ 1.0)
+    Δ = SoftContact.calc_Δ(s, δ)
+    mech_scen.float.s.segments[BristleID(1)] .= Δ
+    _, wrenchʷ_fric = SoftContact.bristle_wrench_in_world(tm, c_ins)
+    wrenchʷ_fric = as_static_vector(wrenchʷ_fric)
+    wrenchʷ_fric_2 = - s.Kʷ * δ
+    @test all(wrenchʷ_fric ≈ wrenchʷ_fric_2)
 end

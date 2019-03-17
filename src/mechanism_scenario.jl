@@ -41,6 +41,7 @@ end
 # end
 
 mutable struct spatialStiffness{T}
+    Kʷ::SMatrix{6,6,T,36}
     K::SMatrix{6,6,T,36}
     K̄::Hermitian{T,SMatrix{6,6,T,36}}
     S::Diagonal{T,SVector{6,T}}
@@ -50,18 +51,18 @@ mutable struct spatialStiffness{T}
     function spatialStiffness{T}() where {T}
         nan6 = SVector{6,T}(NaN, NaN, NaN, NaN, NaN, NaN)
         nan66 = nan6 * nan6'
+        Kʷ = nan66
         K = nan66
         K̄ = Hermitian(nan66)
         S = Diagonal(nan6)
         S⁻¹ = Diagonal(nan6)
         Ū = UpperTriangular(nan66)
         Ū⁻¹ = UpperTriangular(nan66)
-        return new(K, K̄, S, S⁻¹, Ū, Ū⁻¹)
+        return new(Kʷ, K, K̄, S, S⁻¹, Ū, Ū⁻¹)
     end
 end
 
 mutable struct TypedElasticBodyBodyCache{N,T}
-    # K::Hermitian{T,SizedArray{Tuple{6,6},T,2,2}}
     spatialStiffness::spatialStiffness{T}
     frame_world::CartesianFrame3D
     quad::TriTetQuadRule{3,N}
@@ -79,7 +80,6 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     d⁻¹::Float64
     wrench::Wrench{T}
     function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
-        # K = Hermitian(Size(6,6)(zeros(T,6,6)))
         trac_cache = VectorCache{TractionCache{N, T}}()
         K = spatialStiffness{T}()
         return new{N,T}(K, frame_world, quad, trac_cache)
