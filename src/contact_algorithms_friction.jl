@@ -56,7 +56,6 @@ function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins
 end
 
 function transform_δ(v::SVector{6,T}, x) where {T}
-    # transform_spatial_motion(angular(twist), linear(twist), rotation(tf), translation(tf))
     ang = SVector{3,T}(v[1], v[2], v[3])
     lin = SVector{3,T}(v[4], v[5], v[6])
     ang, lin = RigidBodyDynamics.Spatial.transform_spatial_motion(ang, lin, rotation(x), translation(x))
