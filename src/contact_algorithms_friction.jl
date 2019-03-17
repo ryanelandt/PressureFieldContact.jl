@@ -95,17 +95,25 @@ end
 
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
 
-function transform_stiffness!(s::spatialStiffness{T}, x_r²_rʷ) where {T}
-    # see table 2.5 in RBDA
-    R = rotation(x_r²_rʷ)
-    rx = vector_to_skew_symmetric(translation(x_r²_rʷ))
-    X_L = zeros(T,6,6)
-    X_L[1:3, 1:3] = R
-    X_L[4:6, 4:6] = R
-    X_R = X_L'
-    X_L[1:3, 4:6] = -R * rx
-    X_R[4:6, 1:3] = rx * R'
-    s.K = X_L * s.Kʷ * X_R
+# function transform_stiffness!(s::spatialStiffness{T}, x_r²_rʷ) where {T}
+#     # see table 2.5 in RBDA
+#     R = rotation(x_r²_rʷ)
+#     rx = vector_to_skew_symmetric(translation(x_r²_rʷ))
+#     X_L = zeros(T,6,6)
+#     X_L[1:3, 1:3] = R
+#     X_L[4:6, 4:6] = R
+#     X_R = X_L'
+#     X_L[1:3, 4:6] = -R * rx
+#     X_R[4:6, 1:3] = rx * R'
+#     s.K = X_L * s.Kʷ * X_R
+# end
+
+function transform_stiffness!(s::spatialStiffness{T}, xform) where {T}
+    R = rotation(xform)
+    t = translation(xform)
+    rx = vector_to_skew_symmetric(t)
+    X = vcat(hcat(R, (rx * R)), hcat(zeros(SMatrix{3,3,T,9}), R))
+    s.K = X * s.Kʷ * X'
 end
 
 function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) where {N,T}

@@ -1,4 +1,19 @@
 
+@testset "transform_stiffness" begin
+    f2 = CartesianFrame3D()
+    f3 = CartesianFrame3D()
+    I3 = @SMatrix([9.0 2.0 1.0; 2.0 8.0 3.0; 1.0 3.0 7.0])
+    inertia_pre = SpatialInertia{Float64}(f2, I3, randn(SVector{3,Float64}), 1.5)
+    xform = Transform3D(f2, f3, rand(RotMatrix{3,Float64}), rand(SVector{3,Float64}))
+    i66 = SMatrix(transform(inertia_pre, xform))
+
+    s = spatialStiffness{Float64}()
+    s.Kʷ = SMatrix(inertia_pre)
+    SoftContact.transform_stiffness!(s, xform)
+
+    @test norm(i66 - s.K) < 1.0e-13
+end
+
 @testset "bristle friction" begin
     ### Box properties
     box_rad = 0.05
