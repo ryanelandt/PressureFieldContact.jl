@@ -89,7 +89,7 @@ end
 function set_Δ_from_δʷ(mech_scen, c_ins::ContactInstructions, δʷ)
     SoftContact.force_single_elastic_intersection!(mech_scen, mech_scen.float, c_ins)
     δ² = SoftContact.transform_δ(δʷ, mech_scen.float.bodyBodyCache.x_rʷ_r²)
-    Δ = SoftContact.calc_Δ(s, δ²)
+    Δ = SoftContact.calc_Δ(mech_scen.float.bodyBodyCache.spatialStiffness, δ²)
     b_id = c_ins.FrictionModel.BristleID
     mech_scen.float.s.segments[b_id] .= Δ
 end
