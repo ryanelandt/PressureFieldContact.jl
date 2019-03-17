@@ -1,0 +1,51 @@
+
+@testset "normal wrench" begin
+    for k_quad_rule = (1, 2)
+        p_pos = (0.1, 0.2)
+
+        ### Box properties
+        box_rad = 0.05
+        i_prop_rigid     = InertiaProperties(400.0, d=0.09)
+        c_prop_compliant = ContactProperties(Ē=1.0e9, d=box_rad)
+
+        ### Create mechanism and temporary structure
+        my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -9.8054))  # create empty mechanism
+        ts = TempContactStruct(my_mechanism)
+
+        name_plane = "plane"
+        eM_plane = output_eMesh_half_plane()
+        add_contact!(ts, name_plane, eM_plane, c_prop_compliant)
+
+        name_box = "box"
+        eM_box = as_tri_eMesh(output_eMesh_box(box_rad))
+        eMesh_transform!(eM_box, SVector{3,Float64}(0.0, 0.0, box_rad))
+        body_box, joint_box = add_body_contact!(ts, name_box, eM_box, nothing, i_prop_rigid)
+
+        m_id_plane = find_mesh_id(ts, name_plane)
+        m_id_box = find_mesh_id(ts, name_box)
+        add_pair_rigid_compliant_bristle!(ts, m_id_box, m_id_plane, μ=0.3, χ=0.6, k̄=1.0e6, τ=0.03)
+
+        mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=k_quad_rule)
+
+        pene = 0.1 * box_rad
+        set_state_spq!(mech_scen, joint_box, trans=SVector{3,Float64}(p_pos..., -pene))
+
+        x = get_state(mech_scen)
+        calcXd(x, mech_scen)
+
+        b = mech_scen.float.bodyBodyCache
+        wrench = normal_wrench(b)
+        wrench = as_static_vector(wrench)
+        check = b.Ē * pene / 1.0 * box_rad^2*4
+        f3 = SVector(0.0, 0.0, check)
+        a3 = cross(SVector(p_pos..., 0.0), f3)
+        check = vcat(a3,f3)
+        @test wrench ≈ check
+
+        wrench, p_center = normal_wrench_patch_center(b)
+        wrench = as_static_vector(wrench)
+        check = b.Ē * pene / 1.0 * box_rad^2*4
+        @test check ≈ wrench[6]
+        @test all((p_pos .* 0.999) .< p_center.v[1:2] .< (p_pos .* 1.001))
+    end
+end

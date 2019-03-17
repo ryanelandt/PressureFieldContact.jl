@@ -30,19 +30,20 @@ end
 
     name_part = "part"
     eM_box = output_eMesh_box(box_rad .* SVector{3,Float64}(1.0, 1.0, 20.0))
-    dh_transform_mesh!(eM_box, basic_dh(box_rad * SVector{3,Float64}(0.0, 0.0, -19.0)))
+    eMesh_transform!(eM_box, box_rad * SVector{3,Float64}(0.0, 0.0, -19.0))
     body_part, joint_part = add_body_contact!(ts, name_part, as_tri_eMesh(eM_box), nothing, i_prop_rigid)
 
     name_hol_1 = "hol_1"
     hol_rad = 0.2 * box_rad
     eM_hol_1 = output_eMesh_box(hol_rad * ones(SVector{3,Float64}))
-    dh_transform_mesh!(eM_hol_1, basic_dh(SVector{3,Float64}(box_rad + hol_rad, 0.0, 0.0)))
+    eMesh_transform!(eM_hol_1, SVector{3,Float64}(box_rad + hol_rad, 0.0, 0.0))
     joint_1 = Prismatic(SVector{3,Float64}(-1.0, 0.0, 0.0))
     _, joint_1 = add_body_contact!(ts, name_hol_1, eM_hol_1, c_prop_compliant, i_prop_compliant, joint_type=joint_1)
 
     name_hol_2 = "hol_2"
     eM_hol_2 = deepcopy(eM_hol_1)
-    dh_transform_mesh!(eM_hol_2, basic_dh(RotZ(1.0 * pi)))
+    # dh_transform_mesh!(eM_hol_2, basic_dh(RotZ(1.0 * pi)))
+    eMesh_transform!(eM_hol_2, RotZ(1.0 * pi))
     joint_2 = Prismatic(SVector{3,Float64}(+1.0, 0.0, 0.0))
     _, joint_2 = add_body_contact!(ts, name_hol_2, eM_hol_2, c_prop_compliant, i_prop_compliant, joint_type=joint_2)
 

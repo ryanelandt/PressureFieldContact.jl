@@ -30,6 +30,12 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
     return nothing
 end
 
+function calcXd(x::AbstractVector{T1}, m::MechanismScenario{NX,NQ,T2}, t::Float64=0.0) where {T1,NX,NQ,T2}
+    xx = deepcopy(x)
+    calcXd!(xx, x, m)
+    return xx
+end
+
 function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NX,NQ,T1,T2}
     refreshJacobians!(m, tm)
     tm.f_generalized .= zero(T2)

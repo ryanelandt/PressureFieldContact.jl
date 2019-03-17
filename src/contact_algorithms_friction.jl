@@ -95,19 +95,6 @@ end
 
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
 
-# function transform_stiffness!(s::spatialStiffness{T}, x_r²_rʷ) where {T}
-#     # see table 2.5 in RBDA
-#     R = rotation(x_r²_rʷ)
-#     rx = vector_to_skew_symmetric(translation(x_r²_rʷ))
-#     X_L = zeros(T,6,6)
-#     X_L[1:3, 1:3] = R
-#     X_L[4:6, 4:6] = R
-#     X_R = X_L'
-#     X_L[1:3, 4:6] = -R * rx
-#     X_R[4:6, 1:3] = rx * R'
-#     s.K = X_L * s.Kʷ * X_R
-# end
-
 function transform_stiffness!(s::spatialStiffness{T}, xform) where {T}
     R = rotation(xform)
     t = translation(xform)
@@ -161,8 +148,9 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
             p_dA = calc_p_dA(trac, k_qp)
             λ_s = -k̄ * p_dA * (x̄_δ + τ * x̄x̄_vʳᵉˡ)
             λ_s = vec_sub_vec_proj(λ_s, n̂.v)
-            norm_λ_s = norm(λ_s)
-            max_fric = μ * p_dA
+            norm_λ_s = safe_norm(λ_s)
+            # max_fric = μ * p_dA
+            max_fric = max(μ * p_dA, zero(T))
             if max_fric < norm_λ_s
                 λ_s = λ_s * (max_fric / norm_λ_s)
             end

@@ -121,6 +121,7 @@ export
 
     # contact_algorithms_non_friction.jl
     calcXd!,
+    calcXd,
     refreshJacobians!,
     normal_wrench,
     forceAllElasticIntersections!,
@@ -133,7 +134,8 @@ export
     set_Δ_from_δʷ,
 
     # contact_algorithms_normal.jl
-
+    normal_wrench,
+    normal_wrench_patch_center,
 
     # vis_meshcat.jl
     set_body_mesh_visual!,
