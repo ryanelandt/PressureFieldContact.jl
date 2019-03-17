@@ -129,6 +129,9 @@ export
     integrate_over_logic!,
     addGeneralizedForcesThirdLaw!,
 
+    # contact_algorithms_friction.jl
+    set_Δ_from_δʷ,
+
     # contact_algorithms_normal.jl
 
 

@@ -1,6 +1,6 @@
 
 function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
-    frame = b.frame_world
+    frame = tm.frame_world
     wrench = zero(Wrench{T}, frame)
     b = tm.bodyBodyCache
     v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
@@ -27,17 +27,6 @@ function no_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins:
     BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     get_bristle_d1(tm, bristle_id) .= -(1 / BF.τ) * get_bristle_d0(tm, bristle_id)
-end
-
-function calc_patch_coordinate_system(b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-    frameᶜ = b.mesh_2.FrameID
-    wrenchʷ_normal, pʷ_center = normal_wrench_patch_center(b)
-    p_centerᶜ = transform(pʷ_center, b.x_r²_rʷ)
-    ### want to calculate in a frame aligned with the compliant body frame and instaneously coincident with the COP
-    IM = I + zeros(MMatrix{4,4,T,16})
-    IM[13:15] .+= SVector{3,T}(-p_centerᶜ.v)
-    x_rϕ_rʷ = Transform3D(frameᶜ, FRAME_ϕ, IM) * b.x_r²_rʷ
-    return x_rϕ_rʷ, wrenchʷ_normal
 end
 
 function decompose_stiffness!(s::spatialStiffness)
@@ -95,34 +84,23 @@ function bristle_wrench_in_world(tm::TypedMechanismScenario{N,T}, c_ins::Contact
     wrench²_fric = transform(wrenchʷ_fric, b.x_r²_rʷ)
     get_bristle_d1(tm, bristle_id) .= calc_ΔΔ(BF.τ, Δ², s, wrench²_fric)
     return wrenchʷ_normal, wrenchʷ_fric
-
-    # BF = c_ins.FrictionModel
-    # bristle_id = BF.BristleID
-    # b = tm.bodyBodyCache
-    # s = b.spatialStiffness
-    # x_rϕ_rʷ, wrenchʷ_normal = calc_patch_coordinate_system(b)
-    # calc_patch_spatial_stiffness!(tm, BF, x_rϕ_rʷ)
-    # decompose_stiffness!(s)
-    # Δ = get_bristle_d0(tm, bristle_id)
-    # δϕ = calc_δ(s, Δ)
-    #
-    # twist_r¹_r²_rϕ = transform(b.twist_r¹_r², x_rϕ_rʷ)
-    # wrench_ϕ = calc_spatial_bristle_force_cf(tm, c_ins, δϕ, twist_r¹_r²_rϕ, x_rϕ_rʷ)
-    # # get_bristle_d1(tm, bristle_id) .= -(1.0 / BF.τ) * (Δ + transpose(s.Ū⁻¹) * (s.S⁻¹ * as_static_vector(wrench_ϕ)))
-    # get_bristle_d1(tm, bristle_id) .= calc_ΔΔ(BF.τ, Δ, s, wrench_ϕ)
-    # # -(1.0 / BF.τ) * (Δ + transpose(s.Ū⁻¹) * (s.S⁻¹ * as_static_vector(wrench_ϕ)))
-    #
-    # return wrenchʷ_normal + transform(wrench_ϕ, inv(x_rϕ_rʷ))
 end
 
+function set_Δ_from_δʷ(mech_scen, c_ins::ContactInstructions, δʷ)
+    SoftContact.force_single_elastic_intersection!(mech_scen, mech_scen.float, c_ins)
+    δ² = SoftContact.transform_δ(δʷ, mech_scen.float.bodyBodyCache.x_rʷ_r²)
+    Δ = SoftContact.calc_Δ(s, δ²)
+    b_id = c_ins.FrictionModel.BristleID
+    mech_scen.float.s.segments[b_id] .= Δ
+end
 
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
 
-function transform_stiffness!(s::spatialStiffness, x_r²_rʷ)
+function transform_stiffness!(s::spatialStiffness{T}, x_r²_rʷ) where {T}
     # see table 2.5 in RBDA
     R = rotation(x_r²_rʷ)
     rx = vector_to_skew_symmetric(translation(x_r²_rʷ))
-    X_L = zeros(6,6)
+    X_L = zeros(T,6,6)
     X_L[1:3, 1:3] = R
     X_L[4:6, 4:6] = R
     X_R = X_L'
@@ -152,7 +130,6 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
         end
     end
     b.spatialStiffness.Kʷ = BF.k̄ * vcat(hcat(K_11_sum, K_12_sum), hcat(K_12_sum', K_22_sum))
-    # transform_stiffness!(b.spatialStiffness, transform_cf)
 end
 
 function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δ::SVector{6,T},
@@ -190,6 +167,16 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
 end
 
 
+# function calc_patch_coordinate_system(b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+#     frameᶜ = b.mesh_2.FrameID
+#     wrenchʷ_normal, pʷ_center = normal_wrench_patch_center(b)
+#     p_centerᶜ = transform(pʷ_center, b.x_r²_rʷ)
+#     ### want to calculate in a frame aligned with the compliant body frame and instaneously coincident with the COP
+#     IM = I + zeros(MMatrix{4,4,T,16})
+#     IM[13:15] .+= SVector{3,T}(-p_centerᶜ.v)
+#     x_rϕ_rʷ = Transform3D(frameᶜ, FRAME_ϕ, IM) * b.x_r²_rʷ
+#     return x_rϕ_rʷ, wrenchʷ_normal
+# end
 
 # function stiction_promoting_soft_clamp(fric_pro::Float64, w_stick::Wrench{T}, w_bristle::Wrench{T}) where {T}
 #     @framecheck(w_stick.frame, w_bristle.frame)
