@@ -63,10 +63,10 @@ function add_body_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
         c_prop::Union{Nothing,ContactProperties}, i_prop::InertiaProperties;
         body_parent::Union{RigidBody{Float64},Nothing}=nothing,
         joint_type::JT=SPQuatFloating{Float64}(), dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
-    #
+    
     body, joint = add_body!(ts, name, e_mesh, i_prop, body_parent=body_parent, joint_type=joint_type, dh=dh)
-    add_contact!(ts, name, e_mesh, c_prop, body=body, dh=dh)
-    return body, joint
+    mesh_id = add_contact!(ts, name, e_mesh, c_prop, body=body, dh=dh)
+    return mesh_id, body, joint
 end
 
 function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
@@ -100,7 +100,7 @@ function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
     end
     mesh = MeshCache(name, e_mesh, e_tree, body)
     addMesh!(ts, mesh)
-    return nothing
+    return find_mesh_id(ts, mesh)
 end
 
 function add_body!(ts::TempContactStruct, name::String, e_mesh::eMesh, i_prop::InertiaProperties;
