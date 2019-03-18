@@ -254,7 +254,7 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{1,T}, area_q
 
     r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
     p = (p_1, )
-    if sum(p) != 0.0
+    if 0.0 < sum(p)
         r_cart = (r_cart_1, )
         v_cart_t = (v_cart_t_1, )
         dA = (dA_1, )
@@ -272,7 +272,7 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, area_q
     r_cart_2, v_cart_t_2, dA_2, p_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
     r_cart_3, v_cart_t_3, dA_3, p_3 = fillTractionCacheInnerLoop!(3, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
     p = (p_1, p_2, p_3)
-    if sum(p) != 0.0
+    if 0.0 < sum(p)
         dA = (dA_1, dA_2, dA_3)
         r_cart = (r_cart_1, r_cart_2, r_cart_3)
         v_cart_t = (v_cart_t_1, v_cart_t_2, v_cart_t_3)
@@ -301,17 +301,37 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
 end
 
 function addGeneralizedForcesThirdLaw!(wrench::Wrench{T}, tm::TypedMechanismScenario{N,T}, cInfo::ContactInstructions) where {N,T}
-    addGeneralizedForcesExternal!(wrench,  1.0, tm, tm.bodyBodyCache.mesh_1.BodyID)
-    addGeneralizedForcesExternal!(wrench, -1.0, tm, tm.bodyBodyCache.mesh_2.BodyID)
+    torque_third_law = tm.torque_third_law
+    f_generalized = tm.f_generalized
+    addGeneralizedForcesExternal!(f_generalized,  wrench, tm.GeometricJacobian[tm.bodyBodyCache.mesh_1.BodyID], torque_third_law)
+    addGeneralizedForcesExternal!(f_generalized, -wrench, tm.GeometricJacobian[tm.bodyBodyCache.mesh_2.BodyID], torque_third_law)
+end
+
+function addGeneralizedForcesExternal!(f_generalized::Vector{T}, wrench::Wrench{T}, jac::Nothing,
+        torque_third_law::Vector{T}) where {T}
+
+    return nothing
+end
+function addGeneralizedForcesExternal!(f_generalized::Vector{T}, wrench::Wrench{T}, jac::GeometricJacobian{Matrix{T}},
+        torque_third_law::Vector{T}) where {T}
+
+    torque!(torque_third_law, jac, wrench)
+    f_generalized .+= torque_third_law
     return nothing
 end
 
-function addGeneralizedForcesExternal!(wrench::Wrench{T},  coeff::Float64, tm::TypedMechanismScenario{N,T},
-        body_id::BodyID) where {N,T}
 
-    jac = tm.GeometricJacobian[body_id]
-    if jac != nothing
-        tm.f_generalized .+= coeff * torque(jac, wrench)
-    end
-    return nothing
-end
+# function addGeneralizedForcesThirdLaw!(wrench::Wrench{T}, tm::TypedMechanismScenario{N,T}, cInfo::ContactInstructions) where {N,T}
+#     addGeneralizedForcesExternal!( wrench, tm, tm.bodyBodyCache.mesh_1.BodyID)
+#     addGeneralizedForcesExternal!(-wrench, tm, tm.bodyBodyCache.mesh_2.BodyID)
+#     return nothing
+# end
+#
+# function addGeneralizedForcesExternal!(wrench::Wrench{T}, tm::TypedMechanismScenario{N,T}, body_id::BodyID) where {N,T}
+#     jac = tm.GeometricJacobian[body_id]
+#     if jac != nothing
+#         torque!(tm.torque_third_law, jac, wrench)
+#         tm.f_generalized .+= tm.torque_third_law
+#     end
+#     return nothing
+# end
