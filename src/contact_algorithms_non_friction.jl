@@ -17,6 +17,9 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
     dynamics_bias!(tm.result, state)
     configuration_derivative!(tm.result.q̇, state)
     forceAllElasticIntersections!(m, tm)
+
+    m.continuous_controller(m, t)
+
     f_generalized = tm.f_generalized
     rhs = tm.result.dynamicsbias.parent
     rhs .*= -1.0

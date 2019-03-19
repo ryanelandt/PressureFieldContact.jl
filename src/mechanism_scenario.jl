@@ -108,8 +108,6 @@ struct TypedMechanismScenario{N,T}
                         new_jac = geometric_jacobian(state, path_k)
                         fill!(new_jac.linear, NaN + zero(T))
                         fill!(new_jac.angular, NaN + zero(T))
-                        # new_jac.linear .= NaN
-                        # new_jac.angular .= NaN
                         v_jac[body_id_k] = new_jac
                     end
                 end
@@ -158,8 +156,11 @@ struct MechanismScenario{NX,NQ,T}
     MeshCache::RigidBodyDynamics.CustomCollections.CacheIndexDict{MeshID,Base.OneTo{MeshID},MeshCache}
     ContactInstructions::Vector{ContactInstructions}
     de::Function
+    continuous_controller::Union{Nothing,Function}
     time::MVector{1,Float64}
-    function MechanismScenario(ts::TempContactStruct, de::Function; n_quad_rule::Int64=2, N_chunk::Int64=6)
+    function MechanismScenario(ts::TempContactStruct, de::Function; continuous_controller::Union{Nothing,Function}=nothing,
+            n_quad_rule::Int64=2, N_chunk::Int64=6)
+
         (1 <= n_quad_rule <= 2) || error("only quadrature rules 1 (first order) and 2 (second? order) are currently implemented")
         quad = getTriQuadRule(n_quad_rule)
         NQ = length(quad.w)
@@ -184,7 +185,7 @@ struct MechanismScenario{NX,NQ,T}
         cache_dual = TypedMechanismScenario{NQ,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         vec_instructions = ts.ContactInstructions
         return new{NX,NQ,T}(body_ids, ts.mesh_ids, bristle_ids, frame_world, TT_Cache(), τ_ext, cache_float, cache_dual,
-            cache_path, mesh_cache, vec_instructions, de, MVector{1,Float64}(0.0))
+            cache_path, mesh_cache, vec_instructions, de, continuous_controller, MVector{1,Float64}(0.0))
     end
 end
 
