@@ -6,6 +6,10 @@ function RigidBodyDynamics.principal_value!(mech_scen::MechanismScenario, x::Vec
     return nothing
 end
 
+function RigidBodyDynamics.set_configuration!(mech_scen::MechanismScenario, joint::Joint, config)
+    return set_configuration!(mech_scen.float.state, joint, config)
+end
+
 ### NumericalTricks ###
 NumericalTricks.safe_normalize(p::FreeVector3D{SVector{3,T}}) where {T} = FreeVector3D(p.frame, safe_normalize(p.v))
 function NumericalTricks.vec_sub_vec_proj(vec_in::FreeVector3D{SVector{3, TD}}, n̂::FreeVector3D{SVector{3,TD}}) where {TD}

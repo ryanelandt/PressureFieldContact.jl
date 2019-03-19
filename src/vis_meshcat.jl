@@ -12,27 +12,28 @@ function MeshCatMechanisms.set_configuration!(mech_scen::MechanismScenario, mvis
     set_configuration!(mech_scen, mvis, x)
 end
 
-function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, name::String, color)
-    body = findbody(mech_scen.float.state.mechanism, name)
-    mesh = find_mesh(mech_scen.MeshCache, name)
-    return set_body_mesh_visual!(mvis, mech_scen, body, mesh, color)
+function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, m_id::MeshID, color)
+    mesh = mech_scen.MeshCache[m_id]
+    body = bodies(mech_scen.float.state.mechanism)[mesh.BodyID]
+    return set_body_mesh_visual!(mvis, mech_scen, body, m_id, color)
 end
 
-function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario,
-        body::RigidBody{Float64}, mesh_cache::MeshCache, color)
+function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, body::RigidBody{Float64},
+        m_id::MeshID, color)
 
     color = as_rgba(color)
-    my_vis_ele = VisualElement(default_frame(body), asHomogenousMesh(mesh_cache), color, Translation(0,0,0))
-    setelement!(mvis, my_vis_ele, mesh_cache.name)
+    mesh = mech_scen.MeshCache[m_id]
+    my_vis_ele = VisualElement(default_frame(body), asHomogenousMesh(mesh), color, Translation(0,0,0))
+    setelement!(mvis, my_vis_ele, mesh.name)
     return nothing
 end
 
-function set_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, name::String, color)
-    mesh_cache = find_mesh(mech_scen.MeshCache, name)
+function set_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, m_id::MeshID, color)
+    mesh = mech_scen.MeshCache[m_id]
     body = root_body(mech_scen.float.state.mechanism)
     color = as_rgba(color)
-    my_vis_ele = VisualElement(default_frame(body), asHomogenousMesh(mesh_cache), color, Translation(0,0,0))
-    setelement!(mvis, my_vis_ele, mesh_cache.name)
+    my_vis_ele = VisualElement(default_frame(body), asHomogenousMesh(mesh), color, Translation(0,0,0))
+    setelement!(mvis, my_vis_ele, mesh.name)
     return nothing
 end
 
