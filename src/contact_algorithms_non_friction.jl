@@ -18,13 +18,14 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
     configuration_derivative!(tm.result.q̇, state)
     forceAllElasticIntersections!(m, tm)
 
-    m.continuous_controller(m, t)
+    m.continuous_controller(tm, t)
 
     f_generalized = tm.f_generalized
     rhs = tm.result.dynamicsbias.parent
     rhs .*= -1.0
     rhs .+= f_generalized
     rhs .+= m.τ_ext
+    rhs .+= tm.τ_ext
 
     chol_fact = LinearAlgebra.cholesky!(H)
     ldiv!(tm.result.v̇.parent, chol_fact, rhs)

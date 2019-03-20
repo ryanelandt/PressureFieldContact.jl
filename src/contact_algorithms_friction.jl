@@ -148,12 +148,27 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
             p_dA = calc_p_dA(trac, k_qp)
             λ_s = -k̄ * p_dA * (x̄_δ + τ * x̄x̄_vʳᵉˡ)
             λ_s = vec_sub_vec_proj(λ_s, n̂.v)
-            norm_λ_s = safe_norm(λ_s)
-            # max_fric = μ * p_dA
+
+            # ### Smoother ###
+            # mag²_λ_s = dot(λ_s, λ_s)
+            # mag²_fric = μ^2 * p_dA^2
+            # the_ratio = safe_scalar_divide(mag²_fric, mag²_λ_s)
+            # scale_factor = soft_clamp(the_ratio, one(T))
+            # λ_s = λ_s * the_ratio  # should "the_ratio --> scale_factor"
+
+            ### Smootherer ###
             max_fric = max(μ * p_dA, zero(T))
-            if max_fric < norm_λ_s
-                λ_s = λ_s * (max_fric / norm_λ_s)
-            end
+            the_ratio = soft_clamp(safe_norm(λ_s), max_fric)
+            λ_s = the_ratio * safe_normalize(λ_s)
+
+            ### Contributes to non-smoothness ###
+            # norm_λ_s = safe_norm(λ_s)
+            # # max_fric = μ * p_dA
+            # max_fric = max(μ * p_dA, zero(T))
+            # if max_fric < norm_λ_s
+            #     λ_s = λ_s * (max_fric / norm_λ_s)
+            # end
+
             wrench_sum += Wrench(r, FreeVector3D(frame_now, λ_s))
         end
     end

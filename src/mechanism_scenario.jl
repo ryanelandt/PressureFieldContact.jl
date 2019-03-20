@@ -96,6 +96,7 @@ struct TypedMechanismScenario{N,T}
     GeometricJacobian::RigidBodyDynamics.CustomCollections.CacheIndexDict{BodyID,Base.OneTo{BodyID},Union{Nothing,GeometricJacobian{Array{T,2}}}}
     frame_world::CartesianFrame3D  # TODO: does this need to be here?
     torque_third_law::Vector{T}
+    τ_ext::Vector{T}
     function TypedMechanismScenario{N,T}(mechanism::Mechanism, quad::TriTetQuadRule{3,N}, v_path, body_ids,
             n_bristle_pairs::Int64) where {N,T}
 
@@ -126,7 +127,8 @@ struct TypedMechanismScenario{N,T}
         s = SegmentedVector{BristleID}(zeros(T, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
         ṡ = SegmentedVector{BristleID}(zeros(T, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
         torque_third_law = Vector{T}(undef, num_positions(mechanism))
-        return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac, root_frame(mechanism), torque_third_law)
+        τ_ext = zeros(T, num_positions(mechanism))
+        return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac, root_frame(mechanism), torque_third_law, τ_ext)
     end
 end
 
