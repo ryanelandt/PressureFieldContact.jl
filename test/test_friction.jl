@@ -53,14 +53,14 @@ end
     eM_hol_1 = output_eMesh_box(hol_rad * ones(SVector{3,Float64}))
     eMesh_transform!(eM_hol_1, SVector{3,Float64}(box_rad + hol_rad, 0.0, 0.0))
     joint_1 = Prismatic(SVector{3,Float64}(-1.0, 0.0, 0.0))
-    _, joint_1 = add_body_contact!(ts, name_hol_1, eM_hol_1, c_prop_compliant, i_prop_compliant, joint_type=joint_1)
+    _, __, joint_1 = add_body_contact!(ts, name_hol_1, eM_hol_1, c_prop_compliant, i_prop_compliant, joint_type=joint_1)
 
     name_hol_2 = "hol_2"
     eM_hol_2 = deepcopy(eM_hol_1)
     # dh_transform_mesh!(eM_hol_2, basic_dh(RotZ(1.0 * pi)))
     eMesh_transform!(eM_hol_2, RotZ(1.0 * pi))
     joint_2 = Prismatic(SVector{3,Float64}(+1.0, 0.0, 0.0))
-    _, joint_2 = add_body_contact!(ts, name_hol_2, eM_hol_2, c_prop_compliant, i_prop_compliant, joint_type=joint_2)
+    _, __, joint_2 = add_body_contact!(ts, name_hol_2, eM_hol_2, c_prop_compliant, i_prop_compliant, joint_type=joint_2)
 
     m_id_part = find_mesh_id(ts, name_part)
     m_id_hol_1 = find_mesh_id(ts, name_hol_1)

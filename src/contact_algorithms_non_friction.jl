@@ -18,21 +18,75 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
     configuration_derivative!(tm.result.q̇, state)
     forceAllElasticIntersections!(m, tm)
 
-    m.continuous_controller(tm, t)
+    (m.continuous_controller == nothing) || m.continuous_controller(tm, t)
 
-    f_generalized = tm.f_generalized
-    rhs = tm.result.dynamicsbias.parent
-    rhs .*= -1.0
-    rhs .+= f_generalized
-    rhs .+= m.τ_ext
-    rhs .+= tm.τ_ext
+	sum_all_forces!(m, tm)
 
-    chol_fact = LinearAlgebra.cholesky!(H)
-    ldiv!(tm.result.v̇.parent, chol_fact, rhs)
+	# f_generalized = tm.f_generalized
+	# rhs = tm.result.dynamicsbias.parent
+	# rhs .*= -1.0
+	# rhs .+= f_generalized
+	# rhs .+= m.τ_ext
+	# rhs .+= tm.τ_ext
+
+	chol_fact = LinearAlgebra.cholesky!(H)
+	ldiv!(tm.result.v̇.parent, chol_fact, tm.rhs)
+
+    # f_generalized = tm.f_generalized
+    # rhs = tm.result.dynamicsbias.parent
+    # rhs .*= -1.0
+    # rhs .+= f_generalized
+    # rhs .+= m.τ_ext
+    # rhs .+= tm.τ_ext
+	#
+    # chol_fact = LinearAlgebra.cholesky!(H)
+    # ldiv!(tm.result.v̇.parent, chol_fact, rhs)
 
     copyto!(xx, tm, tm.result)
     return nothing
 end
+
+function sum_all_forces!(m::MechanismScenario{NX,NQ,T2}, tm::TypedMechanismScenario{NQ,Float64}) where {NX,NQ,T2}
+	BLAS.blascopy!(tm.nv, tm.f_generalized, 1, tm.rhs, 1)
+	BLAS.axpy!(-1.0, tm.result.dynamicsbias.parent, tm.rhs)
+	BLAS.axpy!(+1.0, tm.τ_ext, tm.rhs)
+	BLAS.axpy!(+1.0, m.τ_ext, tm.rhs)
+end
+
+function sum_all_forces!(m::MechanismScenario{NX,NQ,T2}, tm::TypedMechanismScenario{NQ,T1}) where {NX,NQ,T1,T2}
+	tm.rhs .= tm.f_generalized
+	tm.rhs .-= tm.result.dynamicsbias.parent
+	tm.rhs .+= tm.τ_ext
+	tm.rhs .+= m.τ_ext
+end
+
+
+# function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{NX,NQ,T2},
+#         tm::TypedMechanismScenario{NQ,T1}, t::Float64=0.0) where {NX,NQ,T1,T2}
+#
+#     state = tm.state
+#     copyto!(tm, x)
+#     H = tm.result.massmatrix
+#     mass_matrix!(H, state)
+#     dynamics_bias!(tm.result, state)
+#     configuration_derivative!(tm.result.q̇, state)
+#     forceAllElasticIntersections!(m, tm)
+#
+#     (m.continuous_controller == nothing) || m.continuous_controller(tm, t)
+#
+#     f_generalized = tm.f_generalized
+#     rhs = tm.result.dynamicsbias.parent
+#     rhs .*= -1.0
+#     rhs .+= f_generalized
+#     rhs .+= m.τ_ext
+#     rhs .+= tm.τ_ext
+#
+#     chol_fact = LinearAlgebra.cholesky!(H)
+#     ldiv!(tm.result.v̇.parent, chol_fact, rhs)
+#
+#     copyto!(xx, tm, tm.result)
+#     return nothing
+# end
 
 function calcXd(x::AbstractVector{T1}, m::MechanismScenario{NX,NQ,T2}, t::Float64=0.0) where {T1,NX,NQ,T2}
     xx = deepcopy(x)

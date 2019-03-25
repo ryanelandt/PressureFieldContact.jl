@@ -97,6 +97,8 @@ struct TypedMechanismScenario{N,T}
     frame_world::CartesianFrame3D  # TODO: does this need to be here?
     torque_third_law::Vector{T}
     τ_ext::Vector{T}
+    rhs::Vector{T}
+    nv::Int64
     function TypedMechanismScenario{N,T}(mechanism::Mechanism, quad::TriTetQuadRule{3,N}, v_path, body_ids,
             n_bristle_pairs::Int64) where {N,T}
 
@@ -128,7 +130,9 @@ struct TypedMechanismScenario{N,T}
         ṡ = SegmentedVector{BristleID}(zeros(T, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
         torque_third_law = Vector{T}(undef, num_positions(mechanism))
         τ_ext = zeros(T, num_positions(mechanism))
-        return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac, root_frame(mechanism), torque_third_law, τ_ext)
+        rhs = zeros(T, num_positions(mechanism))
+        nv = num_velocities(mechanism)
+        return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac, root_frame(mechanism), torque_third_law, τ_ext, rhs, nv)
     end
 end
 
