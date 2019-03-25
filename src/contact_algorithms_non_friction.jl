@@ -22,13 +22,6 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
 
 	sum_all_forces!(m, tm)
 
-	# f_generalized = tm.f_generalized
-	# rhs = tm.result.dynamicsbias.parent
-	# rhs .*= -1.0
-	# rhs .+= f_generalized
-	# rhs .+= m.τ_ext
-	# rhs .+= tm.τ_ext
-
 	chol_fact = LinearAlgebra.cholesky!(H)
 	ldiv!(tm.result.v̇.parent, chol_fact, tm.rhs)
 

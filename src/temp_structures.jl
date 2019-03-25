@@ -63,10 +63,12 @@ function add_body_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
         c_prop::Union{Nothing,ContactProperties}, i_prop::InertiaProperties;
         body_parent::Union{RigidBody{Float64},Nothing}=nothing,
         joint_type::JT=SPQuatFloating{Float64}(), dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
-    
-    body, joint = add_body!(ts, name, e_mesh, i_prop, body_parent=body_parent, joint_type=joint_type, dh=dh)
-    mesh_id = add_contact!(ts, name, e_mesh, c_prop, body=body, dh=dh)
-    return mesh_id, body, joint
+
+    # body, joint = add_body!(ts, name, e_mesh, i_prop, body_parent=body_parent, joint_type=joint_type, dh=dh)
+    nt = add_body!(ts, name, e_mesh, i_prop, body_parent=body_parent, joint_type=joint_type, dh=dh)
+    mesh_id = add_contact!(ts, name, e_mesh, c_prop, body=nt.body, dh=dh)
+    return NamedTuple{(:body, :joint, :mesh_id)}((nt.body, nt.joint, mesh_id))
+    # return mesh_id, body, joint
 end
 
 function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
@@ -122,7 +124,8 @@ function add_body_from_inertia!(mechanism::Mechanism, name::String, mesh_inertia
     body_child = newBodyFromInertia(name, mesh_inertia_info)
     j_parent_child, x_parent_child = outputJointTransform_ParentChild(body_parent, body_child, joint, dh)
     attach!(mechanism, body_parent, body_child, j_parent_child, joint_pose=x_parent_child)
-    return body_child, j_parent_child
+    return NamedTuple{(:body, :joint)}((body_child, j_parent_child))
+    # return body_child, j_parent_child
 end
 
 function find_mesh_id(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this function more elegant
@@ -200,24 +203,3 @@ function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, mesh_id_1::Mes
     ts.bristle_ids = Base.OneTo(bristle_id)
     return add_pair_rigid_compliant!(ts, mesh_id_1, mesh_id_c, bf, μ=μ, χ=χ)
 end
-
-# min_mass = Inf
-# mesh_1 = ts.MeshCache[mesh_id_1]
-# mesh_c = ts.MeshCache[mesh_id_c]
-# inertia_1 = bodies(ts.mechanism)[mesh_1.BodyID].inertia
-# inertia_c = bodies(ts.mechanism)[mesh_c.BodyID].inertia
-# if inertia_1 != nothing
-#     min_mass = min(min_mass, inertia_1.mass)
-# end
-# if inertia_c != nothing
-#     min_mass = min(min_mass, inertia_c.mass)
-# end
-# (min_mass == Inf) && error("at least one object must have mass")
-#
-# mag_g = norm(ts.mechanism.gravitational_acceleration)
-# c = k̄ * mag_g * min_mass / 1000
-# K_diag_min_θ = c * ones(SVector{3,Float64}) * small_rad^2
-# K_diag_min_r = c * ones(SVector{3,Float64})
-# K_diag_min = vcat(K_diag_min_θ, K_diag_min_r)
-#
-# bf = Bristle(bristle_id, τ=τ, k̄=k̄, K_diag_min=K_diag_min, fric_pro=fric_pro)
