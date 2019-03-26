@@ -96,8 +96,6 @@ export
     add_contact!,
     add_body!,
     add_body_from_inertia!,  # this needs to be here
-    find_mesh,
-    find_mesh_id,
     add_pair_rigid_compliant_regularize!,
     add_pair_rigid_compliant!,
     add_pair_rigid_compliant_bristle!,
@@ -155,6 +153,8 @@ export
     Radau_for_MechanismScenario,
     get_bristle_d0,
     get_bristle_d1,
-    as_static_vector
+    as_static_vector,
+    find_mesh,
+    find_mesh_id
 
 end

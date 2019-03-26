@@ -64,11 +64,9 @@ function add_body_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
         body_parent::Union{RigidBody{Float64},Nothing}=nothing,
         joint_type::JT=SPQuatFloating{Float64}(), dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
 
-    # body, joint = add_body!(ts, name, e_mesh, i_prop, body_parent=body_parent, joint_type=joint_type, dh=dh)
     nt = add_body!(ts, name, e_mesh, i_prop, body_parent=body_parent, joint_type=joint_type, dh=dh)
     mesh_id = add_contact!(ts, name, e_mesh, c_prop, body=nt.body, dh=dh)
     return NamedTuple{(:body, :joint, :mesh_id)}((nt.body, nt.joint, mesh_id))
-    # return mesh_id, body, joint
 end
 
 function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
@@ -125,37 +123,7 @@ function add_body_from_inertia!(mechanism::Mechanism, name::String, mesh_inertia
     j_parent_child, x_parent_child = outputJointTransform_ParentChild(body_parent, body_child, joint, dh)
     attach!(mechanism, body_parent, body_child, j_parent_child, joint_pose=x_parent_child)
     return NamedTuple{(:body, :joint)}((body_child, j_parent_child))
-    # return body_child, j_parent_child
 end
-
-function find_mesh_id(ts::MeshCacheDict{MeshCache}, name::String)  # TODO: make this function more elegant
-    id = MeshID(-9999)
-    for k = keys(ts)
-        if ts[k].name == name
-            (id == MeshID(-9999)) || error("multiple")
-            id = k
-        end
-    end
-    (id == MeshID(-9999)) && error("no mesh found by name: $name")
-    return id
-end
-
-function find_mesh_id(ts::MeshCacheDict{MeshCache}, mc::MeshCache)  # TODO: make this function more elegant
-    id = MeshID(-9999)
-    for k = keys(ts)
-        if ts[k] == mc
-            (id == MeshID(-9999)) || error("multiple")
-            id = k
-        end
-    end
-    (id == MeshID(-9999)) && error("no mesh found by name: $(mc.name)")
-    return id
-end
-
-find_mesh_id(ts::TempContactStruct, input_2) = find_mesh_id(ts.MeshCache, input_2)
-
-find_mesh(ts::MeshCacheDict{MeshCache}, name::String) = ts[find_mesh_id(ts, name)]
-find_mesh(ts::TempContactStruct, name::String) = find_mesh(ts.MeshCache, name)
 
 function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_2::MeshID;
         μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing, v_tol::Union{Nothing,Float64}=nothing)
