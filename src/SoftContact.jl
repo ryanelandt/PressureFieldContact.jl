@@ -16,6 +16,7 @@ using Binary_BB_Trees
 using NumericalTricks
 using LinearAlgebra
 using Radau
+using GenericLinearAlgebra
 
 
 const FRAME_ζ¹ = CartesianFrame3D("FRAME_ζ¹")
