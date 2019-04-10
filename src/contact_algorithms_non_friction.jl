@@ -7,6 +7,12 @@ function calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::Mec
     return calcXd!(xx, x, m, m.float, t)
 end
 
+```
+Conventions:
+n̂ refers to the contact surface normal that points into body B
+v_cart refers to + velocity of B - the velocity of A
+the wrench is the wrench applied TO body A
+```
 function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{NX,NQ,T2},
         tm::TypedMechanismScenario{NQ,T1}, t::Float64=0.0) where {NX,NQ,T1,T2}
 
@@ -25,16 +31,6 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
 	chol_fact = LinearAlgebra.cholesky!(H)
 	ldiv!(tm.result.v̇.parent, chol_fact, tm.rhs)
 
-    # f_generalized = tm.f_generalized
-    # rhs = tm.result.dynamicsbias.parent
-    # rhs .*= -1.0
-    # rhs .+= f_generalized
-    # rhs .+= m.τ_ext
-    # rhs .+= tm.τ_ext
-	#
-    # chol_fact = LinearAlgebra.cholesky!(H)
-    # ldiv!(tm.result.v̇.parent, chol_fact, rhs)
-
     copyto!(xx, tm, tm.result)
     return nothing
 end
@@ -47,39 +43,11 @@ function sum_all_forces!(m::MechanismScenario{NX,NQ,T2}, tm::TypedMechanismScena
 end
 
 function sum_all_forces!(m::MechanismScenario{NX,NQ,T2}, tm::TypedMechanismScenario{NQ,T1}) where {NX,NQ,T1,T2}
-	tm.rhs .= tm.f_generalized
+	tm.rhs  .= tm.f_generalized
 	tm.rhs .-= tm.result.dynamicsbias.parent
 	tm.rhs .+= tm.τ_ext
 	tm.rhs .+= m.τ_ext
 end
-
-
-# function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{NX,NQ,T2},
-#         tm::TypedMechanismScenario{NQ,T1}, t::Float64=0.0) where {NX,NQ,T1,T2}
-#
-#     state = tm.state
-#     copyto!(tm, x)
-#     H = tm.result.massmatrix
-#     mass_matrix!(H, state)
-#     dynamics_bias!(tm.result, state)
-#     configuration_derivative!(tm.result.q̇, state)
-#     forceAllElasticIntersections!(m, tm)
-#
-#     (m.continuous_controller == nothing) || m.continuous_controller(tm, t)
-#
-#     f_generalized = tm.f_generalized
-#     rhs = tm.result.dynamicsbias.parent
-#     rhs .*= -1.0
-#     rhs .+= f_generalized
-#     rhs .+= m.τ_ext
-#     rhs .+= tm.τ_ext
-#
-#     chol_fact = LinearAlgebra.cholesky!(H)
-#     ldiv!(tm.result.v̇.parent, chol_fact, rhs)
-#
-#     copyto!(xx, tm, tm.result)
-#     return nothing
-# end
 
 function calcXd(x::AbstractVector{T1}, m::MechanismScenario{NX,NQ,T2}, t::Float64=0.0) where {T1,NX,NQ,T2}
     xx = deepcopy(x)
@@ -223,11 +191,12 @@ function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache
     x_rʷ_ζ², x_ζ²_rʷ, x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
 
     # TODO: make this better
-    plane_1_rʷ = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_rʷ.mat)
-    plane_2_rʷ = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_rʷ.mat)
-    plane_rʷ = plane_2_rʷ - plane_1_rʷ
+    ϵ_plane_1_rʷ = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_rʷ.mat)
+    ϵ_plane_2_rʷ = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_rʷ.mat)
+	ϵ_plane_rʷ = ϵ_plane_2_rʷ - ϵ_plane_1_rʷ  # normalize penetration extent is positive so this describes the plane
+		# of the contact surface pointing towards mesh_2
 
-    poly_rʷ = clip_plane_tet(plane_rʷ, x_rʷ_ζ¹.mat)
+    poly_rʷ = clip_plane_tet(ϵ_plane_rʷ, x_rʷ_ζ¹.mat)
     if 3 <= length(poly_rʷ)
         poly_ζ² = one_pad_then_mul(x_ζ²_rʷ.mat, poly_rʷ)
         poly_ζ² = zero_small_coordinates(poly_ζ²)  # This needs to be done to avoid a degenerate situation where the
@@ -235,9 +204,9 @@ function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache
             # tet faces that lie on the surface intersect.
         poly_ζ² = clip_in_tet_coordinates(poly_ζ²)
         if 3 <= length(poly_ζ²)
-            frame_world = b.frame_world
-            n = unPad(plane_rʷ)
-            n̂ = unsafe_normalize(n)
+			frame_world = b.frame_world
+			n = unPad(ϵ_plane_rʷ)
+			n̂ = unsafe_normalize(n)
             n̂ = FreeVector3D(frame_world, n̂)
             integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂, x_rʷ_ζ², x_ζ²_rʷ, ϵ², x_ζ²_r²)
         end
@@ -258,13 +227,12 @@ function integrate_over_surface_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCach
         x_rʷ_r¹::Transform3D{T}, x_rʷ_r²::Transform3D{T}, x_r¹_rʷ::Transform3D{T}, x_r²_rʷ::Transform3D{T},
         b::TypedElasticBodyBodyCache{N,T}) where {N,T}
 
-
     vert_1 = triangle_vertices(i_1, mesh_1)
     vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
     x_rʷ_ζ², x_ζ²_rʷ, x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
     x_ζ²_r¹ = x_ζ²_rʷ * x_rʷ_r¹
 
-    n̂_r¹ = FreeVector3D(mesh_1.FrameID, -triangleNormal(vert_1))  # pressure is applied opposite the trianle normal
+    n̂_r¹ = FreeVector3D(mesh_1.FrameID, triangleNormal(vert_1))  # REDACTED: pressure is applied opposite the triangle normal
     n̂_rʷ = x_rʷ_r¹ * n̂_r¹
 
     poly_rʷ = poly_eight(vert_1.data)
@@ -281,7 +249,7 @@ function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, poly_�
         x_ζ²_rʷ::MatrixTransform{4,4,T,16}, ϵ::SMatrix{1,4,Float64,4}, x_ζ²_r²::MatrixTransform{4,4,Float64,16}) where {N,T}
 
     poly_rʷ = mul_then_un_pad(x_rʷ_ζ².mat, poly_ζ²)
-    centroid_rʷ = Point3D(frame_world, centroid(poly_rʷ)[2])
+    centroid_rʷ = Point3D(frame_world, centroid(poly_rʷ, n̂.v)[2])
     centroid_ζ² = x_ζ²_rʷ * centroid_rʷ
     N_vertices = length(poly_ζ²)
     ζ²_2 = getPoint(poly_ζ², FRAME_ζ², N_vertices)
@@ -292,7 +260,9 @@ function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, poly_�
         x_ζ²_ϕ = hcat(ζ²_1, ζ²_2, centroid_ζ²)
         vert_rʷ_1 = vert_rʷ_2
         vert_rʷ_2 = getPoint(poly_rʷ, frame_world, k)
-        area_quad_k = area(vert_rʷ_1, vert_rʷ_2, centroid_rʷ)
+		# area_quad_k = area(vert_rʷ_1, vert_rʷ_2, centroid_rʷ, n̂)
+		area_quad_k = triangle_area((vert_rʷ_1.v, vert_rʷ_2.v, centroid_rʷ.v), n̂.v)
+		(-1.0e-6 <= area_quad_k) || error("area is negative!!! $(area_quad_k)")
         (0.0 < area_quad_k) && fillTractionCacheForTriangle!(b, area_quad_k, x_ζ²_ϕ, x_rʷ_ζ², n̂, ϵ, x_ζ²_r²)  # no point in adding intersection if area is zero
     end
     return nothing
@@ -344,8 +314,8 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
     ṙ = point_velocity(b.twist_r¹_r², p_cart_qp)
     ṙ² = transform(ṙ, b.x_r²_rʷ)
     ϵϵ = dot(ϵ_tet, (x_ζ²_r² * ṙ²).v)
-    damp_term = fastSoftPlus(1.0 - b.χ * ϵϵ)
-    p = -ϵ_quad * b.Ē
+    damp_term = fastSoftPlus(1.0 + b.χ * ϵϵ)
+    p = ϵ_quad * b.Ē
     p_hc = p * damp_term
     dA = b.quad.w[k] * area_quad_k
     return p_cart_qp, ṙ, dA, p_hc
@@ -386,3 +356,48 @@ end
 #     end
 #     return nothing
 # end
+
+
+
+# function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{NX,NQ,T2},
+#         tm::TypedMechanismScenario{NQ,T1}, t::Float64=0.0) where {NX,NQ,T1,T2}
+#
+#     state = tm.state
+#     copyto!(tm, x)
+#     H = tm.result.massmatrix
+#     mass_matrix!(H, state)
+#     dynamics_bias!(tm.result, state)
+#     configuration_derivative!(tm.result.q̇, state)
+#     forceAllElasticIntersections!(m, tm)
+#
+#     (m.continuous_controller == nothing) || m.continuous_controller(tm, t)
+#
+#     f_generalized = tm.f_generalized
+#     rhs = tm.result.dynamicsbias.parent
+#     rhs .*= -1.0
+#     rhs .+= f_generalized
+#     rhs .+= m.τ_ext
+#     rhs .+= tm.τ_ext
+#
+#     chol_fact = LinearAlgebra.cholesky!(H)
+#     ldiv!(tm.result.v̇.parent, chol_fact, rhs)
+#
+#     copyto!(xx, tm, tm.result)
+#     return nothing
+# end
+
+
+
+# f_generalized = tm.f_generalized
+# rhs = tm.result.dynamicsbias.parent
+# rhs .*= -1.0
+# rhs .+= f_generalized
+# rhs .+= m.τ_ext
+# rhs .+= tm.τ_ext
+#
+# chol_fact = LinearAlgebra.cholesky!(H)
+# ldiv!(tm.result.v̇.parent, chol_fact, rhs)
+
+
+
+#

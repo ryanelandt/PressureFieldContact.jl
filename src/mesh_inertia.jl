@@ -10,11 +10,7 @@ end
 makeInertiaInfo(e_mesh::eMesh{Tri,Nothing}, i_prop::InertiaProperties) = makeInertiaInfoTri(e_mesh, i_prop)
 makeInertiaInfo(e_mesh::eMesh{Nothing,Tet}, i_prop::InertiaProperties) = makeInertiaInfoTet(e_mesh, i_prop)
 function makeInertiaInfo(e_mesh::eMesh{Tri,Tet}, i_prop::InertiaProperties)
-    if i_prop.d == nothing
-        return makeInertiaInfoTet(e_mesh, i_prop)
-    else
-        return makeInertiaInfoTri(e_mesh, i_prop)
-    end
+    return ifelse(i_prop.d == nothing, makeInertiaInfoTet, makeInertiaInfoTri)(e_mesh, i_prop)
 end
 
 function make_surface_mesh_inertia_info(point::Vector{SVector{3,Float64}}, vec_vol_ind::Vector{SVector{3,Int64}},

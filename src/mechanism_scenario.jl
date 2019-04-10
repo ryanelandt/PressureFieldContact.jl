@@ -41,26 +41,40 @@ end
 # end
 
 mutable struct spatialStiffness{T}
-    Kʷ::SMatrix{6,6,T,36}
-    K::SMatrix{6,6,T,36}
-    K̄::Hermitian{T,SMatrix{6,6,T,36}}
-    S::Diagonal{T,SVector{6,T}}
-    S⁻¹::Diagonal{T,SVector{6,T}}
-    Ū::UpperTriangular{T,SMatrix{6,6,T,36}}
-    Ū⁻¹::UpperTriangular{T,SMatrix{6,6,T,36}}
+    K::Hermitian{T,Matrix{T}}
+    σ_sqrt::Diagonal{T,MVector{6,T}}
+    K⁻¹_sqrt::MMatrix{6,6,T,36}
+    mul_pre::MMatrix{6,6,T,36}
     function spatialStiffness{T}() where {T}
-        nan6 = SVector{6,T}(NaN, NaN, NaN, NaN, NaN, NaN)
-        nan66 = nan6 * nan6'
-        Kʷ = nan66
-        K = nan66
-        K̄ = Hermitian(nan66)
-        S = Diagonal(nan6)
-        S⁻¹ = Diagonal(nan6)
-        Ū = UpperTriangular(nan66)
-        Ū⁻¹ = UpperTriangular(nan66)
-        return new(Kʷ, K, K̄, S, S⁻¹, Ū, Ū⁻¹)
+        K = Hermitian(Matrix(T.(zeros(6,6) .+ NaN)))
+        σ_sqrt = Diagonal(MVector{6,T}(NaN, NaN, NaN, NaN, NaN, NaN))
+        K⁻¹_sqrt = MMatrix{6,6,T,36}(T.(zeros(6,6) .+ NaN))
+        mul_pre = MMatrix{6,6,T,36}(T.(zeros(6,6)) .+ NaN)
+        return new(K, σ_sqrt, K⁻¹_sqrt, mul_pre)
     end
 end
+
+# mutable struct spatialStiffness{T}
+#     Kʷ::SMatrix{6,6,T,36}
+#     K::SMatrix{6,6,T,36}
+#     K̄::Hermitian{T,SMatrix{6,6,T,36}}
+#     S::Diagonal{T,SVector{6,T}}
+#     S⁻¹::Diagonal{T,SVector{6,T}}
+#     Ū::UpperTriangular{T,SMatrix{6,6,T,36}}
+#     Ū⁻¹::UpperTriangular{T,SMatrix{6,6,T,36}}
+#     function spatialStiffness{T}() where {T}
+#         nan6 = SVector{6,T}(NaN, NaN, NaN, NaN, NaN, NaN)
+#         nan66 = nan6 * nan6'
+#         Kʷ = nan66
+#         K = nan66
+#         K̄ = Hermitian(nan66)
+#         S = Diagonal(nan6)
+#         S⁻¹ = Diagonal(nan6)
+#         Ū = UpperTriangular(nan66)
+#         Ū⁻¹ = UpperTriangular(nan66)
+#         return new(Kʷ, K, K̄, S, S⁻¹, Ū, Ū⁻¹)
+#     end
+# end
 
 mutable struct TypedElasticBodyBodyCache{N,T}
     spatialStiffness::spatialStiffness{T}
