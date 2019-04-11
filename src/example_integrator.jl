@@ -31,6 +31,9 @@ function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NX,NQ,Du
     for k = i_start .+ (1:max_steps)
         is_disp_count && println(k)
         h, x = solveRadau(rr, x, t_cumulative)
+
+        (mech_scen.discrete_controller != nothing) && mech_scen.discrete_controller(mech_scen, t_cumulative)
+
         principal_value!(mech_scen, x)
         t_cumulative += h
         data_time[k] = t_cumulative

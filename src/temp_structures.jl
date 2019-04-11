@@ -4,10 +4,7 @@ struct Bristle
     BristleID::BristleID
     τ::Float64
     k̄::Float64
-    fric_pro::Float64
-    function Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64, fric_pro::Float64=2.0)
-        return new(bristle_ID, τ, k̄, fric_pro)
-    end
+    Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64) = new(bristle_ID, τ, k̄)
 end
 
 struct Regularized
@@ -65,7 +62,7 @@ function add_body_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
         joint_type::JT=SPQuatFloating{Float64}(), dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
 
     nt = add_body!(ts, name, e_mesh, i_prop, body_parent=body_parent, joint_type=joint_type, dh=dh)
-    mesh_id = add_contact!(ts, name, e_mesh, c_prop, body=nt.body)  # , dh=dh)
+    mesh_id = add_contact!(ts, name, e_mesh, c_prop, body=nt.body)
     return NamedTuple{(:body, :joint, :mesh_id)}((nt.body, nt.joint, mesh_id))
 end
 
@@ -88,11 +85,8 @@ function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactPrope
     return eTree(obb_tri, obb_tet, c_prop)
 end
 
-function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
-        c_prop::Union{Nothing,ContactProperties}; body::Union{RigidBody{Float64},Nothing}=nothing
-        # ,
-        # ::basic_dh=one(basic_dh{Float64})
-        )
+function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh, c_prop::Union{Nothing,ContactProperties};
+        body::Union{RigidBody{Float64},Nothing}=nothing)
 
     body = return_body_never_nothing(ts.mechanism, body)
     if ts.is_aabb
@@ -127,20 +121,18 @@ function add_body_from_inertia!(mechanism::Mechanism, name::String, mesh_inertia
     return NamedTuple{(:body, :joint)}((body_child, j_parent_child))
 end
 
-function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_2::MeshID;
-        μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing, v_tol::Union{Nothing,Float64}=nothing)
+default_χ() = 0.5
+default_μ() = 0.3
 
-    if v_tol == nothing
-        @warn("unspecified v_tol replaced with 0.25")
-        v_tol = 0.25
-    end
+function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_2::MeshID;
+        μ::Float64=default_μ(), χ::Float64=default_χ(), v_tol::Float64=0.01)
+
     regularized = Regularized(v_tol)
     return add_pair_rigid_compliant!(ts, mesh_id_1, mesh_id_2, regularized, μ=μ, χ=χ)
 end
 
 function add_pair_rigid_compliant!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::MeshID,
-        friction_model::Union{Regularized,Bristle}; μ::Union{Nothing,Float64}=nothing,
-        χ::Union{Nothing,Float64}=nothing)
+        friction_model::Union{Regularized,Bristle}; μ::Float64, χ::Float64)
 
     mesh_1 = ts.MeshCache[mesh_id_1]
     mesh_c = ts.MeshCache[mesh_id_c]
@@ -151,25 +143,17 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, mesh_id_1::MeshID, mes
     if is_compliant_1
         mesh_id_1, mesh_id_c = mesh_id_c, mesh_id_1
     end
-    if μ == nothing
-        @warn("unspecified μ replaced with 0.3")
-        μ = 0.3
-    end
-    if χ == nothing
-        @warn("unspecified χ replaced with 0.5")
-        χ = 0.5
-    end
     mutual_compliance = is_compliant_1 && is_compliant_c
     push!(ts.ContactInstructions, ContactInstructions(mesh_id_1, mesh_id_c, mutual_compliance, friction_model, μ=μ, χ=χ))
     return nothing
 end
 
 function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::MeshID;
-        τ::Float64=0.05, k̄=1.0e4, fric_pro=2.0, μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing)
+        τ::Float64=0.05, k̄=1.0e4, μ::Float64=default_μ(), χ::Float64=default_χ())
 
     isa(μ, Nothing) || (0 < μ) || error("μ cannot be 0 for bristle friction")
     bristle_id = BristleID(1 + length(ts.bristle_ids))
-    bf = Bristle(bristle_id, τ=τ, k̄=k̄, fric_pro=fric_pro)
+    bf = Bristle(bristle_id, τ=τ, k̄=k̄)
     ts.bristle_ids = Base.OneTo(bristle_id)
     return add_pair_rigid_compliant!(ts, mesh_id_1, mesh_id_c, bf, μ=μ, χ=χ)
 end

@@ -124,9 +124,9 @@ struct MechanismScenario{NX,NQ,T}
     ContactInstructions::Vector{ContactInstructions}
     de::Function
     continuous_controller::Union{Nothing,Function}
-    time::MVector{1,Float64}
+    discrete_controller::Union{Nothing,Function}
     function MechanismScenario(ts::TempContactStruct, de::Function; continuous_controller::Union{Nothing,Function}=nothing,
-            n_quad_rule::Int64=2, N_chunk::Int64=6)
+            discrete_controller::Union{Nothing,Function}=nothing, n_quad_rule::Int64=2, N_chunk::Int64=6)
 
         (1 <= n_quad_rule <= 2) || error("only quadrature rules 1 (first order) and 2 (second? order) are currently implemented")
         quad = getTriQuadRule(n_quad_rule)
@@ -152,7 +152,7 @@ struct MechanismScenario{NX,NQ,T}
         cache_dual = TypedMechanismScenario{NQ,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         vec_instructions = ts.ContactInstructions
         return new{NX,NQ,T}(body_ids, ts.mesh_ids, bristle_ids, frame_world, TT_Cache(), τ_ext, cache_float, cache_dual,
-            cache_path, mesh_cache, vec_instructions, de, continuous_controller, MVector{1,Float64}(0.0))
+            cache_path, mesh_cache, vec_instructions, de, continuous_controller, discrete_controller)  # MVector{1,Float64}(0.0))
     end
 end
 
