@@ -65,7 +65,7 @@ function add_body_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
         joint_type::JT=SPQuatFloating{Float64}(), dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
 
     nt = add_body!(ts, name, e_mesh, i_prop, body_parent=body_parent, joint_type=joint_type, dh=dh)
-    mesh_id = add_contact!(ts, name, e_mesh, c_prop, body=nt.body, dh=dh)
+    mesh_id = add_contact!(ts, name, e_mesh, c_prop, body=nt.body)  # , dh=dh)
     return NamedTuple{(:body, :joint, :mesh_id)}((nt.body, nt.joint, mesh_id))
 end
 
@@ -89,8 +89,10 @@ function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactPrope
 end
 
 function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
-        c_prop::Union{Nothing,ContactProperties}; body::Union{RigidBody{Float64},Nothing}=nothing,
-        dh::basic_dh=one(basic_dh{Float64}))
+        c_prop::Union{Nothing,ContactProperties}; body::Union{RigidBody{Float64},Nothing}=nothing
+        # ,
+        # ::basic_dh=one(basic_dh{Float64})
+        )
 
     body = return_body_never_nothing(ts.mechanism, body)
     if ts.is_aabb

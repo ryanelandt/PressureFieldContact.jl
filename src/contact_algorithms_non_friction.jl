@@ -130,7 +130,7 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
 
     c_prop = get_c_prop(b.mesh_2)
     b.Ē = c_prop.Ē
-    b.d⁻¹ = c_prop.d⁻¹
+    # b.d⁻¹ = c_prop.d⁻¹
     return nothing
 end
 

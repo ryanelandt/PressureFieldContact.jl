@@ -28,7 +28,7 @@ end
     i_prop_compliant = InertiaProperties(400.0)
     i_prop_rigid     = InertiaProperties(400.0, d=0.09)
     Ē = 1.0e9
-    c_prop_compliant = ContactProperties(Ē=Ē, d=box_rad)
+    c_prop_compliant = ContactProperties(Ē=Ē) # , d=box_rad)
     eM_box_rigid     = as_tri_eMesh(output_eMesh_box(box_rad))
     eM_box_compliant = output_eMesh_box(box_rad)
 
