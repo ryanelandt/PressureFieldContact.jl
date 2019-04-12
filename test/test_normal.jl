@@ -6,7 +6,7 @@
         ### Box properties
         box_rad = 0.05
         i_prop_rigid     = InertiaProperties(400.0, d=0.09)
-        c_prop_compliant = ContactProperties(Ē=1.0e9, d=box_rad)
+        c_prop_compliant = ContactProperties(Ē=1.0e9)  # , d=box_rad)
 
         ### Create mechanism and temporary structure
         my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -9.8054))  # create empty mechanism

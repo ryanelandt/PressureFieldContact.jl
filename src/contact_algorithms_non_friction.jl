@@ -123,14 +123,13 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     # Rates
     twist_w_r¹ = twist_wrt_world(tm.state, b.mesh_1.BodyID)
     twist_w_r² = twist_wrt_world(tm.state, b.mesh_2.BodyID)
-    b.twist_r¹_r² = -twist_w_r² + twist_w_r¹  # velocity of tri wrt tet expressed in world
+	b.twist_r²_r¹ = -twist_w_r¹ + twist_w_r²  # velocity of tet wrt tri expressed in world
 
     b.μ = c_ins.μ
     b.χ = c_ins.χ
 
     c_prop = get_c_prop(b.mesh_2)
     b.Ē = c_prop.Ē
-    b.d⁻¹ = c_prop.d⁻¹
     return nothing
 end
 
@@ -311,9 +310,9 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
     quad_point_ζ = A_ζ_ϕ * quad_point_ϕ
     p_cart_qp = unPad(A_w_ζ * quad_point_ζ)
     ϵ_quad = dot(ϵ_tet, quad_point_ζ.v)
-    ṙ = point_velocity(b.twist_r¹_r², p_cart_qp)
+    ṙ = point_velocity(b.twist_r²_r¹, p_cart_qp)
     ṙ² = transform(ṙ, b.x_r²_rʷ)
-    ϵϵ = dot(ϵ_tet, (x_ζ²_r² * ṙ²).v)
+    ϵϵ = - dot(ϵ_tet, (x_ζ²_r² * ṙ²).v)  # TODO: Why is there a negative sign?
     damp_term = fastSoftPlus(1.0 + b.χ * ϵϵ)
     p = ϵ_quad * b.Ē
     p_hc = p * damp_term

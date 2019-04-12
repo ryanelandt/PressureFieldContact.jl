@@ -8,16 +8,11 @@ end
 
 struct ContactProperties
     Ē::Float64
-    d⁻¹::Float64
-    function ContactProperties(;Ē::Float64, d::Float64)
+    function ContactProperties(;Ē::Float64)
         (1.0e4 <= Ē <= 3.0e11) || error("E_effective in unexpected range.")
-        (0.0001 <= d <= 1.0) || error("thickness in unexpected range.")
-        d⁻¹ = 1 / d
-        return new(Ē, d⁻¹)
+        return new(Ē)
     end
 end
-
-# calculateExtrensicCompliance(mat::ContactProperties) = 1 / (mat.Ē * mat.d⁻¹)
 
 struct eTree{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
     tri::Union{Nothing,bin_BB_Tree}
