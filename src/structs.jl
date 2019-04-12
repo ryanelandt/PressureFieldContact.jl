@@ -17,7 +17,7 @@ struct ContactProperties
     end
 end
 
-calculateExtrensicCompliance(mat::ContactProperties) = 1 / (mat.Ē * mat.d⁻¹)
+# calculateExtrensicCompliance(mat::ContactProperties) = 1 / (mat.Ē * mat.d⁻¹)
 
 struct eTree{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
     tri::Union{Nothing,bin_BB_Tree}
@@ -45,15 +45,15 @@ end
 struct InertiaProperties
     d::Union{Nothing,Float64}  # if volume mesh is known thickness isn't needed to calculate inertia
     rho::Float64  # rho is always needed to calculate inertia
-    function InertiaProperties(;rho::Union{Nothing,Float64}=nothing, d::Union{Nothing,Float64}=nothing)
-        Base.depwarn("this constructor is depricated. Please use InertiaProperties(rho; d) instead.", :InertiaProperties)
-        (rho == nothing) && error("rho is required")
-        if d isa Float64
-            (0.001 <= d <= 0.1) || error("thickness in unexpected range.")
-        end
-        (50.0 <= rho) || error("rho in unexpected range.")
-        return new(d, rho)
-    end
+    # function InertiaProperties(;rho::Union{Nothing,Float64}=nothing, d::Union{Nothing,Float64}=nothing)
+    #     Base.depwarn("this constructor is depricated. Please use InertiaProperties(rho; d) instead.", :InertiaProperties)
+    #     (rho == nothing) && error("rho is required")
+    #     if d isa Float64
+    #         (0.001 <= d <= 0.1) || error("thickness in unexpected range.")
+    #     end
+    #     (50.0 <= rho) || error("rho in unexpected range.")
+    #     return new(d, rho)
+    # end
     function InertiaProperties(rho::Float64; d::Union{Nothing,Float64}=nothing)
         isa(d, Nothing) || (0.001 <= d <= 0.1) || error("thickness in unexpected range.")
         (50.0 <= rho) || error("rho in unexpected range.")

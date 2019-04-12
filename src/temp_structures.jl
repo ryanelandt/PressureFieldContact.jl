@@ -126,12 +126,8 @@ function add_body_from_inertia!(mechanism::Mechanism, name::String, mesh_inertia
 end
 
 function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_2::MeshID;
-        μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing, v_tol::Union{Nothing,Float64}=nothing)
+        μ::Union{Nothing,Float64}=nothing, χ::Union{Nothing,Float64}=nothing, v_tol::Float64=0.125)
 
-    if v_tol == nothing
-        @warn("unspecified v_tol replaced with 0.25")
-        v_tol = 0.25
-    end
     regularized = Regularized(v_tol)
     return add_pair_rigid_compliant!(ts, mesh_id_1, mesh_id_2, regularized, μ=μ, χ=χ)
 end

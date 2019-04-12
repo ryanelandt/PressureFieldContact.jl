@@ -15,3 +15,4 @@ BLAS.set_num_threads(1)  # NOTE: comment out this line if using IntelMKL
 include("test_exports.jl")
 include("test_friction.jl")
 include("test_normal.jl")
+include("test_mesh_body_utility.jl")

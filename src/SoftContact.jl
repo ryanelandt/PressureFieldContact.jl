@@ -46,7 +46,7 @@ export
     # structs.jl
     MeshInertiaInfo,
     ContactProperties,
-    calculateExtrensicCompliance,
+    # calculateExtrensicCompliance,
     eTree,
     InertiaProperties,
     get_tree_tet,
