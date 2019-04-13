@@ -22,10 +22,10 @@ end
 
 Base.:*(t1::Transform3D, t2::MatrixTransform) = begin @framecheck(t1.from, t2.to); MatrixTransform(t2.from, t1.to, mat_mul_SA_bug_circumvent(t1.mat, t2.mat)) end
 Base.:*(t1::MatrixTransform, t2::Transform3D) = begin @framecheck(t1.from, t2.to); MatrixTransform(t2.from, t1.to, mat_mul_SA_bug_circumvent(t1.mat, t2.mat)) end
-Base.:*(t::MatrixTransform{4,4,T,16}, point::Point3D{SVector{3,T2}}) where {T, T2} = begin @framecheck(t.from, point.frame); Point4D(t.to, t.mat * onePad(point.v)) end
-Base.:*(t::MatrixTransform{4,3,T,12}, point::Point3D{SVector{3,T2}}) where {T, T2} = begin @framecheck(t.from, point.frame); Point4D(t.to, t.mat * point.v) end
-Base.:*(t::MatrixTransform{3,4,T,12}, point::Point4D{SVector{4,T}}) where {T} = begin @framecheck(t.from, point.frame); Point3D(t.to, t.mat * point.v) end
-Base.:*(t::MatrixTransform{4,4,T,16}, point::Point4D{SVector{4,T}}) where {T} = begin @framecheck(t.from, point.frame); Point4D(t.to, t.mat * point.v) end
+Base.:*(t::MatrixTransform{4,4,T,16}, point::Point3D{SVector{3,T2}}) where {T,T2} = begin @framecheck(t.from, point.frame); Point4D(t.to, t.mat * onePad(point.v)) end
+Base.:*(t::MatrixTransform{4,3,T,12}, point::Point3D{SVector{3,T2}}) where {T,T2} = begin @framecheck(t.from, point.frame); Point4D(t.to, t.mat * point.v) end
+Base.:*(t::MatrixTransform{3,4,T,12}, point::Point4D{SVector{4,T2}}) where {T,T2} = begin @framecheck(t.from, point.frame); Point3D(t.to, t.mat * point.v) end
+Base.:*(t::MatrixTransform{4,4,T,16}, point::Point4D{SVector{4,T2}}) where {T,T2} = begin @framecheck(t.from, point.frame); Point4D(t.to, t.mat * point.v) end
 @inline LinearAlgebra.inv(t::MatrixTransform{N,N,T,N1}) where {N,T,N1} = MatrixTransform(t.to, t.from, inv(t.mat))
 
 getPoint(p::poly_eight{3,T}, frame::CartesianFrame3D, k::Int64) where {T} = Point3D(frame, p[k])

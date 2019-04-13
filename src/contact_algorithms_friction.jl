@@ -1,8 +1,9 @@
 
 function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
-    frame = tm.frame_world
-    wrench = zero(Wrench{T}, frame)
     b = tm.bodyBodyCache
+    frame = b.mesh_2.FrameID
+    wrench = zero(Wrench{T}, frame)
+    # frame = tm.frame_world
     v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
@@ -65,32 +66,32 @@ function bristle_wrench_in_world(tm::TypedMechanismScenario{N,T}, c_ins::Contact
     spatial_stiffness = b.spatialStiffness
     τ⁻¹ = 1 / BF.τ
 
-    wrenchʷ_normal, pʷ_center = normal_wrench_patch_center(b)
+    wrench²_normal, p²_center = normal_wrench_patch_center(b)
 
     calc_patch_spatial_stiffness!(tm, BF)
-    transform_stiffness!(spatial_stiffness, b.x_r²_rʷ)
+    # transform_stiffness!(spatial_stiffness, b.x_r²_rʷ)
 
     calc_K_sqrt⁻¹!(spatial_stiffness)
 
     s = get_bristle_d0(tm, bristle_id)
-    Δ = spatial_stiffness.K⁻¹_sqrt * s
+    Δ² = spatial_stiffness.K⁻¹_sqrt * s
 
-    Δʷ = transform_δ(Δ, b.x_rʷ_r²)
-    wrenchʷ_fric = calc_spatial_bristle_force(tm, c_ins, Δʷ, b.twist_r²_r¹)
-    wrench²_fric = transform(wrenchʷ_fric, b.x_r²_rʷ)
+    # Δʷ = transform_δ(Δ, b.x_rʷ_r²)
+    wrench²_fric = calc_spatial_bristle_force(tm, c_ins, Δ², b.twist_r²_r¹_r²)
+    # wrench²_fric = transform(wrenchʷ_fric, b.x_r²_rʷ)
     f_spatial = as_static_vector(wrench²_fric)
 
     get_bristle_d1(tm, bristle_id) .= τ⁻¹ * ( spatial_stiffness.K⁻¹_sqrt * f_spatial - s)
 
-    wrenchʷ_fric = -wrenchʷ_fric
-    return wrenchʷ_normal, wrenchʷ_fric
+    wrench²_fric = -wrench²_fric
+    return wrench²_normal, wrench²_fric
 end
 
 #########################################################
 
 function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
-    wrenchʷ_normal, wrenchʷ_fric = bristle_wrench_in_world(tm, c_ins)
-    return wrenchʷ_normal + wrenchʷ_fric
+    wrench²_normal, wrench²_fric = bristle_wrench_in_world(tm, c_ins)
+    return wrench²_normal + wrench²_fric
 end
 
 function transform_δ(v::SVector{6,T}, x) where {T}
@@ -129,6 +130,21 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
     K_11_sum = zeros(SMatrix{3,3,T,9})
     K_12_sum = zeros(SMatrix{3,3,T,9})
     K_22_sum = zeros(SMatrix{3,3,T,9})
+    # for k = 1:length(tc)
+    #     trac = tc.vec[k]
+    #     n̂ = trac.n̂
+    #     I_minus_n̂n̂ = I - n̂.v * n̂.v'  # suprisingly fast
+    #     for k_qp = 1:N
+    #         p_dA = calc_p_dA(trac, k_qp)
+    #         r = trac.r_cart[k_qp]
+    #         r_skew = vector_to_skew_symmetric(r.v)
+    #         rx_I_minus_n̂n̂ = r_skew * I_minus_n̂n̂
+    #         K_11_sum += -p_dA * rx_I_minus_n̂n̂ * r_skew
+    #         K_12_sum +=  p_dA * rx_I_minus_n̂n̂
+    #         K_22_sum +=  p_dA *    I_minus_n̂n̂
+    #     end
+    # end
+
     for k = 1:length(tc)
         trac = tc.vec[k]
         n̂ = trac.n̂
@@ -137,12 +153,17 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
             p_dA = calc_p_dA(trac, k_qp)
             r = trac.r_cart[k_qp]
             r_skew = vector_to_skew_symmetric(r.v)
-            rx_I_minus_n̂n̂ = r_skew * I_minus_n̂n̂
-            K_11_sum += -p_dA * rx_I_minus_n̂n̂ * r_skew
-            K_12_sum +=  p_dA * rx_I_minus_n̂n̂
-            K_22_sum +=  p_dA *    I_minus_n̂n̂
+
+            p_dA_I_minus_n̂n̂ = p_dA * I_minus_n̂n̂
+            p_dA_rx_I_minus_n̂n̂ = r_skew * p_dA_I_minus_n̂n̂
+
+            # rx_I_minus_n̂n̂ = r_skew * p_dA_I_minus_n̂n̂
+            K_11_sum -=  p_dA_rx_I_minus_n̂n̂ * r_skew
+            K_12_sum +=  p_dA_rx_I_minus_n̂n̂
+            K_22_sum +=  p_dA_I_minus_n̂n̂
         end
     end
+
     b.spatialStiffness.K.data[1:3, 1:3] .= K_11_sum
     b.spatialStiffness.K.data[4:6, 1:3] .= K_12_sum'
     b.spatialStiffness.K.data[1:3, 4:6] .= K_12_sum
@@ -153,8 +174,9 @@ end
 function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δ::SVector{6,T},
     twist) where {N,T}
 
-    frame_now = tm.frame_world
     b = tm.bodyBodyCache
+    # frame_now = tm.frame_world
+    frame_now = b.mesh_2.FrameID
     tc = b.TractionCache
     BF = c_ins.FrictionModel
     τ = BF.τ

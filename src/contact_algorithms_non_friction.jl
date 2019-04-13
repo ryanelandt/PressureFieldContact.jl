@@ -110,6 +110,8 @@ function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScena
     b.x_rʷ_r² = transform_to_root(tm.state, b.mesh_2.BodyID)  # TODO: add safe=false
     b.x_r²_rʷ = inv(b.x_rʷ_r²)
     b.x_r¹_rʷ = inv(b.x_rʷ_r¹)
+	b.x_r¹_r² = b.x_r¹_rʷ * b.x_rʷ_r²
+	b.x_r²_r¹ = b.x_r²_rʷ * b.x_rʷ_r¹
     return nothing
 end
 
@@ -124,6 +126,7 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     twist_w_r¹ = twist_wrt_world(tm.state, b.mesh_1.BodyID)
     twist_w_r² = twist_wrt_world(tm.state, b.mesh_2.BodyID)
 	b.twist_r²_r¹ = -twist_w_r¹ + twist_w_r²  # velocity of tet wrt tri expressed in world
+	b.twist_r²_r¹_r² = transform(b.twist_r²_r¹, b.x_r²_rʷ)
 
     b.μ = c_ins.μ
     b.χ = c_ins.χ
@@ -173,44 +176,42 @@ end
 function calc_ζ_transforms(frame_ζ::CartesianFrame3D, frame_b ::CartesianFrame3D, p_tet, x_r¹_rʷ, x_rʷ_r¹)
     x_r¹_ζ = MatrixTransform(frame_ζ, frame_b, asMatOnePad(p_tet))
     x_ζ_r¹ = inv(x_r¹_ζ)
-    x_rʷ_ζ = x_rʷ_r¹ * x_r¹_ζ
-    x_ζ_rʷ = x_ζ_r¹ * x_r¹_rʷ  # NOTE: inv(x_r_ζ) is **always** Float64
-    return x_rʷ_ζ, x_ζ_rʷ, x_ζ_r¹
+    return x_r¹_ζ, x_ζ_r¹
 end
 
 find_plane_tet(E::Float64, ϵ::SMatrix{1,4,Float64,4}, X_r_w) = (E * ϵ) * X_r_w
 
-function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache, mesh_2::MeshCache,
-        x_rʷ_r¹::Transform3D{T}, x_rʷ_r²::Transform3D{T}, x_r¹_rʷ::Transform3D{T}, x_r²_rʷ::Transform3D{T},
-        b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-
-    vert_1, ϵ¹ = tetrahedron_vertices_ϵ(i_1, mesh_1)
-    vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
-    x_rʷ_ζ¹, x_ζ¹_rʷ, x_ζ¹_r¹ = calc_ζ_transforms(FRAME_ζ¹, mesh_1.FrameID, vert_1, x_r¹_rʷ, x_rʷ_r¹)
-    x_rʷ_ζ², x_ζ²_rʷ, x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
-
-    # TODO: make this better
-    ϵ_plane_1_rʷ = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_rʷ.mat)
-    ϵ_plane_2_rʷ = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_rʷ.mat)
-	ϵ_plane_rʷ = ϵ_plane_2_rʷ - ϵ_plane_1_rʷ  # normalize penetration extent is positive so this describes the plane
-		# of the contact surface pointing towards mesh_2
-
-    poly_rʷ = clip_plane_tet(ϵ_plane_rʷ, x_rʷ_ζ¹.mat)
-    if 3 <= length(poly_rʷ)
-        poly_ζ² = one_pad_then_mul(x_ζ²_rʷ.mat, poly_rʷ)
-        poly_ζ² = zero_small_coordinates(poly_ζ²)  # This needs to be done to avoid a degenerate situation where the
-            # plane lies exactly on the intersection of the faces of two tets. This situation happens EVERY time two
-            # tet faces that lie on the surface intersect.
-        poly_ζ² = clip_in_tet_coordinates(poly_ζ²)
-        if 3 <= length(poly_ζ²)
-			frame_world = b.frame_world
-			n = unPad(ϵ_plane_rʷ)
-			n̂ = unsafe_normalize(n)
-            n̂ = FreeVector3D(frame_world, n̂)
-            integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂, x_rʷ_ζ², x_ζ²_rʷ, ϵ², x_ζ²_r²)
-        end
-    end
-end
+# function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache, mesh_2::MeshCache,
+#         x_rʷ_r¹::Transform3D{T}, x_rʷ_r²::Transform3D{T}, x_r¹_rʷ::Transform3D{T}, x_r²_rʷ::Transform3D{T},
+#         b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+#
+#     vert_1, ϵ¹ = tetrahedron_vertices_ϵ(i_1, mesh_1)
+#     vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
+#     x_rʷ_ζ¹, x_ζ¹_rʷ, x_ζ¹_r¹ = calc_ζ_transforms(FRAME_ζ¹, mesh_1.FrameID, vert_1, x_r¹_rʷ, x_rʷ_r¹)
+#     x_rʷ_ζ², x_ζ²_rʷ, x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
+#
+#     # TODO: make this better
+#     ϵ_plane_1_rʷ = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_rʷ.mat)
+#     ϵ_plane_2_rʷ = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_rʷ.mat)
+# 	ϵ_plane_rʷ = ϵ_plane_2_rʷ - ϵ_plane_1_rʷ  # normalize penetration extent is positive so this describes the plane
+# 		# of the contact surface pointing towards mesh_2
+#
+#     poly_rʷ = clip_plane_tet(ϵ_plane_rʷ, x_rʷ_ζ¹.mat)
+#     if 3 <= length(poly_rʷ)
+#         poly_ζ² = one_pad_then_mul(x_ζ²_rʷ.mat, poly_rʷ)
+#         poly_ζ² = zero_small_coordinates(poly_ζ²)  # This needs to be done to avoid a degenerate situation where the
+#             # plane lies exactly on the intersection of the faces of two tets. This situation happens EVERY time two
+#             # tet faces that lie on the surface intersect.
+#         poly_ζ² = clip_in_tet_coordinates(poly_ζ²)
+#         if 3 <= length(poly_ζ²)
+# 			frame_world = b.frame_world
+# 			n = unPad(ϵ_plane_rʷ)
+# 			n̂ = unsafe_normalize(n)
+#             n̂ = FreeVector3D(frame_world, n̂)
+#             integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂, x_rʷ_ζ², x_ζ²_rʷ, ϵ², x_ζ²_r²)
+#         end
+#     end
+# end
 
 function integrate_over_surface_volume_all!(mesh_1::MeshCache, mesh_2::MeshCache, x_rʷ_r¹::Transform3D{T},
         x_rʷ_r²::Transform3D{T}, x_r¹_rʷ::Transform3D{T}, x_r²_rʷ::Transform3D{T},
@@ -228,101 +229,102 @@ function integrate_over_surface_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCach
 
     vert_1 = triangle_vertices(i_1, mesh_1)
     vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
-    x_rʷ_ζ², x_ζ²_rʷ, x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
-    x_ζ²_r¹ = x_ζ²_rʷ * x_rʷ_r¹
+    x_r²_ζ², x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
+	ϵ_r² = ϵ² * x_ζ²_r².mat
+    n̂_r¹ = FreeVector3D(mesh_1.FrameID, triangleNormal(vert_1))
 
-    n̂_r¹ = FreeVector3D(mesh_1.FrameID, triangleNormal(vert_1))  # REDACTED: pressure is applied opposite the triangle normal
-    n̂_rʷ = x_rʷ_r¹ * n̂_r¹
+	x_ζ²_r¹ = x_ζ²_r².mat * b.x_r²_r¹.mat
+	v1 = x_ζ²_r¹ * onePad(vert_1[1])
+	v2 = x_ζ²_r¹ * onePad(vert_1[2])
+	v3 = x_ζ²_r¹ * onePad(vert_1[3])
+	poly_ζ² = clip_in_tet_coordinates(v1, v2, v3)
 
-    poly_rʷ = poly_eight(vert_1.data)
-    poly_ζ² = one_pad_then_mul(x_ζ²_r¹.mat, poly_rʷ)
-    poly_ζ² = clip_in_tet_coordinates(poly_ζ²)
     if 3 <= length(poly_ζ²)
-        frame_world = b.frame_world
-        integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂_rʷ, x_rʷ_ζ², x_ζ²_rʷ, ϵ², x_ζ²_r²)
+        n̂² = transform(n̂_r¹, b.x_r²_r¹)
+		integrate_over_polygon_patch!(b, n̂², poly_ζ², x_r²_ζ², x_ζ²_r², ϵ_r²)
     end
 end
 
-function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, poly_ζ²::poly_eight{4,T},
-        frame_world::CartesianFrame3D, n̂::FreeVector3D{SVector{3,T}}, x_rʷ_ζ²::MatrixTransform{4,4,T,16},
-        x_ζ²_rʷ::MatrixTransform{4,4,T,16}, ϵ::SMatrix{1,4,Float64,4}, x_ζ²_r²::MatrixTransform{4,4,Float64,16}) where {N,T}
+function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, n̂²::FreeVector3D{SVector{3,T}},
+		poly_ζ²::poly_eight{4,T},
+        x_r²_ζ²::MatrixTransform{4,4,Float64,16},
+		x_ζ²_r²::MatrixTransform{4,4,Float64,16},
+		ϵ_r²::SMatrix{1,4,Float64,4}) where {N,T}
 
-    poly_rʷ = mul_then_un_pad(x_rʷ_ζ².mat, poly_ζ²)
-    centroid_rʷ = Point3D(frame_world, centroid(poly_rʷ, n̂.v)[2])
-    centroid_ζ² = x_ζ²_rʷ * centroid_rʷ
+	frame_2 = b.mesh_2.FrameID
+
+	poly_r² = mul_then_un_pad(x_r²_ζ².mat, poly_ζ²)
+	centroid_r² = Point3D(frame_2, centroid(poly_r², n̂².v)[2])
+
     N_vertices = length(poly_ζ²)
-    ζ²_2 = getPoint(poly_ζ², FRAME_ζ², N_vertices)
-    vert_rʷ_2 = getPoint(poly_rʷ, frame_world, N_vertices)
+	vert_r²_2 = getPoint(poly_r², frame_2, N_vertices)
+
     for k = 1:N_vertices
-        ζ²_1 = ζ²_2
-        ζ²_2 = getPoint(poly_ζ², FRAME_ζ², k)
-        x_ζ²_ϕ = hcat(ζ²_1, ζ²_2, centroid_ζ²)
-        vert_rʷ_1 = vert_rʷ_2
-        vert_rʷ_2 = getPoint(poly_rʷ, frame_world, k)
-		# area_quad_k = area(vert_rʷ_1, vert_rʷ_2, centroid_rʷ, n̂)
-		area_quad_k = triangle_area((vert_rʷ_1.v, vert_rʷ_2.v, centroid_rʷ.v), n̂.v)
+		vert_r²_1 = vert_r²_2
+		vert_r²_2 = getPoint(poly_r², frame_2, k)
+		area_quad_k = triangle_area((vert_r²_1.v, vert_r²_2.v, centroid_r².v), n̂².v)
+		A_r²_ϕ = hcat(onePad(vert_r²_1), onePad(vert_r²_2), onePad(centroid_r²))
 		(-1.0e-6 <= area_quad_k) || error("area is negative!!! $(area_quad_k)")
-        (0.0 < area_quad_k) && fillTractionCacheForTriangle!(b, area_quad_k, x_ζ²_ϕ, x_rʷ_ζ², n̂, ϵ, x_ζ²_r²)  # no point in adding intersection if area is zero
+		(0.0 < area_quad_k) && fillTractionCacheForTriangle!(b, area_quad_k, n̂², A_r²_ϕ, ϵ_r²)  # no point in adding intersection if area is zero
     end
     return nothing
 end
 
 # # TODO: create fillTractionCacheForTriangle! with a macro
 function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{1,T}, area_quad_k::T,
-        A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
-        ϵ::SMatrix{1,4,Float64,4}, x_ζ²_r²::MatrixTransform{4,4,Float64,16}) where {T}
+        n̂²::FreeVector3D{SVector{3,T}},
+		A_r²_ϕ::MatrixTransform{4,3,T,12},
+		ϵ_r²::SMatrix{1,4,Float64,4}) where {T}
 
-    r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
+    r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, area_quad_k, A_r²_ϕ, ϵ_r²)
     p = (p_1, )
     if 0.0 < sum(p)
         r_cart = (r_cart_1, )
         v_cart_t = (v_cart_t_1, )
         dA = (dA_1, )
-        trac_cache = TractionCache(n̂, r_cart, v_cart_t, dA, p)
+        trac_cache = TractionCache(n̂², r_cart, v_cart_t, dA, p)
         addCacheItem!(b.TractionCache, trac_cache)
     end
     return nothing
 end
 
-function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, area_quad_k::T,
-        A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
-        ϵ::SMatrix{1,4,Float64,4}, x_ζ²_r²::MatrixTransform{4,4,Float64,16}) where {T}
+# function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, area_quad_k::T,
+#         A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
+#         ϵ::SMatrix{1,4,Float64,4}, x_ζ²_r²::MatrixTransform{4,4,Float64,16}) where {T}
+#
+#     r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
+#     r_cart_2, v_cart_t_2, dA_2, p_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
+#     r_cart_3, v_cart_t_3, dA_3, p_3 = fillTractionCacheInnerLoop!(3, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
+#     p = (p_1, p_2, p_3)
+#     if 0.0 < sum(p)
+#         dA = (dA_1, dA_2, dA_3)
+#         r_cart = (r_cart_1, r_cart_2, r_cart_3)
+#         v_cart_t = (v_cart_t_1, v_cart_t_2, v_cart_t_3)
+#         trac_cache = TractionCache(n̂, r_cart, v_cart_t, dA, p)
+#         addCacheItem!(b.TractionCache, trac_cache)
+#     end
+#     return nothing
+# end
 
-    r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
-    r_cart_2, v_cart_t_2, dA_2, p_2 = fillTractionCacheInnerLoop!(2, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
-    r_cart_3, v_cart_t_3, dA_3, p_3 = fillTractionCacheInnerLoop!(3, b, A_ζ_ϕ, A_w_ζ, n̂, area_quad_k, ϵ, x_ζ²_r²)
-    p = (p_1, p_2, p_3)
-    if 0.0 < sum(p)
-        dA = (dA_1, dA_2, dA_3)
-        r_cart = (r_cart_1, r_cart_2, r_cart_3)
-        v_cart_t = (v_cart_t_1, v_cart_t_2, v_cart_t_3)
-        trac_cache = TractionCache(n̂, r_cart, v_cart_t, dA, p)
-        addCacheItem!(b.TractionCache, trac_cache)
-    end
-    return nothing
-end
-
-function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T},
-        A_ζ_ϕ::MatrixTransform{4,3,T,12}, A_w_ζ::MatrixTransform{4,4,T,16}, n̂::FreeVector3D{SVector{3,T}},
-        area_quad_k::T, ϵ_tet::SMatrix{1,4,Float64,4}, x_ζ²_r²::MatrixTransform{4,4,Float64,16}) where {N,T}
-
-    quad_point_ϕ = Point3D(FRAME_ϕ, b.quad.zeta[k])
-    quad_point_ζ = A_ζ_ϕ * quad_point_ϕ
-    p_cart_qp = unPad(A_w_ζ * quad_point_ζ)
-    ϵ_quad = dot(ϵ_tet, quad_point_ζ.v)
-    ṙ = point_velocity(b.twist_r²_r¹, p_cart_qp)
-    ṙ² = transform(ṙ, b.x_r²_rʷ)
-    ϵϵ = - dot(ϵ_tet, (x_ζ²_r² * ṙ²).v)  # TODO: Why is there a negative sign?
+function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}, area_quad_k::T,
+		A_r²_ϕ::MatrixTransform{4,3,T,12}, ϵ_r²::SMatrix{1,4,Float64,4}) where {N,T}
+	#
+	rϕ = Point3D(FRAME_ϕ, b.quad.zeta[k])
+	r²_pad = A_r²_ϕ * rϕ
+	ϵ_quad = dot(ϵ_r², r²_pad.v)
+	r² = unPad(r²_pad)
+	ṙ² = point_velocity(b.twist_r²_r¹_r², r²)
+	ϵϵ = - dot(ϵ_r², onePad(ṙ².v))  # TODO: Why is there a negative sign?
     damp_term = fastSoftPlus(1.0 + b.χ * ϵϵ)
-    p = ϵ_quad * b.Ē
-    p_hc = p * damp_term
-    dA = b.quad.w[k] * area_quad_k
-    return p_cart_qp, ṙ, dA, p_hc
+    p_hc = ϵ_quad * b.Ē * damp_term
+	dA = b.quad.w[k] * area_quad_k
+	return r², ṙ², dA, p_hc
 end
 
 function addGeneralizedForcesThirdLaw!(wrench::Wrench{T}, tm::TypedMechanismScenario{N,T}, cInfo::ContactInstructions) where {N,T}
     torque_third_law = tm.torque_third_law
     f_generalized = tm.f_generalized
+	wrench = transform(wrench, tm.bodyBodyCache.x_rʷ_r²)
     addGeneralizedForcesExternal!(f_generalized,  wrench, tm.GeometricJacobian[tm.bodyBodyCache.mesh_1.BodyID], torque_third_law)
     addGeneralizedForcesExternal!(f_generalized, -wrench, tm.GeometricJacobian[tm.bodyBodyCache.mesh_2.BodyID], torque_third_law)
 end

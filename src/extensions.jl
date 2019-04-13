@@ -22,6 +22,7 @@ end
 Tri_Tet_Intersections.area(p1::Point3D{T}, p2::Point3D{T}, p3::Point3D{T}) where {T} = area(p1.v, p2.v, p3.v)
 Tri_Tet_Intersections.getTop(m::MatrixTransform{4,N2,T,N3}) where {N2,T,N3} = MatrixTransform(m.from, m.to, getTop(m.mat))
 Tri_Tet_Intersections.unPad(p::Point4D{SVector{4,T}}) where {T} = Point3D(p.frame, SVector{3,T}(p.v[1], p.v[2], p.v[3]))
+Tri_Tet_Intersections.onePad(p::Point3D{SVector{3,T}}) where {T} = Point4D(p.frame, onePad(p.v))
 
 ### Binary_BB_Trees
 Binary_BB_Trees.fit_tri_obb(eM::eMesh{Tri,T2}, k::Int64) where {T2} = fit_tri_obb(eM.point[eM.tri[k]])

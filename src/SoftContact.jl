@@ -149,7 +149,7 @@ export
     type_dual,
     fill_with_nothing!,
     mat_mul_SA_bug_circumvent,
-    add_h_mesh_color,
+    # add_h_mesh_color,
     Radau_for_MechanismScenario,
     get_bristle_d0,
     get_bristle_d1,

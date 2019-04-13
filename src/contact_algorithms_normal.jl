@@ -1,6 +1,6 @@
 
 function normal_wrench(b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-    frame = b.frame_world
+    frame = b.mesh_2.FrameID
     wrench = zero(Wrench{T}, frame)
     @inbounds begin
     for k_trac = 1:length(b.TractionCache)
@@ -15,7 +15,7 @@ function normal_wrench(b::TypedElasticBodyBodyCache{N,T}) where {N,T}
 end
 
 function normal_wrench_patch_center(b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-    frame = b.frame_world
+    frame = b.mesh_2.FrameID
     wrench = zero(Wrench{T}, frame)
     int_p_r_dA = zeros(SVector{3,T})
     int_p_dA = zero(T)

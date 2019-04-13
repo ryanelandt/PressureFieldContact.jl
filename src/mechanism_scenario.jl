@@ -34,11 +34,13 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     x_rʷ_r²::Transform3D{T}
     x_r²_rʷ::Transform3D{T}
     x_r¹_rʷ::Transform3D{T}
+    x_r¹_r²::Transform3D{T}
+	x_r²_r¹::Transform3D{T}
     twist_r²_r¹::Twist{T}
+    twist_r²_r¹_r²::Twist{T}
     χ::Float64
     μ::Float64
     Ē::Float64
-    # d⁻¹::Float64
     wrench::Wrench{T}
     function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
         trac_cache = VectorCache{TractionCache{N, T}}()
