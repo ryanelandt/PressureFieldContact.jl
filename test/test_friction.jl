@@ -1,3 +1,75 @@
+
+function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v_tol::Float64=NaN)
+    box_rad = 0.05
+    i_prop_compliant = InertiaProperties(400.0)
+    i_prop_rigid     = InertiaProperties(400.0, d=0.09)
+    Ē = 1.0e9
+    c_prop_compliant = ContactProperties(Ē=Ē)
+    eM_box_rigid     = as_tri_eMesh(output_eMesh_box(box_rad))
+    eM_box_compliant = output_eMesh_box(box_rad)
+
+    ### Create mechanism and temporary structure
+	mag_grav = 9.8054
+    my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -mag_grav))  # create empty mechanism
+    ts = TempContactStruct(my_mechanism)
+
+	eM_plane = output_eMesh_half_plane(1.0)
+    mesh_id_plane = add_contact!(ts, "plane", eM_plane, c_prop_compliant)
+
+    eM_box_1 = output_eMesh_box(box_rad * ones(SVector{3,Float64}))
+	eMesh_transform!(eM_box_1, SVector(0, 0, box_rad))
+	nt_box_1 = add_body_contact!(ts, "box_1", as_tri_eMesh(eM_box_1), nothing, i_prop_rigid)
+
+	μ = 0.3
+	is_regularize = !isnan(v_tol)
+	if is_regularize
+		add_pair_rigid_compliant_regularize!(ts, mesh_id_plane, nt_box_1.mesh_id, μ=μ, v_tol=v_tol)
+		vel_box = SVector(0.0, v_tol, 0.0)
+	else
+		add_pair_rigid_compliant_bristle!(ts, mesh_id_plane, nt_box_1.mesh_id, μ=μ, k̄=1.0e4, τ=0.03)
+		vel_box = SVector(0.0, 0.0, 0.0)
+	end
+    mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=n_quad_rule)
+	mass_time_grav = mag_grav * nt_box_1.body.inertia.mass
+	area_box_face =  4 * box_rad^2
+	pene = mass_time_grav / (Ē * area_box_face)
+	set_state_spq!(mech_scen, nt_box_1.joint, vel=vel_box, trans=SVector(0.0, 0.0, -pene))
+	mech_scen.τ_ext[5] = mass_time_grav * μ * tang_force_coe
+	return mech_scen
+end
+
+
+i_box_y_vel = 11
+v_tol = 1.0e-4
+
+@testset "regularized friction" begin
+	for n_quad_rule = 1:2
+		# Test that the box slows down when traveling at v_tol and a force less than friction strength is applied
+		mech_scen = create_box_and_plane(n_quad_rule, 0.999, v_tol)
+		@test calcXd(get_state(mech_scen), mech_scen)[i_box_y_vel] < 0.0
+
+		# Test that the box speeds up when traveling at v_tol and a force less than friction strength is applied
+		mech_scen = create_box_and_plane(n_quad_rule, 1.001, v_tol)
+		@test 0.0 < calcXd(get_state(mech_scen), mech_scen)[i_box_y_vel]
+	end
+end
+
+@testset "spatial spring friction" begin
+	for n_quad_rule = 1:2
+		# Test that velocity of box is positive when pushed with 1.5 the friction strength
+		mech_scen = create_box_and_plane(n_quad_rule, 1.5)
+		rr = Radau_for_MechanismScenario(mech_scen)
+		data_time, data_state = integrate_scenario_radau(rr, mech_scen, get_state(mech_scen), t_final=0.1)
+		@test 0.00001 < data_state[end, i_box_y_vel]
+
+		# Test that velocity of the box is zero when pushed with 0.5 the friction strength
+		mech_scen = create_box_and_plane(n_quad_rule, 0.5)
+		rr = Radau_for_MechanismScenario(mech_scen)
+		data_time, data_state = integrate_scenario_radau(rr, mech_scen, get_state(mech_scen), t_final=1.0)
+		@test abs(data_state[end, i_box_y_vel]) < 1.0e-12
+	end
+end
+
 @testset "transform_stiffness" begin
     f2 = CartesianFrame3D()
     f3 = CartesianFrame3D()
@@ -20,7 +92,7 @@ end
     @test s.K⁻¹_sqrt ≈ sqrt(inv(s.K))
 end
 
-@testset "bristle friction" begin
+@testset "spatial spring friction" begin
     ### Box properties
     box_rad = 0.05
     i_prop_compliant = InertiaProperties(400.0)

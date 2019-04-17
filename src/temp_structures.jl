@@ -34,7 +34,7 @@ mutable struct TempContactStruct
     bristle_ids::Base.OneTo{BristleID}
     MeshCache::RigidBodyDynamics.CustomCollections.CacheIndexDict{MeshID,Base.OneTo{MeshID},MeshCache}
     ContactInstructions::Vector{ContactInstructions}
-    function TempContactStruct(mechanism::Mechanism, is_aabb::Bool=true)
+    function TempContactStruct(mechanism::Mechanism, is_aabb::Bool=false)
         bristle_ids = Base.OneTo(BristleID(0))
         mesh_ids = Base.OneTo(MeshID(0))
         mesh_cache = MeshCacheDict{MeshCache}(mesh_ids)
