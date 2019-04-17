@@ -14,19 +14,19 @@ function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v
     ts = TempContactStruct(my_mechanism)
 
 	eM_plane = output_eMesh_half_plane(1.0)
-    mesh_id_plane = add_contact!(ts, "plane", eM_plane, c_prop_compliant)
+    nt_plane = add_contact!(ts, "plane", eM_plane, c_prop=c_prop_compliant)
 
     eM_box_1 = output_eMesh_box(box_rad * ones(SVector{3,Float64}))
 	eMesh_transform!(eM_box_1, SVector(0, 0, box_rad))
-	nt_box_1 = add_body_contact!(ts, "box_1", as_tri_eMesh(eM_box_1), nothing, i_prop_rigid)
+	nt_box_1 = add_body_contact!(ts, "box_1", as_tri_eMesh(eM_box_1), i_prop=i_prop_rigid)
 
 	μ = 0.3
 	is_regularize = !isnan(v_tol)
 	if is_regularize
-		add_pair_rigid_compliant_regularize!(ts, mesh_id_plane, nt_box_1.mesh_id, μ=μ, v_tol=v_tol)
+		add_pair_rigid_compliant_regularize!(ts, nt_plane.id, nt_box_1.id, μ=μ, v_tol=v_tol)
 		vel_box = SVector(0.0, v_tol, 0.0)
 	else
-		add_pair_rigid_compliant_bristle!(ts, mesh_id_plane, nt_box_1.mesh_id, μ=μ, k̄=1.0e4, τ=0.03)
+		add_pair_rigid_compliant_bristle!(ts, nt_plane.id, nt_box_1.id, μ=μ, k̄=1.0e4, τ=0.03)
 		vel_box = SVector(0.0, 0.0, 0.0)
 	end
     mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=n_quad_rule)
@@ -87,9 +87,10 @@ end
 
 @testset "calc_K_sqrt⁻¹" begin
     s = spatialStiffness{Float64}()
-    s.K.data .= rand_pd(6)
+	K_orig = Matrix(rand_pd(6))
+    s.K.data .= K_orig
     SoftContact.calc_K_sqrt⁻¹!(s)
-    @test s.K⁻¹_sqrt ≈ sqrt(inv(s.K))
+    @test s.K⁻¹_sqrt ≈ sqrt(inv(K_orig))
 end
 
 @testset "spatial spring friction" begin
@@ -107,24 +108,20 @@ end
     ts = TempContactStruct(my_mechanism)
 
     name_part = "part"
-    # eM_box = output_eMesh_box(box_rad .* SVector{3,Float64}(1.0, 1.0, 20.0))
-    # eMesh_transform!(eM_box, box_rad * SVector{3,Float64}(0.0, 0.0, -20.0))
 	eM_box = output_eMesh_half_plane(1.0)
-    nt_part = add_body_contact!(ts, name_part, as_tri_eMesh(eM_box), nothing, i_prop_rigid)
+    nt_part = add_body_contact!(ts, name_part, as_tri_eMesh(eM_box), i_prop=i_prop_rigid)
 
     name_hol_1 = "hol_1"
     hol_rad = 0.2 * box_rad
     eM_hol_1 = output_eMesh_box(hol_rad * ones(SVector{3,Float64}))
-    # eMesh_transform!(eM_hol_1, SVector{3,Float64}(box_rad + hol_rad, 0.0, 0.0))
 	eMesh_transform!(eM_hol_1, SVector{3,Float64}(0.0, 0.0, hol_rad))  # box_rad + hol_rad, 0.0, 0.0))
 
-	# eMesh_transform!(eM_box, box_rad * SVector(0.0, 0, +1))
     joint_1 = Prismatic(SVector{3,Float64}(0.0, 0.0, 1.0))
-    nt_hol_1 = add_body_contact!(ts, name_hol_1, eM_hol_1, c_prop_compliant, i_prop_compliant, joint_type=joint_1)
+    nt_hol_1 = add_body_contact!(ts, name_hol_1, eM_hol_1, c_prop=c_prop_compliant, i_prop=i_prop_compliant, joint=joint_1)
 
     τ = 0.03
     k̄ = 1.0e6
-    add_pair_rigid_compliant_bristle!(ts, nt_part.mesh_id, nt_hol_1.mesh_id, μ=0.3, χ=0.6, k̄=k̄, τ=τ)
+    add_pair_rigid_compliant_bristle!(ts, nt_part.id, nt_hol_1.id, μ=0.3, χ=0.6, k̄=k̄, τ=τ)
 
     mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=2)
     pene = hol_rad * 0.001
@@ -139,18 +136,19 @@ end
 	# color_gray  = RGBA{Float32}(0.5, 0.5, 0.5, 1.0)
 	# color_blue  = RGBA{Float32}(0.0, 0.0, 1.0, 1.0)
 	# mvis = MechanismVisualizer(my_mechanism, vis)
-	# set_mesh_visual!(mvis, mech_scen, nt_hol_1.mesh_id, color_blue)
-	# set_mesh_visual!(mvis, mech_scen, nt_part.mesh_id,  color_gray)
+	# set_mesh_visual!(mvis, mech_scen, nt_hol_1.id, color_blue)
+	# set_mesh_visual!(mvis, mech_scen, nt_part.id,  color_gray)
 	# set_configuration!(mech_scen, mvis, x)
 	# #######################
 
     ### Test 1 -- see if stiffness is what is expected
-    calcXd!(get_state(mech_scen), x, mech_scen)
+    calcXd(x, mech_scen)
     K_ana = (hol_rad^2) * 4 * k̄ * (Ē * (pene / hol_rad))
-    Kʷ = mech_scen.float.bodyBodyCache.spatialStiffness.K
-	K_44 = Kʷ[4,4]
-	K_55 = Kʷ[5,5]
-	@test K_44 == K_55
+	s = mech_scen.float.bodyBodyCache.spatialStiffness
+	K² = inv(s.K⁻¹_sqrt * s.K⁻¹_sqrt)
+	K_44 = K²[4,4]
+	K_55 = K²[5,5]
+	@test K_44 ≈ K_55
     @test 0.99 * K_ana < K_55 < 1.01 * K_ana
 
     ### Test 2 -- see if stiffness was decomposed correctly
@@ -160,14 +158,12 @@ end
 
     ### Test 3 -- see if spring force calculated both ways agrees
     c_ins = mech_scen.ContactInstructions[1]
-    SoftContact.force_single_elastic_intersection!(mech_scen, tm, c_ins)  # populate the cache
-    SoftContact.calc_K_sqrt⁻¹!(spaStiff)
     Δ² = (rand(SVector{6,Float64}) + 0.5) * 1.0e-8
 
     s = SoftContact.set_s_from_Δʷ(mech_scen, c_ins, Δ²)
     mech_scen.float.s.segments[c_ins.FrictionModel.BristleID] .= s
     _, wrench²_fric = SoftContact.bristle_wrench_in_world(tm,  c_ins)
     wrench²_fric = as_static_vector(wrench²_fric)
-    wrench²_fric_2 = - spaStiff.K * Δ²
+	wrench²_fric_2 = - K² * Δ²
     @test (0.999999 <  dot(normalize(wrench²_fric), normalize(wrench²_fric_2)))
 end

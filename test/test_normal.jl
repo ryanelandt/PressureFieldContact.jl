@@ -14,12 +14,12 @@
 
         name_plane = "plane"
         eM_plane = output_eMesh_half_plane()
-        add_contact!(ts, name_plane, eM_plane, c_prop_compliant)
+        add_contact!(ts, name_plane, eM_plane, c_prop=c_prop_compliant)
 
         name_box = "box"
         eM_box = as_tri_eMesh(output_eMesh_box(box_rad))
         eMesh_transform!(eM_box, SVector{3,Float64}(0.0, 0.0, box_rad))
-        body_box, joint_box = add_body_contact!(ts, name_box, eM_box, nothing, i_prop_rigid)
+        body_box, joint_box = add_body_contact!(ts, name_box, eM_box, i_prop=i_prop_rigid)
 
         m_id_plane = find_mesh_id(ts, name_plane)
         m_id_box = find_mesh_id(ts, name_box)

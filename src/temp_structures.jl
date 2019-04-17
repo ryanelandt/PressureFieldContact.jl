@@ -56,17 +56,24 @@ function addMesh!(ts::TempContactStruct, mesh::MeshCache)
     return nothing
 end
 
-function add_body_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh,
-        c_prop::Union{Nothing,ContactProperties}, i_prop::InertiaProperties;
-        body_parent::Union{RigidBody{Float64},Nothing}=nothing,
-        joint_type::JT=SPQuatFloating{Float64}(), dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
+function add_body_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh;
+        i_prop::InertiaProperties,
+        c_prop::Union{Nothing,ContactProperties}=nothing,
+        body::Union{RigidBody{Float64},Nothing}=nothing,
+        joint::JT=SPQuatFloating{Float64}(),
+        dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
 
-    nt = add_body!(ts, name, e_mesh, i_prop, body_parent=body_parent, joint_type=joint_type, dh=dh)
-    mesh_id = add_contact!(ts, name, e_mesh, c_prop, body=nt.body)
-    return NamedTuple{(:body, :joint, :mesh_id)}((nt.body, nt.joint, mesh_id))
+    nt = add_body!(ts, name, e_mesh, i_prop=i_prop, body=body, joint=joint, dh=dh)
+    nt_new_contact = add_contact!(ts, name, e_mesh, c_prop=c_prop, body=nt.body)
+    return NamedTuple{(:body, :joint, :id)}((nt.body, nt.joint, nt_new_contact.id))
 end
 
+# function verify_tree_possible(eM::eMesh{T1,T2}, )
+
 function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
+
+    xor(c_prop == nothing, T2 == Nothing) && error("Attempting to use nothing as the ContartProperties for a Tet mesh")
+
     e_tree = eTree(eM_box, c_prop)
 
     if T1 != Nothing
@@ -85,7 +92,8 @@ function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactPrope
     return eTree(obb_tri, obb_tet, c_prop)
 end
 
-function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh, c_prop::Union{Nothing,ContactProperties};
+function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh;
+        c_prop=c_prop::Union{Nothing,ContactProperties}=nothing,
         body::Union{RigidBody{Float64},Nothing}=nothing)
 
     body = return_body_never_nothing(ts.mechanism, body)
@@ -96,25 +104,25 @@ function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh, c_prop
     end
     mesh = MeshCache(name, e_mesh, e_tree, body)
     addMesh!(ts, mesh)
-    return find_mesh_id(ts, mesh)
+    return NamedTuple{(:id,)}((find_mesh_id(ts, mesh),))
 end
 
-function add_body!(ts::TempContactStruct, name::String, e_mesh::eMesh, i_prop::InertiaProperties;
-        body_parent::Union{RigidBody{Float64},Nothing}=nothing, joint_type::JT=SPQuatFloating{Float64}(),
+function add_body!(ts::TempContactStruct, name::String, e_mesh::eMesh; i_prop::InertiaProperties,
+        body::Union{RigidBody{Float64},Nothing}=nothing, joint::JT=SPQuatFloating{Float64}(),
         dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
 
     mesh_inertia_info = makeInertiaInfo(e_mesh, i_prop)
-    return add_body_from_inertia!(ts.mechanism, name, mesh_inertia_info, joint=joint_type, body_parent=body_parent, dh=dh)
+    return add_body_from_inertia!(ts.mechanism, name, mesh_inertia_info, joint=joint, body=body, dh=dh)
 end
 
 return_body_never_nothing(mechanism::Mechanism, body::Nothing) = root_body(mechanism)
 return_body_never_nothing(mechanism::Mechanism, body::RigidBody{Float64}) = body
 
 function add_body_from_inertia!(mechanism::Mechanism, name::String, mesh_inertia_info::MeshInertiaInfo;
-        joint::JT=SPQuatFloating{Float64}(), body_parent::Union{RigidBody{Float64},Nothing}=nothing,
+        joint::JT=SPQuatFloating{Float64}(), body::Union{RigidBody{Float64},Nothing}=nothing,
         dh::basic_dh{Float64}=one(basic_dh{Float64})) where {JT<:JointType}
 
-    body_parent = return_body_never_nothing(mechanism, body_parent)
+    body_parent = return_body_never_nothing(mechanism, body)
     body_child = newBodyFromInertia(name, mesh_inertia_info)
     j_parent_child, x_parent_child = outputJointTransform_ParentChild(body_parent, body_child, joint, dh)
     attach!(mechanism, body_parent, body_child, j_parent_child, joint_pose=x_parent_child)
