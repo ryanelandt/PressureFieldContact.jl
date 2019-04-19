@@ -42,10 +42,10 @@
         check = vcat(a3,f3)
         @test wrench ≈ check
 
-        wrench, p_center = normal_wrench_patch_center(b)
-        wrench = as_static_vector(wrench)
-        check = b.Ē * pene / 1.0 * box_rad^2*4
-        @test check ≈ wrench[6]
-        @test all((p_pos .* 0.999) .< p_center.v[1:2] .< (p_pos .* 1.001))
+        # wrench, p_center = normal_wrench_patch_center(b)
+        # wrench = as_static_vector(wrench)
+        # check = b.Ē * pene / 1.0 * box_rad^2*4
+        # @test check ≈ wrench[6]
+        # @test all((p_pos .* 0.999) .< p_center.v[1:2] .< (p_pos .* 1.001))
     end
 end

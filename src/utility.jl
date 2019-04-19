@@ -48,12 +48,3 @@ find_mesh_id(ts::TempContactStruct, input_2) = find_mesh_id(ts.MeshCache, input_
 
 find_mesh(ts::MeshCacheDict{MeshCache}, name::String) = ts[find_mesh_id(ts, name)]
 find_mesh(ts::Union{MechanismScenario,TempContactStruct}, name::String) = find_mesh(ts.MeshCache, name)
-
-# @inline mat_mul_SA_bug_circumvent(A::SMatrix{4,4,Float64,16}, B::SMatrix{4,4,Float64,16}) = A * B
-# @inline mat_mul_SA_bug_circumvent(A::SMatrix{4,4,T,16}, B::SMatrix{4,4,T,16}) where {T} = StaticArrays.mul_loop(Size(A), Size(B), A, B)
-# @inline mat_mul_SA_bug_circumvent(A::SMatrix{4,4,Float64,16}, B::SMatrix{4,4,T,16}) where {T} = StaticArrays.mul_loop(Size(A), Size(B), A, B)
-# @inline mat_mul_SA_bug_circumvent(A::SMatrix{4,4,T,16}, B::SMatrix{4,4,Float64,16}) where {T} = StaticArrays.mul_loop(Size(A), Size(B), A, B)
-
-# function add_h_mesh_color(h_mesh::HomogenousMesh; color::Union{Nothing, RGBA{Float32}}=nothing)
-#     return HomogenousMesh(vertices=h_mesh.vertices, faces=h_mesh.faces, color=color)
-# end

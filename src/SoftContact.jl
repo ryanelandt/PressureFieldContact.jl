@@ -133,7 +133,6 @@ export
 
     # contact_algorithms_normal.jl
     normal_wrench,
-    normal_wrench_patch_center,
 
     # vis_meshcat.jl
     set_body_mesh_visual!,

@@ -2,7 +2,6 @@
 function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     b = tm.bodyBodyCache
     frame = b.mesh_2.FrameID
-    # wrench = zero(Wrench{T}, frame)
     v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
 
     wrench_lin = zeros(SVector{3,T})
@@ -18,20 +17,11 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
             μ_reg = b.μ * fastSigmoid(mag_vel_t, v_tol⁻¹)
             p_dA = calc_p_dA(trac, k)
             traction_k = p_dA * (-n̂ + μ_reg * safe_normalize(cart_vel_t))
-    #         wrench += Wrench(trac.r_cart[k], traction_k)
-    #     end
-    # end
             wrench_lin += traction_k
             wrench_ang += cross(trac.r_cart[k].v, traction_k)
         end
     end
-
-    # wrench_ang = FreeVector3D(frame, wrench_ang)
-    # wrench_lin = FreeVector3D(frame, wrench_lin)
-    # wrench_sum = Wrench(wrench_ang, wrench_lin)
     return Wrench(frame, wrench_ang, wrench_lin)
-
-    # return wrench
 end
 
 ##########################
@@ -155,11 +145,8 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
             p_dA = calc_p_dA(trac, k_qp)
             r = trac.r_cart[k_qp]
             r_skew = vector_to_skew_symmetric(r.v)
-
             p_dA_I_minus_n̂n̂ = p_dA * I_minus_n̂n̂
             p_dA_rx_I_minus_n̂n̂ = r_skew * p_dA_I_minus_n̂n̂
-
-            # rx_I_minus_n̂n̂ = r_skew * p_dA_I_minus_n̂n̂
             K_11_sum -=  p_dA_rx_I_minus_n̂n̂ * r_skew
             K_12_sum +=  p_dA_rx_I_minus_n̂n̂
             K_22_sum +=  p_dA_I_minus_n̂n̂
@@ -177,7 +164,6 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     twist) where {N,T}
 
     b = tm.bodyBodyCache
-    # frame_now = tm.frame_world
     frame_now = b.mesh_2.FrameID
     tc = b.TractionCache
     BF = c_ins.FrictionModel
@@ -186,7 +172,6 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     k̄ = BF.k̄
     vʳᵉˡ = as_static_vector(twist)
 
-    # wrench_sum = zero(Wrench{T}, frame_now)
     wrench_lin = zeros(SVector{3,T})
     wrench_ang = zeros(SVector{3,T})
 
@@ -230,12 +215,6 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     end
 
     return Wrench(frame_now, wrench_ang, wrench_lin)
-
-    # wrench_ang = FreeVector3D(frame_now, wrench_ang)
-    # wrench_lin = FreeVector3D(frame_now, wrench_lin)
-    # wrench_sum = Wrench(wrench_ang, wrench_lin)
-
-    # return wrench_sum
 end
 
 

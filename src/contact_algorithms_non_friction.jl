@@ -92,7 +92,6 @@ end
 function calcTriTetIntersections!(m::MechanismScenario, c_ins::ContactInstructions) # where {N,T}
     b = m.float.bodyBodyCache  # this can be float because intersection is assumed to not depend on partials
     refreshBodyBodyTransform!(m, m.float, c_ins)  # TODO: isn't b.x_r¹_rʷ already calculated?
-    # x_r¹_r² = inv(b.x_rʷ_r¹) * b.x_rʷ_r²
 	x_r¹_r² = b.x_r¹_r²
     update_TT_Cache!(m.TT_Cache, translation(x_r¹_r²), rotation(x_r¹_r²))
     tree_2 = get_tree_tet(b.mesh_2)
@@ -110,8 +109,6 @@ function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScena
       x_rʷ_r¹ = transform_to_root(tm.state, b.mesh_1.BodyID)  # TODO: add safe=false
     b.x_rʷ_r² = transform_to_root(tm.state, b.mesh_2.BodyID)  # TODO: add safe=false  # used for wrench calculation
     b.x_r²_rʷ = inv(b.x_rʷ_r²)
-    # x_r¹_rʷ = inv(x_rʷ_r¹)
-	# b.x_r¹_r² = x_r¹_rʷ * b.x_rʷ_r²
 	b.x_r²_r¹ = b.x_r²_rʷ * x_rʷ_r¹
 	b.x_r¹_r² = inv(b.x_r²_r¹)
     return nothing
@@ -132,7 +129,6 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
 
     b.μ = c_ins.μ
     b.χ = c_ins.χ
-
     b.Ē = get_c_prop(b.mesh_2).Ē
     return nothing
 end
@@ -218,38 +214,6 @@ function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache
     end
 end
 
-# function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache, mesh_2::MeshCache,
-#         x_rʷ_r¹::Transform3D{T}, x_rʷ_r²::Transform3D{T}, x_r¹_rʷ::Transform3D{T}, x_r²_rʷ::Transform3D{T},
-#         b::TypedElasticBodyBodyCache{N,T}) where {N,T}
-#
-#     vert_1, ϵ¹ = tetrahedron_vertices_ϵ(i_1, mesh_1)
-#     vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
-#     x_rʷ_ζ¹, x_ζ¹_rʷ, x_ζ¹_r¹ = calc_ζ_transforms(FRAME_ζ¹, mesh_1.FrameID, vert_1, x_r¹_rʷ, x_rʷ_r¹)
-#     x_rʷ_ζ², x_ζ²_rʷ, x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2, x_r²_rʷ, x_rʷ_r²)
-#
-#     # TODO: make this better
-#     ϵ_plane_1_rʷ = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_rʷ.mat)
-#     ϵ_plane_2_rʷ = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_rʷ.mat)
-# 	ϵ_plane_rʷ = ϵ_plane_2_rʷ - ϵ_plane_1_rʷ  # normalize penetration extent is positive so this describes the plane
-# 		# of the contact surface pointing towards mesh_2
-#
-#     poly_rʷ = clip_plane_tet(ϵ_plane_rʷ, x_rʷ_ζ¹.mat)
-#     if 3 <= length(poly_rʷ)
-#         poly_ζ² = one_pad_then_mul(x_ζ²_rʷ.mat, poly_rʷ)
-#         poly_ζ² = zero_small_coordinates(poly_ζ²)  # This needs to be done to avoid a degenerate situation where the
-#             # plane lies exactly on the intersection of the faces of two tets. This situation happens EVERY time two
-#             # tet faces that lie on the surface intersect.
-#         poly_ζ² = clip_in_tet_coordinates(poly_ζ²)
-#         if 3 <= length(poly_ζ²)
-# 			frame_world = b.frame_world
-# 			n = unPad(ϵ_plane_rʷ)
-# 			n̂ = unsafe_normalize(n)
-#             n̂ = FreeVector3D(frame_world, n̂)
-#             integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂, x_rʷ_ζ², x_ζ²_rʷ, ϵ², x_ζ²_r²)
-#         end
-#     end
-# end
-
 function integrate_over_surface_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache, mesh_2::MeshCache,
         b::TypedElasticBodyBodyCache{N,T}) where {N,T}
 
@@ -290,7 +254,6 @@ function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, n̂²:
 		vert_r²_2 = getPoint(poly_r², frame_2, k)
 		area_quad_k = triangle_area((vert_r²_1.v, vert_r²_2.v, centroid_r².v), n̂².v)
 		A_r²_ϕ = hcat(onePad(vert_r²_1), onePad(vert_r²_2), onePad(centroid_r²))
-		# (-1.0e-6 <= area_quad_k) || error("area is negative!!! $(area_quad_k)")
 		(0.0 < area_quad_k) && fillTractionCacheForTriangle!(b, area_quad_k, n̂², A_r²_ϕ, ϵ_r²)  # no point in adding intersection if area is zero
     end
     return nothing

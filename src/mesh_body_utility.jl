@@ -16,19 +16,3 @@ function outputJointTransform_ParentChild(body_parent::RigidBody, body_child::Ri
     x_parent_child = Transform3D(frame_before(j_parent_child), default_frame(body_parent), rot, trans)
     return j_parent_child, x_parent_child
 end
-
-# function Tri_Tet_Intersections.area(mc::MeshCache{Tri,T2}) where {T2}
-#     area_float = 0.0
-#     for ind_tri_k = get_ind_tri(mc)
-#         area_float += area(get_point(mc)[ind_tri_k])
-#     end
-#     return area_float
-# end
-#
-# function Tri_Tet_Intersections.volume(mc::MeshCache{T1,Tet}) where {T1}
-#     vol_float = 0.0
-#     for ind_tet_k = get_ind_tet(mc)
-#         vol_float += volume(get_point(mc)[ind_tet_k])
-#     end
-#     return vol_float
-# end
