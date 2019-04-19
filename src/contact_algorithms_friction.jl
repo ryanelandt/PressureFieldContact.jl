@@ -66,7 +66,7 @@ function bristle_wrench_in_world(tm::TypedMechanismScenario{N,T}, c_ins::Contact
     spatial_stiffness = b.spatialStiffness
     τ⁻¹ = 1 / BF.τ
 
-    wrench²_normal, p²_center = normal_wrench_patch_center(b)
+    wrench²_normal = normal_wrench(b)
 
     calc_patch_spatial_stiffness!(tm, BF)
 
