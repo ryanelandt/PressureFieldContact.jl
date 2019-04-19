@@ -200,9 +200,8 @@ function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache
 	# ϵ_plane_rʷ = ϵ_plane_2_rʷ - ϵ_plane_1_rʷ  # normalize penetration extent is positive so this describes the plane
 	# 	# of the contact surface pointing towards mesh_2
 
-	# TODO: make this better
-	x_ζ¹_r² = x_ζ¹_r¹.mat * b.x_r¹_r²
-	ϵ_plane_1_r² = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_r¹.mat * b.x_r¹_r²)
+	# x_ζ¹_r² = x_ζ¹_r¹.mat * b.x_r¹_r²
+	ϵ_plane_1_r² = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_r¹.mat * b.x_r¹_r².mat)
 	ϵ_r² = ϵ² * x_ζ²_r².mat
     ϵ_plane_2_r² = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_r².mat)
 	ϵ_plane_r² = ϵ_plane_2_r² - ϵ_plane_1_r²  # normalize penetration extent is positive so this describes the plane
@@ -221,7 +220,8 @@ function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache
 			frame_world = b.frame_world
 			n² = unPad(ϵ_plane_r²)
 			n̂² = unsafe_normalize(n²)
-            n̂² = FreeVector3D(frame_world, n̂²)
+			# n̂² = FreeVector3D(frame_world, n̂²)
+			n̂² = FreeVector3D(mesh_2.FrameID, n̂²)
 			# integrate_over_polygon_patch!(b, poly_ζ², frame_world, n̂, x_rʷ_ζ², x_ζ²_rʷ, ϵ², x_ζ²_r²)
 			integrate_over_polygon_patch!(b, n̂², poly_ζ², x_r²_ζ², x_ζ²_r², ϵ_r²)
         end
