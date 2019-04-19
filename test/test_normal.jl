@@ -10,22 +10,21 @@
 
         ### Create mechanism and temporary structure
         my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -9.8054))  # create empty mechanism
-        ts = TempContactStruct(my_mechanism)
+        mech_scen = MechanismScenario(my_mechanism, n_quad_rule=k_quad_rule)
 
         name_plane = "plane"
         eM_plane = output_eMesh_half_plane()
-        add_contact!(ts, name_plane, as_tet_eMesh(eM_plane), c_prop=c_prop_compliant)
+        add_contact!(mech_scen, name_plane, as_tet_eMesh(eM_plane), c_prop=c_prop_compliant)
 
         name_box = "box"
         eM_box = as_tri_eMesh(output_eMesh_box(box_rad))
         eMesh_transform!(eM_box, SVector{3,Float64}(0.0, 0.0, box_rad))
-        body_box, joint_box = add_body_contact!(ts, name_box, as_tri_eMesh(eM_box), i_prop=i_prop_rigid)
+        body_box, joint_box = add_body_contact!(mech_scen, name_box, as_tri_eMesh(eM_box), i_prop=i_prop_rigid)
 
-        m_id_plane = find_mesh_id(ts, name_plane)
-        m_id_box = find_mesh_id(ts, name_box)
-        add_friction_bristle!(ts, m_id_box, m_id_plane, μ=0.3, χ=0.6, k̄=1.0e6, τ=0.03)
-
-        mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=k_quad_rule)
+        m_id_plane = find_mesh_id(mech_scen, name_plane)
+        m_id_box = find_mesh_id(mech_scen, name_box)
+        add_friction_bristle!(mech_scen, m_id_box, m_id_plane, μ=0.3, χ=0.6, k̄=1.0e6, τ=0.03)
+        finalize!(mech_scen)
 
         pene = 0.1 * box_rad
         set_state_spq!(mech_scen, joint_box, trans=SVector{3,Float64}(p_pos..., -pene))

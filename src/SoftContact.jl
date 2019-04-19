@@ -27,7 +27,6 @@ include("structs.jl")
 include("mesh_inertia.jl")
 include("matrix_transform.jl")
 include("mesh_body_utility.jl")
-include("temp_structures.jl")
 include("mechanism_scenario.jl")
 include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
@@ -76,12 +75,11 @@ export
     newBodyFromInertia,
     outputJointTransform_ParentChild,
 
-    # temp_structures.jl
+    # mechanism_scenario
     BristleID,
     Bristle,
     Regularized,
     ContactInstructions,
-    TempContactStruct,
     addMesh!,
     add_body_contact!,
     make_eTree_obb,
@@ -91,14 +89,12 @@ export
     add_friction_regularize!,
     add_friction!,
     add_friction_bristle!,
-
-    # mechanism_scenario
+    finalize!,
     TractionCache,
     calc_p_dA,
     spatialStiffness,
     TypedElasticBodyBodyCache,
     TypedMechanismScenario,
-    makePaths,
     MechanismScenario,
     num_partials,
     num_x,

@@ -11,25 +11,25 @@ function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v
     ### Create mechanism and temporary structure
 	mag_grav = 9.8054
     my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -mag_grav))  # create empty mechanism
-    ts = TempContactStruct(my_mechanism)
+    mech_scen = MechanismScenario(my_mechanism, n_quad_rule=n_quad_rule)
 
 	eM_plane = output_eMesh_half_plane(1.0)
-    nt_plane = add_contact!(ts, "plane", as_tet_eMesh(eM_plane), c_prop=c_prop_compliant)
+    nt_plane = add_contact!(mech_scen, "plane", as_tet_eMesh(eM_plane), c_prop=c_prop_compliant)
 
     eM_box_1 = output_eMesh_box(box_rad * ones(SVector{3,Float64}))
 	eMesh_transform!(eM_box_1, SVector(0, 0, box_rad))
-	nt_box_1 = add_body_contact!(ts, "box_1", as_tri_eMesh(eM_box_1), i_prop=i_prop_rigid)
+	nt_box_1 = add_body_contact!(mech_scen, "box_1", as_tri_eMesh(eM_box_1), i_prop=i_prop_rigid)
 
 	μ = 0.3
 	is_regularize = !isnan(v_tol)
 	if is_regularize
-		add_friction_regularize!(ts, nt_plane.id, nt_box_1.id, μ=μ, v_tol=v_tol)
+		add_friction_regularize!(mech_scen, nt_plane.id, nt_box_1.id, μ=μ, v_tol=v_tol)
 		vel_box = SVector(0.0, v_tol, 0.0)
 	else
-		add_friction_bristle!(ts, nt_plane.id, nt_box_1.id, μ=μ, k̄=1.0e4, τ=0.03)
+		add_friction_bristle!(mech_scen, nt_plane.id, nt_box_1.id, μ=μ, k̄=1.0e4, τ=0.03)
 		vel_box = SVector(0.0, 0.0, 0.0)
 	end
-    mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=n_quad_rule)
+	finalize!(mech_scen)
 	mass_time_grav = mag_grav * nt_box_1.body.inertia.mass
 	area_box_face =  4 * box_rad^2
 	pene = mass_time_grav / (Ē * area_box_face)
@@ -105,11 +105,11 @@ end
 
     ### Create mechanism and temporary structure
     my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -9.8054))  # create empty mechanism
-    ts = TempContactStruct(my_mechanism)
+    mech_scen = MechanismScenario(my_mechanism, n_quad_rule=2)
 
     name_part = "part"
 	eM_box = output_eMesh_half_plane(1.0)
-    nt_part = add_body_contact!(ts, name_part, as_tri_eMesh(eM_box), i_prop=i_prop_rigid)
+    nt_part = add_body_contact!(mech_scen, name_part, as_tri_eMesh(eM_box), i_prop=i_prop_rigid)
 
     name_hol_1 = "hol_1"
     hol_rad = 0.2 * box_rad
@@ -117,13 +117,15 @@ end
 	eMesh_transform!(eM_hol_1, SVector{3,Float64}(0.0, 0.0, hol_rad))  # box_rad + hol_rad, 0.0, 0.0))
 
     joint_1 = Prismatic(SVector{3,Float64}(0.0, 0.0, 1.0))
-    nt_hol_1 = add_body_contact!(ts, name_hol_1, as_tet_eMesh(eM_hol_1), c_prop=c_prop_compliant, i_prop=i_prop_compliant, joint=joint_1)
+    nt_hol_1 = add_body_contact!(mech_scen, name_hol_1, as_tet_eMesh(eM_hol_1), c_prop=c_prop_compliant, i_prop=i_prop_compliant, joint=joint_1)
 
     τ = 0.03
     k̄ = 1.0e6
-    add_friction_bristle!(ts, nt_part.id, nt_hol_1.id, μ=0.3, χ=0.6, k̄=k̄, τ=τ)
+    add_friction_bristle!(mech_scen, nt_part.id, nt_hol_1.id, μ=0.3, χ=0.6, k̄=k̄, τ=τ)
 
-    mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=2)
+    finalize!(mech_scen)  # , calcXd!, n_quad_rule=2)
+	mech_scen = mech_scen
+
     pene = hol_rad * 0.001
     set_configuration!(mech_scen.float.state, nt_hol_1.joint, [-pene])
     x = get_state(mech_scen)
