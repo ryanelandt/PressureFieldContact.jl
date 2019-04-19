@@ -58,8 +58,12 @@ struct MeshCache{T1,T2}
     end
 end
 
-@inline get_tree_tet(m::MeshCache) = m.tree.tet
-@inline get_tree_tri(m::MeshCache) = m.tree.tri
+get_tree(m::MeshCache{Tri,Nothing}) = m.tree.tri
+get_tree(m::MeshCache{Nothing,Tet}) = m.tree.tet
+
+# @inline get_tree_tet(m::MeshCache) = m.tree.tet
+# @inline get_tree_tri(m::MeshCache) = m.tree.tri
+
 @inline get_c_prop(m::MeshCache) = m.tree.c_prop
 @inline Binary_BB_Trees.get_point(m::MeshCache) = m.mesh.point
 @inline get_ind_tri(m::MeshCache) = m.mesh.tri

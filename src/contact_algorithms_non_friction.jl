@@ -94,8 +94,8 @@ function calcTriTetIntersections!(m::MechanismScenario, c_ins::ContactInstructio
     refreshBodyBodyTransform!(m, m.float, c_ins)  # TODO: isn't b.x_r¹_rʷ already calculated?
 	x_r¹_r² = b.x_r¹_r²
     update_TT_Cache!(m.TT_Cache, translation(x_r¹_r²), rotation(x_r¹_r²))
-    tree_2 = get_tree_tet(b.mesh_2)
-    tree_1 = ifelse(c_ins.mutual_compliance, get_tree_tet, get_tree_tri)(b.mesh_1)
+	tree_1 = get_tree(b.mesh_1)
+	tree_2 = get_tree(b.mesh_2)
     tree_tree_intersect(m.TT_Cache, tree_1, tree_2)
     return nothing
 end

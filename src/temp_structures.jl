@@ -15,15 +15,14 @@ end
 mutable struct ContactInstructions
     id_1::MeshID
     id_2::MeshID
-    mutual_compliance::Bool
-    FrictionModel::Union{Regularized,Bristle}
     μ::Float64
     χ::Float64
-    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, mutual_compliance::Bool,
-            fric_model::Union{Regularized,Bristle}; μ::Float64, χ::Float64)
+    FrictionModel::Union{Regularized,Bristle}
+    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, fric_model::Union{Regularized,Bristle};
+            μ::Float64, χ::Float64)
 
         (0.0 <= μ <= 3.0) || error("mu in unexpected range.")
-        return new(id_tri, id_tet, mutual_compliance, fric_model, μ, χ)
+        return new(id_tri, id_tet, μ, χ, fric_model)
     end
 end
 
@@ -158,8 +157,7 @@ function add_friction!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::Mesh
     if is_compliant_1
         mesh_id_1, mesh_id_c = mesh_id_c, mesh_id_1
     end
-    mutual_compliance = is_compliant_1 && is_compliant_c
-    push!(ts.ContactInstructions, ContactInstructions(mesh_id_1, mesh_id_c, mutual_compliance, friction_model, μ=μ, χ=χ))
+    push!(ts.ContactInstructions, ContactInstructions(mesh_id_1, mesh_id_c, friction_model, μ=μ, χ=χ))
     return nothing
 end
 
