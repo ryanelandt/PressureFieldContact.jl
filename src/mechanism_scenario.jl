@@ -25,7 +25,7 @@ end
 
 mutable struct TypedElasticBodyBodyCache{N,T}
     spatialStiffness::spatialStiffness{T}
-    frame_world::CartesianFrame3D
+    # frame_world::CartesianFrame3D
     quad::TriTetQuadRule{3,N}
     TractionCache::VectorCache{TractionCache{N,T}}
     mesh_1::MeshCache
@@ -42,11 +42,16 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     μ::Float64
     Ē::Float64
     wrench::Wrench{T}
-    function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
+    function TypedElasticBodyBodyCache{N,T}(quad::TriTetQuadRule{3,N}) where {N,T}
         trac_cache = VectorCache{TractionCache{N, T}}()
         K = spatialStiffness{T}()
-        return new{N,T}(K, frame_world, quad, trac_cache)
+        return new{N,T}(K, quad, trac_cache)
     end
+    # function TypedElasticBodyBodyCache{N,T}(frame_world::CartesianFrame3D, quad::TriTetQuadRule{3,N}) where {N,T}
+    #     trac_cache = VectorCache{TractionCache{N, T}}()
+    #     K = spatialStiffness{T}()
+    #     return new{N,T}(K, frame_world, quad, trac_cache)
+    # end
 end
 
 struct TypedMechanismScenario{N,T}
@@ -57,7 +62,7 @@ struct TypedMechanismScenario{N,T}
     f_generalized::Vector{T}
     bodyBodyCache::TypedElasticBodyBodyCache{N,T}
     GeometricJacobian::RigidBodyDynamics.CustomCollections.CacheIndexDict{BodyID,Base.OneTo{BodyID},Union{Nothing,GeometricJacobian{Array{T,2}}}}
-    frame_world::CartesianFrame3D  # TODO: does this need to be here?
+    # frame_world::CartesianFrame3D  # TODO: does this need to be here?
     torque_third_law::Vector{T}
     τ_ext::Vector{T}
     rhs::Vector{T}
@@ -85,8 +90,8 @@ struct TypedMechanismScenario{N,T}
         state = MechanismState{T}(mechanism)
         result = DynamicsResult{T}(mechanism)
         f_generalized = Vector{T}(undef, num_positions(mechanism))
-        frame_world = root_frame(mechanism)
-        bodyBodyCache = TypedElasticBodyBodyCache{N,T}(frame_world, quad)
+        # frame_world = root_frame(mechanism)
+        bodyBodyCache = TypedElasticBodyBodyCache{N,T}(quad)
         v_jac = makeJacobian(v_path, state, body_ids)
         n_dof_bristle = 6 * n_bristle_pairs
         s = SegmentedVector{BristleID}(zeros(T, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
@@ -95,7 +100,8 @@ struct TypedMechanismScenario{N,T}
         τ_ext = zeros(T, num_positions(mechanism))
         rhs = zeros(T, num_positions(mechanism))
         nv = num_velocities(mechanism)
-        return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac, root_frame(mechanism), torque_third_law, τ_ext, rhs, nv)
+        return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac, torque_third_law, τ_ext, rhs, nv)
+        # return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac, root_frame(mechanism), torque_third_law, τ_ext, rhs, nv)
     end
 end
 
@@ -116,7 +122,7 @@ struct MechanismScenario{NQ,T}
     body_ids::Base.OneTo{BodyID}
     mesh_ids::Base.OneTo{MeshID}
     bristle_ids::Base.OneTo{BristleID}
-    frame_world::CartesianFrame3D
+    # frame_world::CartesianFrame3D
     TT_Cache::TT_Cache
     τ_ext::Vector{Float64}
     float::TypedMechanismScenario{NQ,Float64}
@@ -139,21 +145,20 @@ struct MechanismScenario{NQ,T}
         bristle_ids = ts.bristle_ids
         n_bristle_pairs = length(bristle_ids)
 
-        n_q = num_positions(mechanism)
-        n_v = num_velocities(mechanism)
-        (n_q == n_v) || error("n_q ($n_q) and n_v ($n_v) are different. Replace QuaternionFloating joints with SPQuatFloating joints.")
-
-        # NX = n_q + n_v + 6 * n_bristle_pairs
+        # n_q = num_positions(mechanism)
+        # n_v = num_velocities(mechanism)
+        # (n_q == n_v) || error("n_q ($n_q) and n_v ($n_v) are different. Replace QuaternionFloating joints with SPQuatFloating joints.")
 
         T = Dual{Nothing,Float64,N_chunk}
-        frame_world = root_frame(mechanism)
+        # frame_world = root_frame(mechanism)
         τ_ext = zeros(Float64, num_positions(mechanism))
         mesh_cache = ts.MeshCache
         cache_path = makePaths(mechanism, mesh_cache, body_ids)
         cache_float = TypedMechanismScenario{NQ,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         cache_dual = TypedMechanismScenario{NQ,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         vec_instructions = ts.ContactInstructions
-        return new{NQ,T}(body_ids, ts.mesh_ids, bristle_ids, frame_world, TT_Cache(), τ_ext, cache_float, cache_dual,
+        # return new{NQ,T}(body_ids, ts.mesh_ids, bristle_ids, frame_world, TT_Cache(), τ_ext, cache_float, cache_dual,
+        return new{NQ,T}(body_ids, ts.mesh_ids, bristle_ids, TT_Cache(), τ_ext, cache_float, cache_dual,
             cache_path, mesh_cache, vec_instructions, de, continuous_controller, discrete_controller)
     end
 end

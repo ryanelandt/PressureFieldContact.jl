@@ -119,6 +119,7 @@ return_body_never_nothing(mechanism::Mechanism, body::RigidBody{Float64}) = body
 function add_body_from_inertia!(mechanism::Mechanism, name::String, mesh_inertia_info::MeshInertiaInfo;
         joint::JT=SPQuatFloating{Float64}(), body::Union{RigidBody{Float64},Nothing}=nothing,
         dh::basic_dh{Float64}=one(basic_dh{Float64})) where {JT<:JointType}
+    # TODO: check that a spherical floating joint isn't added 
 
     body_parent = return_body_never_nothing(mechanism, body)
     body_child = newBodyFromInertia(name, mesh_inertia_info)
