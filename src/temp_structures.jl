@@ -68,8 +68,6 @@ function add_body_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh;
     return NamedTuple{(:body, :joint, :id)}((nt.body, nt.joint, nt_new_contact.id))
 end
 
-# function verify_tree_possible(eM::eMesh{T1,T2}, )
-
 function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
 
     xor(c_prop == nothing, T2 == Nothing) && error("Attempting to use nothing as the ContartProperties for a Tet mesh")
@@ -132,14 +130,14 @@ end
 default_χ() = 0.5
 default_μ() = 0.3
 
-function add_pair_rigid_compliant_regularize!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_2::MeshID;
+function add_friction_regularize!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_2::MeshID;
         μ::Float64=default_μ(), χ::Float64=default_χ(), v_tol::Float64=0.01)
 
     regularized = Regularized(v_tol)
-    return add_pair_rigid_compliant!(ts, mesh_id_1, mesh_id_2, regularized, μ=μ, χ=χ)
+    return add_friction!(ts, mesh_id_1, mesh_id_2, regularized, μ=μ, χ=χ)
 end
 
-function add_pair_rigid_compliant!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::MeshID,
+function add_friction!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::MeshID,
         friction_model::Union{Regularized,Bristle}; μ::Float64, χ::Float64)
 
     mesh_1 = ts.MeshCache[mesh_id_1]
@@ -156,12 +154,12 @@ function add_pair_rigid_compliant!(ts::TempContactStruct, mesh_id_1::MeshID, mes
     return nothing
 end
 
-function add_pair_rigid_compliant_bristle!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::MeshID;
+function add_friction_bristle!(ts::TempContactStruct, mesh_id_1::MeshID, mesh_id_c::MeshID;
         τ::Float64=0.05, k̄=1.0e4, μ::Float64=default_μ(), χ::Float64=default_χ())
 
     isa(μ, Nothing) || (0 < μ) || error("μ cannot be 0 for bristle friction")
     bristle_id = BristleID(1 + length(ts.bristle_ids))
     bf = Bristle(bristle_id, τ=τ, k̄=k̄)
     ts.bristle_ids = Base.OneTo(bristle_id)
-    return add_pair_rigid_compliant!(ts, mesh_id_1, mesh_id_c, bf, μ=μ, χ=χ)
+    return add_friction!(ts, mesh_id_1, mesh_id_c, bf, μ=μ, χ=χ)
 end

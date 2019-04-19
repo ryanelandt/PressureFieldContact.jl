@@ -44,8 +44,8 @@ i_prop_spoon = InertiaProperties(rho=900.0, d=0.0025)
 _, spoon_joint = add_body_contact!(ts, "spoon", eMesh_spoon, nothing, i_prop_spoon)  # adds body and calculates inertia from the surface mesh
 
 ### Friction
-add_pair_rigid_compliant_bristle!(ts, name_spoon, name_lo, μ=0.2, χ=0.2)
-add_pair_rigid_compliant_bristle!(ts, name_spoon, name_up, μ=0.2, χ=0.2)
+add_friction_bristle!(ts, name_spoon, name_lo, μ=0.2, χ=0.2)
+add_friction_bristle!(ts, name_spoon, name_up, μ=0.2, χ=0.2)
 mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=1)  # there will be many intersections; first order is fine
 
 ### Set initial condition

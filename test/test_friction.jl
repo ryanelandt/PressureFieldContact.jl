@@ -23,10 +23,10 @@ function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v
 	μ = 0.3
 	is_regularize = !isnan(v_tol)
 	if is_regularize
-		add_pair_rigid_compliant_regularize!(ts, nt_plane.id, nt_box_1.id, μ=μ, v_tol=v_tol)
+		add_friction_regularize!(ts, nt_plane.id, nt_box_1.id, μ=μ, v_tol=v_tol)
 		vel_box = SVector(0.0, v_tol, 0.0)
 	else
-		add_pair_rigid_compliant_bristle!(ts, nt_plane.id, nt_box_1.id, μ=μ, k̄=1.0e4, τ=0.03)
+		add_friction_bristle!(ts, nt_plane.id, nt_box_1.id, μ=μ, k̄=1.0e4, τ=0.03)
 		vel_box = SVector(0.0, 0.0, 0.0)
 	end
     mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=n_quad_rule)
@@ -121,7 +121,7 @@ end
 
     τ = 0.03
     k̄ = 1.0e6
-    add_pair_rigid_compliant_bristle!(ts, nt_part.id, nt_hol_1.id, μ=0.3, χ=0.6, k̄=k̄, τ=τ)
+    add_friction_bristle!(ts, nt_part.id, nt_hol_1.id, μ=0.3, χ=0.6, k̄=k̄, τ=τ)
 
     mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=2)
     pene = hol_rad * 0.001

@@ -23,7 +23,7 @@
 
         m_id_plane = find_mesh_id(ts, name_plane)
         m_id_box = find_mesh_id(ts, name_box)
-        add_pair_rigid_compliant_bristle!(ts, m_id_box, m_id_plane, μ=0.3, χ=0.6, k̄=1.0e6, τ=0.03)
+        add_friction_bristle!(ts, m_id_box, m_id_plane, μ=0.3, χ=0.6, k̄=1.0e6, τ=0.03)
 
         mech_scen = MechanismScenario(ts, calcXd!, n_quad_rule=k_quad_rule)
 

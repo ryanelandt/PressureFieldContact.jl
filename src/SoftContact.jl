@@ -81,8 +81,8 @@ export
     # mesh_body_utility.jl
     newBodyFromInertia,
     outputJointTransform_ParentChild,
-    area,
-    volume,
+    # area,
+    # volume,
 
     # temp_structures.jl
     BristleID,
@@ -96,9 +96,9 @@ export
     add_contact!,
     add_body!,
     add_body_from_inertia!,  # this needs to be here
-    add_pair_rigid_compliant_regularize!,
-    add_pair_rigid_compliant!,
-    add_pair_rigid_compliant_bristle!,
+    add_friction_regularize!,
+    add_friction!,
+    add_friction_bristle!,
 
     # mechanism_scenario
     TractionCache,
@@ -148,7 +148,7 @@ export
     num_partials,
     type_dual,
     fill_with_nothing!,
-    mat_mul_SA_bug_circumvent,
+    # mat_mul_SA_bug_circumvent,
     # add_h_mesh_color,
     Radau_for_MechanismScenario,
     get_bristle_d0,

@@ -2,23 +2,36 @@
 function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     b = tm.bodyBodyCache
     frame = b.mesh_2.FrameID
-    wrench = zero(Wrench{T}, frame)
-    # frame = tm.frame_world
+    # wrench = zero(Wrench{T}, frame)
     v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
+
+    wrench_lin = zeros(SVector{3,T})
+    wrench_ang = zeros(SVector{3,T})
+
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         for k = 1:N
-            cart_vel = trac.v_cart[k]
-            n̂ = trac.n̂
+            cart_vel = trac.v_cart[k].v
+            n̂ = trac.n̂.v
             cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
-            mag_vel_t = safe_norm(cart_vel_t.v)
+            mag_vel_t = safe_norm(cart_vel_t)
             μ_reg = b.μ * fastSigmoid(mag_vel_t, v_tol⁻¹)
             p_dA = calc_p_dA(trac, k)
             traction_k = p_dA * (-n̂ + μ_reg * safe_normalize(cart_vel_t))
-            wrench += Wrench(trac.r_cart[k], traction_k)
+    #         wrench += Wrench(trac.r_cart[k], traction_k)
+    #     end
+    # end
+            wrench_lin += traction_k
+            wrench_ang += cross(trac.r_cart[k].v, traction_k)
         end
     end
-    return wrench
+
+    # wrench_ang = FreeVector3D(frame, wrench_ang)
+    # wrench_lin = FreeVector3D(frame, wrench_lin)
+    # wrench_sum = Wrench(wrench_ang, wrench_lin)
+    return Wrench(frame, wrench_ang, wrench_lin)
+
+    # return wrench
 end
 
 ##########################
@@ -216,11 +229,13 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
         end
     end
 
-    wrench_ang = FreeVector3D(frame_now, wrench_ang)
-    wrench_lin = FreeVector3D(frame_now, wrench_lin)
-    wrench_sum = Wrench(wrench_ang, wrench_lin)
+    return Wrench(frame_now, wrench_ang, wrench_lin)
 
-    return wrench_sum
+    # wrench_ang = FreeVector3D(frame_now, wrench_ang)
+    # wrench_lin = FreeVector3D(frame_now, wrench_lin)
+    # wrench_sum = Wrench(wrench_ang, wrench_lin)
+
+    # return wrench_sum
 end
 
 

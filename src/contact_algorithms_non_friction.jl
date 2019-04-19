@@ -92,7 +92,8 @@ end
 function calcTriTetIntersections!(m::MechanismScenario, c_ins::ContactInstructions) # where {N,T}
     b = m.float.bodyBodyCache  # this can be float because intersection is assumed to not depend on partials
     refreshBodyBodyTransform!(m, m.float, c_ins)  # TODO: isn't b.x_r¹_rʷ already calculated?
-    x_r¹_r² = inv(b.x_rʷ_r¹) * b.x_rʷ_r²
+    # x_r¹_r² = inv(b.x_rʷ_r¹) * b.x_rʷ_r²
+	x_r¹_r² = b.x_r¹_r²
     update_TT_Cache!(m.TT_Cache, translation(x_r¹_r²), rotation(x_r¹_r²))
     tree_2 = get_tree_tet(b.mesh_2)
     tree_1 = ifelse(c_ins.mutual_compliance, get_tree_tet, get_tree_tri)(b.mesh_1)
@@ -106,12 +107,13 @@ function refreshBodyBodyTransform!(m::MechanismScenario, tm::TypedMechanismScena
     b = tm.bodyBodyCache
     b.mesh_1 = m.MeshCache[c_ins.id_1]
     b.mesh_2 = m.MeshCache[c_ins.id_2]
-    b.x_rʷ_r¹ = transform_to_root(tm.state, b.mesh_1.BodyID)  # TODO: add safe=false
-    b.x_rʷ_r² = transform_to_root(tm.state, b.mesh_2.BodyID)  # TODO: add safe=false
+      x_rʷ_r¹ = transform_to_root(tm.state, b.mesh_1.BodyID)  # TODO: add safe=false
+    b.x_rʷ_r² = transform_to_root(tm.state, b.mesh_2.BodyID)  # TODO: add safe=false  # used for wrench calculation
     b.x_r²_rʷ = inv(b.x_rʷ_r²)
-    b.x_r¹_rʷ = inv(b.x_rʷ_r¹)
-	b.x_r¹_r² = b.x_r¹_rʷ * b.x_rʷ_r²
-	b.x_r²_r¹ = b.x_r²_rʷ * b.x_rʷ_r¹
+    # x_r¹_rʷ = inv(x_rʷ_r¹)
+	# b.x_r¹_r² = x_r¹_rʷ * b.x_rʷ_r²
+	b.x_r²_r¹ = b.x_r²_rʷ * x_rʷ_r¹
+	b.x_r¹_r² = inv(b.x_r²_r¹)
     return nothing
 end
 
@@ -131,8 +133,7 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     b.μ = c_ins.μ
     b.χ = c_ins.χ
 
-    c_prop = get_c_prop(b.mesh_2)
-    b.Ē = c_prop.Ē
+    b.Ē = get_c_prop(b.mesh_2).Ē
     return nothing
 end
 
@@ -299,7 +300,7 @@ function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, n̂²:
 		vert_r²_2 = getPoint(poly_r², frame_2, k)
 		area_quad_k = triangle_area((vert_r²_1.v, vert_r²_2.v, centroid_r².v), n̂².v)
 		A_r²_ϕ = hcat(onePad(vert_r²_1), onePad(vert_r²_2), onePad(centroid_r²))
-		(-1.0e-6 <= area_quad_k) || error("area is negative!!! $(area_quad_k)")
+		# (-1.0e-6 <= area_quad_k) || error("area is negative!!! $(area_quad_k)")
 		(0.0 < area_quad_k) && fillTractionCacheForTriangle!(b, area_quad_k, n̂², A_r²_ϕ, ϵ_r²)  # no point in adding intersection if area is zero
     end
     return nothing
