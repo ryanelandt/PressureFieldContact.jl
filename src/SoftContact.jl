@@ -26,7 +26,6 @@ const FRAME_ϕ = CartesianFrame3D("FRAME_ϕ")
 include("structs.jl")
 include("mesh_inertia.jl")
 include("matrix_transform.jl")
-include("mesh_cache.jl")
 include("mesh_body_utility.jl")
 include("temp_structures.jl")
 include("mechanism_scenario.jl")
@@ -57,6 +56,10 @@ export
     is_compliant,
     is_rigid,
     get_Ē,
+    MeshID,
+    MeshDict,
+    MeshCacheDict,
+    MeshCache,
 
     # mesh_inertia.jl
     make_volume_mesh_inertia_info,
@@ -70,13 +73,6 @@ export
     Point4D,
     MatrixTransform,
     getPoint,
-
-    # mesh_cache.jl
-    asHomogenousMesh,
-    MeshID,
-    MeshDict,
-    MeshCacheDict,
-    MeshCache,
 
     # mesh_body_utility.jl
     newBodyFromInertia,
@@ -125,7 +121,7 @@ export
     forceAllElasticIntersections!,
     calcTriTetIntersections!,
     refreshBodyBodyCache!,
-    integrate_over_logic!,
+    # integrate_over_logic!,
     addGeneralizedForcesThirdLaw!,
 
     # contact_algorithms_friction.jl
@@ -138,6 +134,7 @@ export
     set_body_mesh_visual!,
     set_mesh_visual!,
     HomogenousMesh_32,
+    asHomogenousMesh,
     play_recorded_data,
 
     # example_integrator.jl

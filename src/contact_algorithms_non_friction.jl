@@ -71,7 +71,7 @@ function force_single_elastic_intersection!(m::MechanismScenario{NQ,T1}, tm::Typ
     calcTriTetIntersections!(m, c_ins)
     if (0 != length(m.TT_Cache))  # yes intersections
         refreshBodyBodyCache!(m, tm, c_ins)
-        integrate_over_logic!(tm.bodyBodyCache, m.TT_Cache)
+        integrate_over!(tm.bodyBodyCache, m.TT_Cache)
         if !isempty(tm.bodyBodyCache.TractionCache)
             wrench = yes_contact!(c_ins.FrictionModel, tm, c_ins)
             addGeneralizedForcesThirdLaw!(wrench, tm, c_ins)
@@ -133,23 +133,13 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     return nothing
 end
 
-function integrate_over_logic!(b::TypedElasticBodyBodyCache{N,T}, ttCache::TT_Cache) where {N,T}
-    mesh_1 = b.mesh_1
+function integrate_over!(b::TypedElasticBodyBodyCache{N,T}, ttCache::TT_Cache) where {N,T}
+	mesh_1 = b.mesh_1
     mesh_2 = b.mesh_2
-    if is_compliant(mesh_1)  # this is not right
-        integrate_over_volume_volume_all!(mesh_1, mesh_2, b, ttCache)
-    else
-        integrate_over_surface_volume_all!(mesh_1, mesh_2, b, ttCache)
-    end
-end
-
-function integrate_over_volume_volume_all!(mesh_1::MeshCache, mesh_2::MeshCache, b::TypedElasticBodyBodyCache{N,T},
-        ttCache::TT_Cache) where {N,T}
-
-    for k = 1:length(ttCache.vc)
-        i_1, i_2 = ttCache.vc[k]
-        integrate_over_volume_volume!(i_1, i_2, mesh_1, mesh_2, b)
-    end
+	for k = 1:length(ttCache.vc)
+		i_1, i_2 = ttCache.vc[k]
+	    integrate_over!(i_1, i_2, mesh_1, mesh_2, b)
+	end
 end
 
 function triangle_vertices(i_tri::Int64, m::MeshCache)
@@ -173,16 +163,7 @@ end
 
 find_plane_tet(E::Float64, ϵ::SMatrix{1,4,Float64,4}, X_r_w) = (E * ϵ) * X_r_w
 
-function integrate_over_surface_volume_all!(mesh_1::MeshCache, mesh_2::MeshCache,
-        b::TypedElasticBodyBodyCache{N,T}, ttCache::TT_Cache) where {N,T}
-
-    for k = 1:length(ttCache.vc)
-        i_1, i_2 = ttCache.vc[k]
-        integrate_over_surface_volume!(i_1, i_2, mesh_1, mesh_2, b)
-    end
-end
-
-function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache, mesh_2::MeshCache,
+function integrate_over!(i_1::Int64, i_2::Int64, mesh_1::MeshCache{Nothing,Tet}, mesh_2::MeshCache{Nothing,Tet},
         b::TypedElasticBodyBodyCache{N,T}) where {N,T}
 
     vert_1, ϵ¹ = tetrahedron_vertices_ϵ(i_1, mesh_1)
@@ -214,7 +195,7 @@ function integrate_over_volume_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache
     end
 end
 
-function integrate_over_surface_volume!(i_1::Int64, i_2::Int64, mesh_1::MeshCache, mesh_2::MeshCache,
+function integrate_over!(i_1::Int64, i_2::Int64, mesh_1::MeshCache{Tri,Nothing}, mesh_2::MeshCache{Nothing,Tet},
         b::TypedElasticBodyBodyCache{N,T}) where {N,T}
 
     vert_1 = triangle_vertices(i_1, mesh_1)

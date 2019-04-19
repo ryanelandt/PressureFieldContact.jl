@@ -14,7 +14,7 @@ function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v
     ts = TempContactStruct(my_mechanism)
 
 	eM_plane = output_eMesh_half_plane(1.0)
-    nt_plane = add_contact!(ts, "plane", eM_plane, c_prop=c_prop_compliant)
+    nt_plane = add_contact!(ts, "plane", as_tet_eMesh(eM_plane), c_prop=c_prop_compliant)
 
     eM_box_1 = output_eMesh_box(box_rad * ones(SVector{3,Float64}))
 	eMesh_transform!(eM_box_1, SVector(0, 0, box_rad))
@@ -117,7 +117,7 @@ end
 	eMesh_transform!(eM_hol_1, SVector{3,Float64}(0.0, 0.0, hol_rad))  # box_rad + hol_rad, 0.0, 0.0))
 
     joint_1 = Prismatic(SVector{3,Float64}(0.0, 0.0, 1.0))
-    nt_hol_1 = add_body_contact!(ts, name_hol_1, eM_hol_1, c_prop=c_prop_compliant, i_prop=i_prop_compliant, joint=joint_1)
+    nt_hol_1 = add_body_contact!(ts, name_hol_1, as_tet_eMesh(eM_hol_1), c_prop=c_prop_compliant, i_prop=i_prop_compliant, joint=joint_1)
 
     τ = 0.03
     k̄ = 1.0e6

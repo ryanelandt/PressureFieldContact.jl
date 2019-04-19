@@ -90,10 +90,18 @@ function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactPrope
     return eTree(obb_tri, obb_tet, c_prop)
 end
 
+function verify_eMesh_ContactProperties(eM::eMesh{T1,T2}, c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
+    (T1 == Tri) && (T2 == Tet) && error("eMesh has triangles and tets. Use as_tri_eMesh or as_tet_eMesh to convert eMesh.")
+    (T1 == nothing) && (T2 == nothing) && error("eMesh has neither triangles and tets.")
+    (T1 == Tri) && (c_prop != nothing) && error("Using ContactProperties for triangular eMesh")
+    (T2 == Tet) && (c_prop == nothing) && error("Using nothing for tet eMesh")
+end
+
 function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh;
-        c_prop=c_prop::Union{Nothing,ContactProperties}=nothing,
+        c_prop::Union{Nothing,ContactProperties}=nothing,
         body::Union{RigidBody{Float64},Nothing}=nothing)
 
+    verify_eMesh_ContactProperties(e_mesh, c_prop)
     body = return_body_never_nothing(ts.mechanism, body)
     if ts.is_aabb
         e_tree = eTree(e_mesh, c_prop)
@@ -119,7 +127,7 @@ return_body_never_nothing(mechanism::Mechanism, body::RigidBody{Float64}) = body
 function add_body_from_inertia!(mechanism::Mechanism, name::String, mesh_inertia_info::MeshInertiaInfo;
         joint::JT=SPQuatFloating{Float64}(), body::Union{RigidBody{Float64},Nothing}=nothing,
         dh::basic_dh{Float64}=one(basic_dh{Float64})) where {JT<:JointType}
-    # TODO: check that a spherical floating joint isn't added 
+    # TODO: check that a spherical floating joint isn't added
 
     body_parent = return_body_never_nothing(mechanism, body)
     body_child = newBodyFromInertia(name, mesh_inertia_info)

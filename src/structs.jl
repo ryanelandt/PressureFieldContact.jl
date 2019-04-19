@@ -73,3 +73,9 @@ is_rigid(m::MeshCache{Tri,T2}) where {T2} = true
 is_rigid(m::MeshCache{Nothing,T2}) where {T2} = false
 
 get_Ē(m::MeshCache) = get_c_prop(m).Ē
+
+@RigidBodyDynamics.indextype MeshID
+const MeshDict{V} = RigidBodyDynamics.IndexDict{MeshID, Base.OneTo{MeshID}, V}
+const MeshCacheDict{V} = RigidBodyDynamics.CacheIndexDict{MeshID, Base.OneTo{MeshID}, V}
+Base.@propagate_inbounds Base.getindex(d::RigidBodyDynamics.AbstractIndexDict{MeshID}, key::RigidBody) = d[BodyID(key)]
+Base.@propagate_inbounds Base.setindex!(d::RigidBodyDynamics.AbstractIndexDict{MeshID}, value, key::RigidBody) = d[BodyID(key)] = value

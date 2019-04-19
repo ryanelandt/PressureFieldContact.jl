@@ -22,23 +22,33 @@ function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismSc
         m_id::MeshID, color)
 
     color = as_rgba(color)
-    mesh = mech_scen.MeshCache[m_id]
-    my_vis_ele = VisualElement(default_frame(body), asHomogenousMesh(mesh), color, Translation(0,0,0))
-    setelement!(mvis, my_vis_ele, mesh.name)
+    mc = mech_scen.MeshCache[m_id]
+	mesh = mc.mesh
+	mesh_32 = HomogenousMesh_32(mesh)
+    my_vis_ele = VisualElement(default_frame(body), mesh_32, color, Translation(0,0,0))
+    setelement!(mvis, my_vis_ele, mc.name)
     return nothing
 end
 
 function set_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, m_id::MeshID, color)
-    mesh = mech_scen.MeshCache[m_id]
+    mc = mech_scen.MeshCache[m_id]
     body = root_body(mech_scen.float.state.mechanism)
     color = as_rgba(color)
-    my_vis_ele = VisualElement(default_frame(body), asHomogenousMesh(mesh), color, Translation(0,0,0))
-    setelement!(mvis, my_vis_ele, mesh.name)
+	mesh = mc.mesh
+	mesh_32 = HomogenousMesh_32(mesh)
+    my_vis_ele = VisualElement(default_frame(body), mesh_32, color, Translation(0,0,0))
+    setelement!(mvis, my_vis_ele, mc.name)
     return nothing
 end
 
 as_rgba(color::RGBA{Float32}) = color
 as_rgba(color) = RGBA{Float32}(color...)
+
+function asHomogenousMesh(meshCache::MeshCache; color::Union{Nothing, RGBA{Float32}}=nothing)
+    vec_Face = Face{3,Int32}.(get_ind_tri(meshCache))
+    vec_Point = Point{3,Float32}.(get_point(meshCache))
+    return HomogenousMesh(vertices=vec_Point, faces=vec_Face, color=color)
+end
 
 function HomogenousMesh_32(h_mesh::HomogenousMesh; color=RGBA{Float32}(0.5, 0.5, 0.5, 1.0))
     vertices = get_h_mesh_vertices_32(h_mesh)
@@ -50,6 +60,19 @@ function HomogenousMesh_32(e_mesh::eMesh{Tri,T2}; color=RGBA{Float32}(0.5, 0.5, 
     vertices = get_vertices_32(e_mesh)
     faces = get_faces_32(e_mesh)
     return HomogenousMesh(vertices=vertices, faces=faces, color=color)
+end
+
+function SoftContact.HomogenousMesh_32(eM::eMesh{Nothing,Tet})
+	i3 = Vector{SVector{3,Int32}}()
+	for k = 1:n_tet(eM)
+		i_tet = eM.tet[k]
+		ϵ_tet = eM.ϵ[i_tet]
+		i_tet_new = sort_so_big_ϵ_last(ϵ_tet, i_tet)
+		push!(i3, i_tet_new[1:3])
+	end
+	vertices=get_vertices_32(eM)
+	faces = [Face{3,Int32}(k) for k = i3]
+	return HomogenousMesh(vertices=vertices, faces=faces)
 end
 
 function play_recorded_data(mvis::MechanismVisualizer, mech_scen::MechanismScenario, data_time::Vector{Float64},
