@@ -112,7 +112,7 @@ function makePaths(mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, b
     return v_path
 end
 
-struct MechanismScenario{NX,NQ,T}
+struct MechanismScenario{NQ,T}
     body_ids::Base.OneTo{BodyID}
     mesh_ids::Base.OneTo{MeshID}
     bristle_ids::Base.OneTo{BristleID}
@@ -143,7 +143,7 @@ struct MechanismScenario{NX,NQ,T}
         n_v = num_velocities(mechanism)
         (n_q == n_v) || error("n_q ($n_q) and n_v ($n_v) are different. Replace QuaternionFloating joints with SPQuatFloating joints.")
 
-        NX = n_q + n_v + 6 * n_bristle_pairs
+        # NX = n_q + n_v + 6 * n_bristle_pairs
 
         T = Dual{Nothing,Float64,N_chunk}
         frame_world = root_frame(mechanism)
@@ -153,27 +153,31 @@ struct MechanismScenario{NX,NQ,T}
         cache_float = TypedMechanismScenario{NQ,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         cache_dual = TypedMechanismScenario{NQ,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
         vec_instructions = ts.ContactInstructions
-        return new{NX,NQ,T}(body_ids, ts.mesh_ids, bristle_ids, frame_world, TT_Cache(), τ_ext, cache_float, cache_dual,
-            cache_path, mesh_cache, vec_instructions, de, continuous_controller, discrete_controller)  # MVector{1,Float64}(0.0))
+        return new{NQ,T}(body_ids, ts.mesh_ids, bristle_ids, frame_world, TT_Cache(), τ_ext, cache_float, cache_dual,
+            cache_path, mesh_cache, vec_instructions, de, continuous_controller, discrete_controller)
     end
 end
 
-num_partials(m::MechanismScenario{NX,NQ,Dual{Nothing,Float64,N_partials}}) where {NX,NQ,N_partials} = N_partials
-num_x(m::MechanismScenario{NX,NQ,T}) where {NX,NQ,T} = NX
-type_dual(m::MechanismScenario{NX,NQ,T}) where {NX,NQ,T} = T
+num_partials(m::MechanismScenario{NQ,Dual{Nothing,Float64,N_partials}}) where {NQ,N_partials} = N_partials
+function num_x(m::MechanismScenario{NQ,T}) where {NQ,T}
+    tm = m.float
+    mechanism = tm.state.mechanism
+    return num_positions(mechanism) + num_velocities(mechanism) + length(tm.s)
+ end
+type_dual(m::MechanismScenario{NQ,T}) where {NQ,T} = T
 
-function get_state(mech_scen::MechanismScenario)
-    x = zeros(num_x(mech_scen))
-    copyto!(x, mech_scen.float)
+function get_state(m::MechanismScenario)
+    x = zeros(num_x(m))
+    copyto!(x, m.float)
     return x
 end
 
-function set_state_spq!(mech_scen::MechanismScenario, joint::Joint; rot::Rotation=one(Quat{Float64}),
+function set_state_spq!(m::MechanismScenario, joint::Joint; rot::Rotation=one(Quat{Float64}),
         trans::SVector{3,Float64}=zeros(SVector{3,Float64}), w::SVector{3,Float64}=zeros(SVector{3,Float64}),
         vel::SVector{3,Float64}=zeros(SVector{3,Float64}))
 
     rot = components(SPQuat(rot))
-    state = mech_scen.float.state
+    state = m.float.state
     set_configuration!(state, joint, vcat(rot, trans))
     set_velocity!(state, joint, vcat(w, vel))
     return nothing

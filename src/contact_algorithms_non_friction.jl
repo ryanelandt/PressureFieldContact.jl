@@ -1,9 +1,9 @@
 
-function calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{NX,NQ,T}, t::Float64=0.0) where {NX,NQ,T}
+function calcXd!(xx::AbstractVector{T}, x::AbstractVector{T}, m::MechanismScenario{NQ,T}, t::Float64=0.0) where {NQ,T}
     return calcXd!(xx, x, m, m.dual, t)
 end
 
-function calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{NX,NQ,T}, t::Float64=0.0) where {NX,NQ,T}
+function calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::MechanismScenario{NQ,T}, t::Float64=0.0) where {NQ,T}
     return calcXd!(xx, x, m, m.float, t)
 end
 
@@ -13,8 +13,8 @@ n̂ refers to the contact surface normal that points into body B
 v_cart refers to + velocity of B - the velocity of A
 the wrench is the wrench applied TO body A
 ```
-function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{NX,NQ,T2},
-        tm::TypedMechanismScenario{NQ,T1}, t::Float64=0.0) where {NX,NQ,T1,T2}
+function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{NQ,T2},
+        tm::TypedMechanismScenario{NQ,T1}, t::Float64=0.0) where {NQ,T1,T2}
 
     state = tm.state
     copyto!(tm, x)
@@ -35,27 +35,27 @@ function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScen
     return nothing
 end
 
-function sum_all_forces!(m::MechanismScenario{NX,NQ,T2}, tm::TypedMechanismScenario{NQ,Float64}) where {NX,NQ,T2}
+function sum_all_forces!(m::MechanismScenario{NQ,T2}, tm::TypedMechanismScenario{NQ,Float64}) where {NQ,T2}
 	BLAS.blascopy!(tm.nv, tm.f_generalized, 1, tm.rhs, 1)
 	BLAS.axpy!(-1.0, tm.result.dynamicsbias.parent, tm.rhs)
 	BLAS.axpy!(+1.0, tm.τ_ext, tm.rhs)
 	BLAS.axpy!(+1.0, m.τ_ext, tm.rhs)
 end
 
-function sum_all_forces!(m::MechanismScenario{NX,NQ,T2}, tm::TypedMechanismScenario{NQ,T1}) where {NX,NQ,T1,T2}
+function sum_all_forces!(m::MechanismScenario{NQ,T2}, tm::TypedMechanismScenario{NQ,T1}) where {NQ,T1,T2}
 	tm.rhs  .= tm.f_generalized
 	tm.rhs .-= tm.result.dynamicsbias.parent
 	tm.rhs .+= tm.τ_ext
 	tm.rhs .+= m.τ_ext
 end
 
-function calcXd(x::AbstractVector{T1}, m::MechanismScenario{NX,NQ,T2}, t::Float64=0.0) where {T1,NX,NQ,T2}
+function calcXd(x::AbstractVector{T1}, m::MechanismScenario{NQ,T2}, t::Float64=0.0) where {T1,NQ,T2}
     xx = deepcopy(x)
     calcXd!(xx, x, m)
     return xx
 end
 
-function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NX,NQ,T1,T2}
+function forceAllElasticIntersections!(m::MechanismScenario{NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NQ,T1,T2}
     refreshJacobians!(m, tm)
     tm.f_generalized .= zero(T2)
     for k = 1:length(m.ContactInstructions)
@@ -65,8 +65,8 @@ function forceAllElasticIntersections!(m::MechanismScenario{NX,NQ,T1}, tm::Typed
     return nothing
 end
 
-function force_single_elastic_intersection!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2},
-    c_ins::ContactInstructions) where {NX,NQ,T1,T2}
+function force_single_elastic_intersection!(m::MechanismScenario{NQ,T1}, tm::TypedMechanismScenario{NQ,T2},
+    c_ins::ContactInstructions) where {NQ,T1,T2}
 
     calcTriTetIntersections!(m, c_ins)
     if (0 != length(m.TT_Cache))  # yes intersections
@@ -81,7 +81,7 @@ function force_single_elastic_intersection!(m::MechanismScenario{NX,NQ,T1}, tm::
     no_contact!(c_ins.FrictionModel, tm, c_ins)
 end
 
-function refreshJacobians!(m::MechanismScenario{NX,NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NX,NQ,T1,T2}
+function refreshJacobians!(m::MechanismScenario{NQ,T1}, tm::TypedMechanismScenario{NQ,T2}) where {NQ,T1,T2}
     for k = m.body_ids
         path_k = m.path[k]
         (path_k != nothing) && geometric_jacobian!(tm.GeometricJacobian[k], tm.state, path_k)

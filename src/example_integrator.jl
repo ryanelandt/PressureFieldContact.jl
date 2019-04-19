@@ -1,6 +1,6 @@
 
-function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NX,NQ,Dual{Nothing,Float64,NC}},NX,NC,NR,NSM},
-        mech_scen::MechanismScenario{NX,NQ,Dual{Nothing,Float64,NC}}, x::Vector{Float64};
+function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NQ,Dual{Nothing,Float64,NC}},NX,NC,NR,NSM},
+        mech_scen::MechanismScenario{NQ,Dual{Nothing,Float64,NC}}, x::Vector{Float64};
         t_start::Float64=0.0, t_final::Float64=1.0, max_steps::Int64=1000, is_disp_count::Bool=false) where {NX,NQ,NC,NR,NSM}
 
     data_state = Matrix{Float64}(x')
@@ -9,8 +9,9 @@ function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NX,NQ,Du
     max_steps=max_steps, is_disp_count=is_disp_count)
 end
 
-function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NX,NQ,Dual{Nothing,Float64,NC}},NX,NC,NR,NSM},
-        mech_scen::MechanismScenario{NX,NQ,Dual{Nothing,Float64,NC}}, data_state_in::Matrix{Float64},
+# TODO: can I just use mech_scen as it appears an rr?
+function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NQ,Dual{Nothing,Float64,NC}},NX,NC,NR,NSM},
+        mech_scen::MechanismScenario{NQ,Dual{Nothing,Float64,NC}}, data_state_in::Matrix{Float64},
         data_time_in::Vector{Float64}; t_start::Float64=0.0, t_final::Float64=1.0, max_steps::Int64=1000,
         is_disp_count::Bool=false) where {NX,NQ,NC,NR,NSM}
 

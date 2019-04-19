@@ -6,7 +6,8 @@ function fill_with_nothing!(a)  # TODO: find more elegant way to do this
     return nothing
 end
 
-function Radau_for_MechanismScenario(m::MechanismScenario{NX,NQ,Dual{Type_Tag,Float64,NC}}) where {NX,NQ,Type_Tag,NC}
+function Radau_for_MechanismScenario(m::MechanismScenario{NQ,Dual{Type_Tag,Float64,NC}}) where {NQ,Type_Tag,NC}
+    NX = num_x(m)
     return makeRadauIntegrator(m, NX, 1.0e-16, 2, NC)
 end
 
