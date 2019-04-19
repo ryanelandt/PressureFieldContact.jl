@@ -121,6 +121,7 @@ struct MechanismScenario{NQ,T}
     de::Function
     continuous_controller::Union{Nothing,Function}
     discrete_controller::Union{Nothing,Function}
+	
     function MechanismScenario(ts::TempContactStruct, de::Function; continuous_controller::Union{Nothing,Function}=nothing,
             discrete_controller::Union{Nothing,Function}=nothing, n_quad_rule::Int64=2, N_chunk::Int64=6)
 

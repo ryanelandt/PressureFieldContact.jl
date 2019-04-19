@@ -12,7 +12,7 @@ struct Regularized
     Regularized(v_tol) = new(1 / v_tol)
 end
 
-mutable struct ContactInstructions
+struct ContactInstructions
     id_1::MeshID
     id_2::MeshID
     μ::Float64
@@ -27,18 +27,17 @@ mutable struct ContactInstructions
 end
 
 mutable struct TempContactStruct
-    is_aabb::Bool
     mechanism::Mechanism
     mesh_ids::Base.OneTo{MeshID}
     bristle_ids::Base.OneTo{BristleID}
     MeshCache::RigidBodyDynamics.CustomCollections.CacheIndexDict{MeshID,Base.OneTo{MeshID},MeshCache}
     ContactInstructions::Vector{ContactInstructions}
-    function TempContactStruct(mechanism::Mechanism, is_aabb::Bool=false)
+    function TempContactStruct(mechanism::Mechanism)  # , is_aabb::Bool=false)
         bristle_ids = Base.OneTo(BristleID(0))
         mesh_ids = Base.OneTo(MeshID(0))
         mesh_cache = MeshCacheDict{MeshCache}(mesh_ids)
         vec_ins = Vector{ContactInstructions}()
-        return new(is_aabb, mechanism, mesh_ids, bristle_ids, mesh_cache, vec_ins)
+        return new(mechanism, mesh_ids, bristle_ids, mesh_cache, vec_ins)
     end
 end
 
@@ -102,11 +101,7 @@ function add_contact!(ts::TempContactStruct, name::String, e_mesh::eMesh;
 
     verify_eMesh_ContactProperties(e_mesh, c_prop)
     body = return_body_never_nothing(ts.mechanism, body)
-    if ts.is_aabb
-        e_tree = eTree(e_mesh, c_prop)
-    else
-        e_tree = make_eTree_obb(e_mesh, c_prop)
-    end
+    e_tree = make_eTree_obb(e_mesh, c_prop)
     mesh = MeshCache(name, e_mesh, e_tree, body)
     addMesh!(ts, mesh)
     return NamedTuple{(:id,)}((find_mesh_id(ts, mesh),))
