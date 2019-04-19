@@ -47,8 +47,6 @@ export
     ContactProperties,
     eTree,
     InertiaProperties,
-    # get_tree_tet,
-    # get_tree_tri,
     get_c_prop,
     get_ind_tri,
     get_ind_tet,
@@ -77,8 +75,6 @@ export
     # mesh_body_utility.jl
     newBodyFromInertia,
     outputJointTransform_ParentChild,
-    # area,
-    # volume,
 
     # temp_structures.jl
     BristleID,
@@ -121,7 +117,6 @@ export
     forceAllElasticIntersections!,
     calcTriTetIntersections!,
     refreshBodyBodyCache!,
-    # integrate_over_logic!,
     addGeneralizedForcesThirdLaw!,
 
     # contact_algorithms_friction.jl
@@ -144,8 +139,6 @@ export
     num_partials,
     type_dual,
     fill_with_nothing!,
-    # mat_mul_SA_bug_circumvent,
-    # add_h_mesh_color,
     Radau_for_MechanismScenario,
     get_bristle_d0,
     get_bristle_d1,

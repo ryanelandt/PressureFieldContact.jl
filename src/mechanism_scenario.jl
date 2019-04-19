@@ -107,7 +107,7 @@ function makePaths(mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, b
     return v_path
 end
 
-struct MechanismScenario{NQ,T}
+mutable struct MechanismScenario{NQ,T}
     body_ids::Base.OneTo{BodyID}
     mesh_ids::Base.OneTo{MeshID}
     bristle_ids::Base.OneTo{BristleID}
@@ -121,7 +121,7 @@ struct MechanismScenario{NQ,T}
     de::Function
     continuous_controller::Union{Nothing,Function}
     discrete_controller::Union{Nothing,Function}
-	
+
     function MechanismScenario(ts::TempContactStruct, de::Function; continuous_controller::Union{Nothing,Function}=nothing,
             discrete_controller::Union{Nothing,Function}=nothing, n_quad_rule::Int64=2, N_chunk::Int64=6)
 
