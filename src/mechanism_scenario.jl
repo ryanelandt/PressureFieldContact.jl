@@ -1,13 +1,15 @@
 @RigidBodyDynamics.indextype BristleID
 
-struct Bristle
+abstract type FrictionModel end
+
+struct Bristle <: FrictionModel
     BristleID::BristleID
     τ::Float64
     k̄::Float64
     Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64) = new(bristle_ID, τ, k̄)
 end
 
-struct Regularized
+struct Regularized <: FrictionModel
     v_tol⁻¹::Float64
     Regularized(v_tol) = new(1 / v_tol)
 end
@@ -316,22 +318,6 @@ function add_friction_regularize!(m::MechanismScenario, mesh_id_1::MeshID, mesh_
     return add_friction!(m, mesh_id_1, mesh_id_2, regularized, μ=μ, χ=χ)
 end
 
-function add_friction!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_c::MeshID,  friction_model::Union{Regularized,Bristle};
-		μ::Float64, χ::Float64)
-
-    mesh_1 = m.MeshCache[mesh_id_1]
-    mesh_c = m.MeshCache[mesh_id_c]
-    (mesh_1 == mesh_c) && error("mesh_1 and mesh_c are the same")
-    is_compliant_1 = is_compliant(mesh_1)
-    is_compliant_c = is_compliant(mesh_c)
-    is_compliant_1 || is_compliant_c || error("neither mesh is compliant")
-    if is_compliant_1
-        mesh_id_1, mesh_id_c = mesh_id_c, mesh_id_1
-    end
-    push!(m.ContactInstructions, ContactInstructions(mesh_id_1, mesh_id_c, friction_model, μ=μ, χ=χ))
-    return nothing
-end
-
 function add_friction_bristle!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_c::MeshID; τ::Float64=0.05, k̄=1.0e4,
 		μ::Float64=default_μ(), χ::Float64=default_χ())
 
@@ -341,3 +327,34 @@ function add_friction_bristle!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_
     m.bristle_ids = Base.OneTo(bristle_id)
     return add_friction!(m, mesh_id_1, mesh_id_c, bf, μ=μ, χ=χ)
 end
+
+add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, fric_model::FrictionModel; μ::Float64,
+	χ::Float64) = add_friction!(m, id_1, id_2, m.MeshCache[id_1], m.MeshCache[id_2], fric_model, μ=μ, χ=χ)
+
+function add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, m_1::MeshCache{Nothing,Tet},
+	m_2::MeshCache{Tri,Nothing}, fric_model::Union{Regularized,Bristle}; μ::Float64, χ::Float64)
+
+	return add_friction!(m, id_2, id_1, fric_model; μ=μ, χ=χ)
+end
+
+function add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, m_1::MeshCache{T1,T2},
+	m_2::MeshCache{Nothing,Tet}, fric_model::Union{Regularized,Bristle}; μ::Float64, χ::Float64) where {T1,T2}
+
+	push!(m.ContactInstructions, ContactInstructions(id_1, id_2, fric_model, μ=μ, χ=χ))
+end
+
+# function add_friction!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_c::MeshID, fric_model::Union{Regularized,Bristle};
+# 		μ::Float64, χ::Float64)
+#
+#     mesh_1 = m.MeshCache[mesh_id_1]
+#     mesh_c = m.MeshCache[mesh_id_c]
+#     (mesh_1 == mesh_c) && error("mesh_1 and mesh_c are the same")
+#     is_compliant_1 = is_compliant(mesh_1)
+#     is_compliant_c = is_compliant(mesh_c)
+#     is_compliant_1 || is_compliant_c || error("neither mesh is compliant")
+#     if is_compliant_1
+#         mesh_id_1, mesh_id_c = mesh_id_c, mesh_id_1
+#     end
+#     push!(m.ContactInstructions, ContactInstructions(mesh_id_1, mesh_id_c, fric_model, μ=μ, χ=χ))
+#     return nothing
+# end

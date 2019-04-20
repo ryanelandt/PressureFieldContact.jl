@@ -15,10 +15,10 @@ struct MatrixTransform{N1,N2,T,N3}
     MatrixTransform(from::CartesianFrame3D, to::CartesianFrame3D, mat::SMatrix{N1,N2,T,N3}) where {N1,N2,T,N3} = new{N1,N2,T,N3}(mat, from, to)
 end
 
-function Base.:*(t::MatrixTransform{4,4,T1,16}, vector::FreeVector3D{SVector{3,T2}}) where {T1,T2}
-    @framecheck(t.from, vector.frame)
-    return Point4D(t.to, t.mat * zeroPad(vector.v))
-end
+# function Base.:*(t::MatrixTransform{4,4,T1,16}, vector::FreeVector3D{SVector{3,T2}}) where {T1,T2}
+#     @framecheck(t.from, vector.frame)
+#     return Point4D(t.to, t.mat * zeroPad(vector.v))
+# end
 
 Base.:*(t1::Transform3D, t2::MatrixTransform) = begin @framecheck(t1.from, t2.to); MatrixTransform(t2.from, t1.to, t1.mat * t2.mat) end
 Base.:*(t1::MatrixTransform, t2::Transform3D) = begin @framecheck(t1.from, t2.to); MatrixTransform(t2.from, t1.to, t1.mat * t2.mat) end

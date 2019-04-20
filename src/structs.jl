@@ -18,11 +18,6 @@ struct eTree{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
     tri::Union{Nothing,bin_BB_Tree}
     tet::Union{Nothing,bin_BB_Tree}
     c_prop::Union{Nothing,ContactProperties}
-    function eTree(e_mesh::eMesh{Tri,Tet}, c_prop::ContactProperties)
-        tri = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tri)
-        tet = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tet)
-        return new{Tri,Tet}(tri, tet, c_prop)
-    end
     function eTree(e_mesh::eMesh{Tri,Nothing}, c_prop::Nothing=nothing)
         tri = triTetMeshToTreeAABB(e_mesh.point, e_mesh.tri)
         return new{Tri,Nothing}(tri, nothing, nothing)
@@ -34,7 +29,6 @@ struct eTree{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
     ###
     eTree(tri::Nothing,     tet::bin_BB_Tree, c_prop::ContactProperties) = new{Nothing,Tet}(tri, tet, c_prop)
     eTree(tri::bin_BB_Tree, tet::Nothing,     c_prop::Nothing)           = new{Tri,Nothing}(tri, tet, c_prop)
-    eTree(tri::bin_BB_Tree, tet::bin_BB_Tree, c_prop::ContactProperties) = new{Tri,Tet}(tri, tet, c_prop)
 end
 
 struct InertiaProperties
@@ -61,22 +55,19 @@ end
 get_tree(m::MeshCache{Tri,Nothing}) = m.tree.tri
 get_tree(m::MeshCache{Nothing,Tet}) = m.tree.tet
 
-# @inline get_tree_tet(m::MeshCache) = m.tree.tet
-# @inline get_tree_tri(m::MeshCache) = m.tree.tri
-
 @inline get_c_prop(m::MeshCache) = m.tree.c_prop
 @inline Binary_BB_Trees.get_point(m::MeshCache) = m.mesh.point
+@inline get_Ē(m::MeshCache) = get_c_prop(m).Ē
 @inline get_ind_tri(m::MeshCache) = m.mesh.tri
 @inline get_ind_tet(m::MeshCache) = m.mesh.tet
 @inline get_ϵ(m::MeshCache) = m.mesh.ϵ
 
-is_compliant(m::MeshCache{T1,Tet}) where {T1} = true
-is_compliant(m::MeshCache{T1,Nothing}) where {T1} = false
+# is_compliant(m::MeshCache{T1,Tet}) where {T1} = true
+# is_compliant(m::MeshCache{T1,Nothing}) where {T1} = false
 
-is_rigid(m::MeshCache{Tri,T2}) where {T2} = true
-is_rigid(m::MeshCache{Nothing,T2}) where {T2} = false
+# is_rigid(m::MeshCache{Tri,T2}) where {T2} = true
+# is_rigid(m::MeshCache{Nothing,T2}) where {T2} = false
 
-get_Ē(m::MeshCache) = get_c_prop(m).Ē
 
 @RigidBodyDynamics.indextype MeshID
 const MeshDict{V} = RigidBodyDynamics.IndexDict{MeshID, Base.OneTo{MeshID}, V}

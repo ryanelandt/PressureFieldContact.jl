@@ -50,8 +50,8 @@ export
     get_ind_tri,
     get_ind_tet,
     get_ϵ,
-    is_compliant,
-    is_rigid,
+    # is_compliant,
+    # is_rigid,
     get_Ē,
     MeshID,
     MeshDict,
@@ -125,7 +125,7 @@ export
     set_body_mesh_visual!,
     set_mesh_visual!,
     HomogenousMesh_32,
-    asHomogenousMesh,
+    # asHomogenousMesh,
     play_recorded_data,
 
     # example_integrator.jl
