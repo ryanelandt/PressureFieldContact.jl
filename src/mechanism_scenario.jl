@@ -60,7 +60,6 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     x_r²_rʷ::Transform3D{T}
     x_r¹_r²::Transform3D{T}
 	x_r²_r¹::Transform3D{T}
-    twist_r²_r¹::Twist{T}
     twist_r²_r¹_r²::Twist{T}
     χ::Float64
     μ::Float64

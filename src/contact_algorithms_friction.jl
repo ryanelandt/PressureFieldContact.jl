@@ -3,10 +3,8 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
     b = tm.bodyBodyCache
     frame = b.mesh_2.FrameID
     v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
-
     wrench_lin = zeros(SVector{3,T})
     wrench_ang = zeros(SVector{3,T})
-
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
         for k = 1:N
@@ -16,7 +14,7 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
             mag_vel_t = safe_norm(cart_vel_t)
             μ_reg = b.μ * fastSigmoid(mag_vel_t, v_tol⁻¹)
             p_dA = calc_p_dA(trac, k)
-            traction_k = p_dA * (-n̂ + μ_reg * safe_normalize(cart_vel_t))
+            traction_k = p_dA * (μ_reg * safe_normalize(cart_vel_t) - n̂)
             wrench_lin += traction_k
             wrench_ang += cross(trac.r_cart[k].v, traction_k)
         end
@@ -35,20 +33,8 @@ end
 
 #########################################################
 
-as_6(Δ) = SVector(Δ[1], Δ[2], Δ[3], Δ[4], Δ[5], Δ[6])
-
-function transform_stiffness!(s::spatialStiffness{T}, xform) where {T}
-    R = rotation(xform)
-    t = translation(xform)
-    rx = vector_to_skew_symmetric(t)
-    X = vcat(hcat(R, (rx * R)), hcat(zeros(SMatrix{3,3,T,9}), R))
-    mul!(s.mul_pre, X, s.K)
-    mul!(s.K.data, s.mul_pre, X')
-end
-
+# TODO: make this allocate less
 function calc_K_sqrt⁻¹!(s::spatialStiffness{T}) where {T}
-    # TODO: make this allocate less
-
     EF = eigen!(s.K)
     s.σ_sqrt.diag .= EF.values
     max_σ = maximum(s.σ_sqrt.diag)
@@ -60,31 +46,20 @@ function calc_K_sqrt⁻¹!(s::spatialStiffness{T}) where {T}
 end
 
 function bristle_wrench_in_world(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
-    # TODO: improve this to resist slipping more "accurately"
-    # TODO: make work for 2 compliant objects. Currently 1 is rigid and 2 is compliant
-
     BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     b = tm.bodyBodyCache
     spatial_stiffness = b.spatialStiffness
     τ⁻¹ = 1 / BF.τ
-
     wrench²_normal = normal_wrench(b)
-
     calc_patch_spatial_stiffness!(tm, BF)
-
     calc_K_sqrt⁻¹!(spatial_stiffness)
-
     s = get_bristle_d0(tm, bristle_id)
     Δ² = spatial_stiffness.K⁻¹_sqrt * s
-
     wrench²_fric = calc_spatial_bristle_force(tm, c_ins, Δ², b.twist_r²_r¹_r²)
     f_spatial = as_static_vector(wrench²_fric)
-
     get_bristle_d1(tm, bristle_id) .= τ⁻¹ * ( spatial_stiffness.K⁻¹_sqrt * f_spatial - s)
-
-    wrench²_fric = -wrench²_fric
-    return wrench²_normal, wrench²_fric
+    return wrench²_normal, -wrench²_fric
 end
 
 #########################################################
@@ -92,26 +67,6 @@ end
 function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     wrench²_normal, wrench²_fric = bristle_wrench_in_world(tm, c_ins)
     return wrench²_normal + wrench²_fric
-end
-
-function transform_δ(v::SVector{6,T}, x) where {T}
-    ang = SVector{3,T}(v[1], v[2], v[3])
-    lin = SVector{3,T}(v[4], v[5], v[6])
-    ang, lin = RigidBodyDynamics.Spatial.transform_spatial_motion(ang, lin, rotation(x), translation(x))
-    return vcat(ang, lin)
-end
-
-function calc_s(s::spatialStiffness, Δ)
-    # this function should not be called in tight loops
-    return inv(s.K⁻¹_sqrt) * Δ
-end
-
-function set_s_from_Δʷ(mech_scen, c_ins::ContactInstructions, δʷ)
-    SoftContact.force_single_elastic_intersection!(mech_scen, mech_scen.float, c_ins)
-    δ² = SoftContact.transform_δ(δʷ, mech_scen.float.bodyBodyCache.x_rʷ_r²)
-    Δ = calc_s(mech_scen.float.bodyBodyCache.spatialStiffness, δ²)
-    b_id = c_ins.FrictionModel.BristleID
-    mech_scen.float.s.segments[b_id] .= Δ
 end
 
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
@@ -122,29 +77,14 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
     K_11_sum = zeros(SMatrix{3,3,T,9})
     K_12_sum = zeros(SMatrix{3,3,T,9})
     K_22_sum = zeros(SMatrix{3,3,T,9})
-    # for k = 1:length(tc)
-    #     trac = tc.vec[k]
-    #     n̂ = trac.n̂
-    #     I_minus_n̂n̂ = I - n̂.v * n̂.v'  # suprisingly fast
-    #     for k_qp = 1:N
-    #         p_dA = calc_p_dA(trac, k_qp)
-    #         r = trac.r_cart[k_qp]
-    #         r_skew = vector_to_skew_symmetric(r.v)
-    #         rx_I_minus_n̂n̂ = r_skew * I_minus_n̂n̂
-    #         K_11_sum += -p_dA * rx_I_minus_n̂n̂ * r_skew
-    #         K_12_sum +=  p_dA * rx_I_minus_n̂n̂
-    #         K_22_sum +=  p_dA *    I_minus_n̂n̂
-    #     end
-    # end
-
     for k = 1:length(tc)
         trac = tc.vec[k]
         n̂ = trac.n̂
         I_minus_n̂n̂ = I - n̂.v * n̂.v'  # suprisingly fast
         for k_qp = 1:N
             p_dA = calc_p_dA(trac, k_qp)
-            r = trac.r_cart[k_qp]
-            r_skew = vector_to_skew_symmetric(r.v)
+            r = trac.r_cart[k_qp].v
+            r_skew = vector_to_skew_symmetric(r)
             p_dA_I_minus_n̂n̂ = p_dA * I_minus_n̂n̂
             p_dA_rx_I_minus_n̂n̂ = r_skew * p_dA_I_minus_n̂n̂
             K_11_sum -=  p_dA_rx_I_minus_n̂n̂ * r_skew
@@ -152,7 +92,6 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
             K_22_sum +=  p_dA_I_minus_n̂n̂
         end
     end
-
     b.spatialStiffness.K.data[1:3, 1:3] .= K_11_sum
     b.spatialStiffness.K.data[4:6, 1:3] .= K_12_sum'
     b.spatialStiffness.K.data[1:3, 4:6] .= K_12_sum
@@ -171,54 +110,59 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     μ = b.μ
     k̄ = BF.k̄
     vʳᵉˡ = as_static_vector(twist)
-
     wrench_lin = zeros(SVector{3,T})
     wrench_ang = zeros(SVector{3,T})
-
     for k = 1:length(tc)
         trac = tc.vec[k]
-        n̂ = trac.n̂
+        n̂ = trac.n̂.v
         for k_qp = 1:N
-            r = trac.r_cart[k_qp]
-            x̄_δ = spatial_vel_formula(δ, r.v)
-            x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, r.v)
+            r = trac.r_cart[k_qp].v
+            x̄_δ = spatial_vel_formula(δ, r)
+            x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, r)
             p_dA = calc_p_dA(trac, k_qp)
             λ_s = k̄ * p_dA * (x̄_δ - τ * x̄x̄_vʳᵉˡ)
-            λ_s = vec_sub_vec_proj(λ_s, n̂.v)
-
-            # ### Smoother ###
-            # mag²_λ_s = dot(λ_s, λ_s)
-            # mag²_fric = μ^2 * p_dA^2
-            # the_ratio = safe_scalar_divide(mag²_fric, mag²_λ_s)
-            # scale_factor = soft_clamp(the_ratio, one(T))
-            # λ_s = λ_s * the_ratio  # should "the_ratio --> scale_factor"
-
-            ### Smootherer ###
+            λ_s = vec_sub_vec_proj(λ_s, n̂)
             max_fric = max(μ * p_dA, zero(T))
             the_ratio = soft_clamp(safe_norm(λ_s), max_fric)
             λ_s = the_ratio * safe_normalize(λ_s)
-
-            ### Contributes to non-smoothness ###
-            # norm_λ_s = safe_norm(λ_s)
-            # # max_fric = μ * p_dA
-            # max_fric = max(μ * p_dA, zero(T))
-            # if max_fric < norm_λ_s
-            #     λ_s = λ_s * (max_fric / norm_λ_s)
-            # end
-
-            # wrench_sum += Wrench(r, FreeVector3D(frame_now, λ_s))
-
             wrench_lin += λ_s
-            wrench_ang += cross(r.v, λ_s)
-
+            wrench_ang += cross(r, λ_s)
         end
     end
-
     return Wrench(frame_now, wrench_ang, wrench_lin)
 end
 
 
 
+
+# function transform_stiffness!(s::spatialStiffness{T}, xform) where {T}
+#     R = rotation(xform)
+#     t = translation(xform)
+#     rx = vector_to_skew_symmetric(t)
+#     X = vcat(hcat(R, (rx * R)), hcat(zeros(SMatrix{3,3,T,9}), R))
+#     mul!(s.mul_pre, X, s.K)
+#     mul!(s.K.data, s.mul_pre, X')
+# end
+
+# function calc_s(s::spatialStiffness, Δ)
+#     # this function should not be called in tight loops
+#     return inv(s.K⁻¹_sqrt) * Δ
+# end
+
+# function transform_δ(v::SVector{6,T}, x) where {T}
+#     ang = SVector{3,T}(v[1], v[2], v[3])
+#     lin = SVector{3,T}(v[4], v[5], v[6])
+#     ang, lin = RigidBodyDynamics.Spatial.transform_spatial_motion(ang, lin, rotation(x), translation(x))
+#     return vcat(ang, lin)
+# end
+
+# function set_s_from_Δʷ(mech_scen, c_ins::ContactInstructions, δʷ)
+#     force_single_elastic_intersection!(mech_scen, mech_scen.float, c_ins)
+#     δ² = transform_δ(δʷ, mech_scen.float.bodyBodyCache.x_rʷ_r²)
+#     Δ = calc_s(mech_scen.float.bodyBodyCache.spatialStiffness, δ²)
+#     b_id = c_ins.FrictionModel.BristleID
+#     mech_scen.float.s.segments[b_id] .= Δ
+# end
 
 # calc_Δ(S⁻¹, U⁻¹, s) = S⁻¹ * U⁻¹ * s
 

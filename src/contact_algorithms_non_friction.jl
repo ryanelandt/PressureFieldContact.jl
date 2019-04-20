@@ -124,8 +124,8 @@ function refreshBodyBodyCache!(m::MechanismScenario, tm::TypedMechanismScenario{
     # Rates
     twist_w_r¹ = twist_wrt_world(tm.state, b.mesh_1.BodyID)
     twist_w_r² = twist_wrt_world(tm.state, b.mesh_2.BodyID)
-	b.twist_r²_r¹ = -twist_w_r¹ + twist_w_r²  # velocity of tet wrt tri expressed in world
-	b.twist_r²_r¹_r² = transform(b.twist_r²_r¹, b.x_r²_rʷ)
+	  twist_r²_r¹ = -twist_w_r¹ + twist_w_r²  # velocity of tet wrt tri expressed in world
+	b.twist_r²_r¹_r² = transform(twist_r²_r¹, b.x_r²_rʷ)
 
     b.μ = c_ins.μ
     b.χ = c_ins.χ
@@ -277,6 +277,7 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, area_q
     return nothing
 end
 
+# TODO: write a function that performs "dot(ϵ_r², r²_pad.v)" without padding
 function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}, area_quad_k::T,
 		A_r²_ϕ::MatrixTransform{4,3,T,12}, ϵ_r²::SMatrix{1,4,Float64,4}) where {N,T}
 	#
@@ -292,6 +293,7 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
 	return r², ṙ², dA, p_hc
 end
 
+# TODO: calculate jacobians in body frames and transform a single wrench to body frame 1 to add this wrench
 function addGeneralizedForcesThirdLaw!(wrench::Wrench{T}, tm::TypedMechanismScenario{N,T}, cInfo::ContactInstructions) where {N,T}
     torque_third_law = tm.torque_third_law
     f_generalized = tm.f_generalized

@@ -116,7 +116,7 @@ export
     addGeneralizedForcesThirdLaw!,
 
     # contact_algorithms_friction.jl
-    set_s_from_Δʷ,
+
 
     # contact_algorithms_normal.jl
     normal_wrench,

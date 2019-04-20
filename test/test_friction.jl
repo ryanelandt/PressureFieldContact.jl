@@ -10,8 +10,7 @@ function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v
 
     ### Create mechanism and temporary structure
 	mag_grav = 9.8054
-    my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -mag_grav))  # create empty mechanism
-    mech_scen = MechanismScenario(my_mechanism, n_quad_rule=n_quad_rule)
+    mech_scen = MechanismScenario(n_quad_rule=n_quad_rule)
 
 	eM_plane = output_eMesh_half_plane(1.0)
     nt_plane = add_contact!(mech_scen, "plane", as_tet_eMesh(eM_plane), c_prop=c_prop_compliant)
@@ -59,31 +58,31 @@ end
 		# Test that velocity of box is positive when pushed with 1.5 the friction strength
 		mech_scen = create_box_and_plane(n_quad_rule, 1.5)
 		rr = Radau_for_MechanismScenario(mech_scen)
-		data_time, data_state = integrate_scenario_radau(rr, mech_scen, get_state(mech_scen), t_final=0.1)
+		data_time, data_state = integrate_scenario_radau(rr, t_final=0.1)
 		@test 0.00001 < data_state[end, i_box_y_vel]
 
 		# Test that velocity of the box is zero when pushed with 0.5 the friction strength
 		mech_scen = create_box_and_plane(n_quad_rule, 0.5)
 		rr = Radau_for_MechanismScenario(mech_scen)
-		data_time, data_state = integrate_scenario_radau(rr, mech_scen, get_state(mech_scen), t_final=1.0)
+		data_time, data_state = integrate_scenario_radau(rr, t_final=1.0)
 		@test abs(data_state[end, i_box_y_vel]) < 1.0e-12
 	end
 end
 
-@testset "transform_stiffness" begin
-    f2 = CartesianFrame3D()
-    f3 = CartesianFrame3D()
-    I3 = @SMatrix([9.0 2.0 1.0; 2.0 8.0 3.0; 1.0 3.0 7.0])
-    inertia_pre = SpatialInertia{Float64}(f2, I3, randn(SVector{3,Float64}), 1.5)
-    xform = Transform3D(f2, f3, rand(RotMatrix{3,Float64}), rand(SVector{3,Float64}))
-    i66 = SMatrix(transform(inertia_pre, xform))
-
-    s = spatialStiffness{Float64}()
-    s.K.data .= SMatrix(inertia_pre)
-    SoftContact.transform_stiffness!(s, xform)
-
-    @test i66 ≈ s.K
-end
+# @testset "transform_stiffness" begin
+#     f2 = CartesianFrame3D()
+#     f3 = CartesianFrame3D()
+#     I3 = @SMatrix([9.0 2.0 1.0; 2.0 8.0 3.0; 1.0 3.0 7.0])
+#     inertia_pre = SpatialInertia{Float64}(f2, I3, randn(SVector{3,Float64}), 1.5)
+#     xform = Transform3D(f2, f3, rand(RotMatrix{3,Float64}), rand(SVector{3,Float64}))
+#     i66 = SMatrix(transform(inertia_pre, xform))
+#
+#     s = spatialStiffness{Float64}()
+#     s.K.data .= SMatrix(inertia_pre)
+#     SoftContact.transform_stiffness!(s, xform)
+#
+#     @test i66 ≈ s.K
+# end
 
 @testset "calc_K_sqrt⁻¹" begin
     s = spatialStiffness{Float64}()
@@ -104,8 +103,7 @@ end
     eM_box_compliant = output_eMesh_box(box_rad)
 
     ### Create mechanism and temporary structure
-    my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -9.8054))  # create empty mechanism
-    mech_scen = MechanismScenario(my_mechanism, n_quad_rule=2)
+    mech_scen = MechanismScenario(n_quad_rule=2)
 
     name_part = "part"
 	eM_box = output_eMesh_half_plane(1.0)
@@ -153,19 +151,19 @@ end
 	@test K_44 ≈ K_55
     @test 0.99 * K_ana < K_55 < 1.01 * K_ana
 
-    ### Test 2 -- see if stiffness was decomposed correctly
-    tm = mech_scen.float
-    b  = tm.bodyBodyCache
-    spaStiff = b.spatialStiffness
-
-    ### Test 3 -- see if spring force calculated both ways agrees
-    c_ins = mech_scen.ContactInstructions[1]
-    Δ² = (rand(SVector{6,Float64}) + 0.5) * 1.0e-8
-
-    s = SoftContact.set_s_from_Δʷ(mech_scen, c_ins, Δ²)
-    mech_scen.float.s.segments[c_ins.FrictionModel.BristleID] .= s
-    _, wrench²_fric = SoftContact.bristle_wrench_in_world(tm,  c_ins)
-    wrench²_fric = as_static_vector(wrench²_fric)
-	wrench²_fric_2 = - K² * Δ²
-    @test (0.999999 <  dot(normalize(wrench²_fric), normalize(wrench²_fric_2)))
+    # ### Test 2 -- see if stiffness was decomposed correctly
+    # tm = mech_scen.float
+    # b  = tm.bodyBodyCache
+    # spaStiff = b.spatialStiffness
+	#
+    # ### Test 3 -- see if spring force calculated both ways agrees
+    # c_ins = mech_scen.ContactInstructions[1]
+    # Δ² = (rand(SVector{6,Float64}) + 0.5) * 1.0e-8
+	#
+    # s = SoftContact.set_s_from_Δʷ(mech_scen, c_ins, Δ²)
+    # mech_scen.float.s.segments[c_ins.FrictionModel.BristleID] .= s
+    # _, wrench²_fric = SoftContact.bristle_wrench_in_world(tm,  c_ins)
+    # wrench²_fric = as_static_vector(wrench²_fric)
+	# wrench²_fric_2 = - K² * Δ²
+    # @test (0.999999 <  dot(normalize(wrench²_fric), normalize(wrench²_fric_2)))
 end

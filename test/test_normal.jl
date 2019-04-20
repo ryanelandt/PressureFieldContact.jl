@@ -9,8 +9,7 @@
         c_prop_compliant = ContactProperties(Ē=1.0e9)  # , d=box_rad)
 
         ### Create mechanism and temporary structure
-        my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -9.8054))  # create empty mechanism
-        mech_scen = MechanismScenario(my_mechanism, n_quad_rule=k_quad_rule)
+        mech_scen = MechanismScenario(n_quad_rule=k_quad_rule)
 
         name_plane = "plane"
         eM_plane = output_eMesh_half_plane()

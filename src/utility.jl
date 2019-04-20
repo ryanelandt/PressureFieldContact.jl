@@ -44,9 +44,7 @@ function find_mesh_id(ts::MeshCacheDict{MeshCache}, mc::MeshCache)  # TODO: make
     return id
 end
 
-# find_mesh_id(ts::TempContactStruct, input_2) = find_mesh_id(ts.MeshCache, input_2)
 find_mesh_id(ts::MechanismScenario, input_2) = find_mesh_id(ts.MeshCache, input_2)
 
 find_mesh(ts::MeshCacheDict{MeshCache}, name::String) = ts[find_mesh_id(ts, name)]
-# find_mesh(ts::Union{MechanismScenario,TempContactStruct}, name::String) = find_mesh(ts.MeshCache, name)
 find_mesh(m::MechanismScenario, name::String) = find_mesh(m.MeshCache, name)
