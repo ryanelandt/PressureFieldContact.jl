@@ -1,34 +1,26 @@
 
-function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NQ,Dual{Nothing,Float64,NC}},NX,NC,NR,NSM},
-        mech_scen::MechanismScenario{NQ,Dual{Nothing,Float64,NC}}, x::Vector{Float64};
+function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NQ,Dual{Nothing,Float64,NC}},NX,NC,NR,NSM};
         t_start::Float64=0.0, t_final::Float64=1.0, max_steps::Int64=1000, is_disp_count::Bool=false) where {NX,NQ,NC,NR,NSM}
 
-    data_state = Matrix{Float64}(x')
-    data_time = [t_start]
-    return integrate_scenario_radau(rr, mech_scen, data_state, data_time, t_start=t_start, t_final=t_final,
-    max_steps=max_steps, is_disp_count=is_disp_count)
+    x = get_state(rr.de_object)
+    data_state = zeros(max_steps + 1, NX)
+    data_time = zeros(max_steps + 1)
+    data_state[1, :] = x
+    return integrate_scenario_radau(rr, data_state, data_time, t_final=t_final, is_disp_count=is_disp_count)
 end
 
-# TODO: can I just use mech_scen as it appears an rr?
 function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NQ,Dual{Nothing,Float64,NC}},NX,NC,NR,NSM},
-        mech_scen::MechanismScenario{NQ,Dual{Nothing,Float64,NC}}, data_state_in::Matrix{Float64},
-        data_time_in::Vector{Float64}; t_start::Float64=0.0, t_final::Float64=1.0, max_steps::Int64=1000,
+        data_state::Matrix{Float64}, data_time::Vector{Float64}; t_final::Float64=1.0,
         is_disp_count::Bool=false) where {NX,NQ,NC,NR,NSM}
 
-    n_dof = num_x(mech_scen)
-    s1_state, s2_state = size(data_state_in)
-    s_time = length(data_time_in)
-    (s2_state == n_dof) || error("The length of x ($(length(x))) is different from the number of variables in the scenario ($n_dof). Did you forget the state variables for bristle friction?")
-    (t_start < t_final) || error("t_final must be after t_start")
+    mech_scen = rr.de_object
+    s1_state, s2_state = size(data_state)
+    s_time = length(data_time)
+    (s2_state == NX) || error("The length of x ($(length(x))) is different from the number of variables in the scenario ($n_dof). Did you forget the state variables for bristle friction?")
     (s1_state == s_time) || error("data_state and data_time are different lengths")
-
-    i_start = findlast(data_time_in .<= t_start)
-    data_state = vcat(data_state_in[1:i_start, :], zeros(Float64, max_steps, n_dof))
-    data_time = vcat(data_time_in[1:i_start], zeros(Float64, max_steps))
-    t_cumulative = data_time[i_start]
-    x = data_state[i_start, :]
-
-    for k = i_start .+ (1:max_steps)
+    t_cumulative = data_time[1]
+    x = data_state[1, :]
+    for k = 2:s1_state
         is_disp_count && println(k)
         (mech_scen.discrete_controller != nothing) && mech_scen.discrete_controller(x, mech_scen, t_cumulative)
         h, x = solveRadau(rr, x, t_cumulative)

@@ -23,8 +23,8 @@ eM_box_rigid     = as_tri_eMesh(output_eMesh_box(box_rad))
 eM_box_compliant = as_tet_eMesh(output_eMesh_box(box_rad))
 
 ### Create mechanism and temporary structure
-my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -9.8054))  # create empty mechanism
-mech_scen = MechanismScenario(my_mechanism, n_quad_rule=2)
+# my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -9.8054))  # create empty mechanism
+mech_scen = MechanismScenario(n_quad_rule=2)
 
 ### Add planes and boxes
 nt_plane  = add_contact!(     mech_scen, "plane", as_tet_eMesh(output_eMesh_half_plane()),   c_prop=ContactProperties(Ē=1.0e6))
@@ -44,7 +44,7 @@ set_state_spq!(mech_scen, nt_body_1.joint, trans=SVector(0.0, 0.0,  2*box_rad), 
 set_state_spq!(mech_scen, nt_body_2.joint, trans=SVector(0.0, 0.0,  5*box_rad), w=SVector(0.0, 0.0, 2.0))
 set_state_spq!(mech_scen, nt_body_3.joint, trans=SVector(0.0, 0.0,  8*box_rad), w=SVector(0.0, 0.0, 3.0))
 set_state_spq!(mech_scen, nt_body_4.joint, trans=SVector(0.0, 0.0, 11*box_rad), w=SVector(0.0, 0.0, 4.0))
-x = get_state(mech_scen)
+# x = get_state(mech_scen)
 
 ### Add meshes to visualizer
 (!@isdefined vis) && (vis = Visualizer(); open(vis))
@@ -52,7 +52,8 @@ color_gray  = RGBA{Float32}(0.5, 0.5, 0.5, 1.0)
 color_red   = RGBA{Float32}(1.0, 0.0, 0.0, 1.0)
 color_green = RGBA{Float32}(0.0, 1.0, 0.0, 1.0)
 color_blue  = RGBA{Float32}(0.0, 0.0, 1.0, 1.0)
-mvis = MechanismVisualizer(my_mechanism, vis)
+# mvis = MechanismVisualizer(my_mechanism, vis)
+mvis = MechanismVisualizer(mech_scen, vis)
 set_mesh_visual!(     mvis, mech_scen, nt_plane.id,  color_gray)
 set_body_mesh_visual!(mvis, mech_scen, nt_body_1.id, color_red)
 set_body_mesh_visual!(mvis, mech_scen, nt_body_2.id, color_blue)
@@ -64,7 +65,7 @@ set_configuration!(mech_scen, mvis, x)
 t_final = 5.0e-0
 rr = Radau_for_MechanismScenario(mech_scen)
 rr.step.h_max = 0.05
-data_time, data_state = integrate_scenario_radau(rr, mech_scen, x*1, t_final=t_final)
+data_time, data_state = integrate_scenario_radau(rr, t_final=t_final)
 println("Finished compiling and running simulation beginning visualization")
 
 ### Move camera

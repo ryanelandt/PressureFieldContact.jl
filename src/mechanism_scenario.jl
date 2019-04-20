@@ -142,10 +142,12 @@ mutable struct MechanismScenario{NQ,T}
     τ_ext::Vector{Float64}
     path::RigidBodyDynamics.CustomCollections.IndexDict{BodyID,Base.OneTo{BodyID},Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}}
 
-	function MechanismScenario(mechanism::Mechanism; de::Function=calcXd!, n_quad_rule::Int64=2, N_chunk::Int64=6,
+	function MechanismScenario(; de::Function=calcXd!, n_quad_rule::Int64=2, N_chunk::Int64=6,
 			continuous_controller::Union{Nothing,Function}=nothing,
-			discrete_controller::Union{Nothing,Function}=nothing)
-
+			discrete_controller::Union{Nothing,Function}=nothing,
+			gravity::SVector{3,Float64}=SVector{3,Float64}(0.0, 0.0, -round(9.8054, digits=8, base=2) ))
+		#
+		mechanism = Mechanism(RigidBody{Float64}("world"); gravity=gravity)  # create empty mechanism
         (1 <= n_quad_rule <= 2) || error("only quadrature rules 1 (first order) and 2 (second? order) are currently implemented")
         quad = getTriQuadRule(n_quad_rule)
         NQ = length(quad.w)

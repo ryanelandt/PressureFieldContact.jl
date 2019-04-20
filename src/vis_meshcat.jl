@@ -1,4 +1,8 @@
 
+function MeshCatMechanisms.MechanismVisualizer(mech_scen::MechanismScenario, vis)
+	return MechanismVisualizer(mech_scen.float.state.mechanism, vis)
+end
+
 function MeshCatMechanisms.set_configuration!(mech_scen::MechanismScenario, mvis::MechanismVisualizer,
         x::Vector{Float64})
 
