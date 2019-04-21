@@ -245,17 +245,17 @@ function add_body_contact!(m::MechanismScenario, name::String, e_mesh::eMesh;
     return NamedTuple{(:body, :joint, :id)}((nt.body, nt.joint, nt_new_contact.id))
 end
 
-function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
-    xor(c_prop == nothing, T2 == Nothing) && error("Attempting to use nothing as the ContartProperties for a Tet mesh")
-    e_tree = eTree(eM_box, c_prop)
-    if T1 != Nothing
-        all_obb = [fit_tri_obb(eM_box, k) for k = 1:n_tri(eM_box)]
-    else
-		all_obb = [fit_tet_obb(eM_box, k) for k = 1:n_tet(eM_box)]
-    end
-	tree = obb_tree_from_aabb(get_tree(e_tree), all_obb)
-    return eTree(tree, c_prop)
-end
+# function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
+#     xor(c_prop == nothing, T2 == Nothing) && error("Attempting to use nothing as the ContartProperties for a Tet mesh")
+#     e_tree = eTree(eM_box, c_prop)
+#     if T1 != Nothing
+#         all_obb = [fit_tri_obb(eM_box, k) for k = 1:n_tri(eM_box)]
+#     else
+# 		all_obb = [fit_tet_obb(eM_box, k) for k = 1:n_tet(eM_box)]
+#     end
+# 	tree = obb_tree_from_aabb(get_tree(e_tree), all_obb)
+#     return eTree(tree, c_prop)
+# end
 
 function add_contact!(m::MechanismScenario, name::String, e_mesh::eMesh;  c_prop::Union{Nothing,ContactProperties}=nothing,
         body::Union{RigidBody{Float64},Nothing}=nothing)
@@ -269,7 +269,8 @@ function add_contact!(m::MechanismScenario, name::String, e_mesh::eMesh;  c_prop
 
     verify_eMesh_ContactProperties(e_mesh, c_prop)
     body = return_body_never_nothing(get_mechanism(m), body)
-    e_tree = make_eTree_obb(e_mesh, c_prop)
+    # e_tree = make_eTree_obb(e_mesh, c_prop)
+	e_tree = eTree(e_mesh, c_prop)
     mesh = MeshCache(name, e_mesh, e_tree, body)
     addMesh!(m, mesh)
     return NamedTuple{(:id,)}((find_mesh_id(m, mesh),))
