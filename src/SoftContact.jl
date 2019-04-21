@@ -50,8 +50,6 @@ export
     get_ind_tri,
     get_ind_tet,
     get_ϵ,
-    # is_compliant,
-    # is_rigid,
     get_Ē,
     MeshID,
     MeshDict,
@@ -80,6 +78,18 @@ export
     Bristle,
     Regularized,
     ContactInstructions,
+    TractionCache,
+    calc_p_dA,
+    spatialStiffness,
+    TypedElasticBodyBodyCache,
+    TypedMechanismScenario,
+    MechanismScenario,
+    finalize!,
+    num_partials,
+    num_x,
+    type_dual,
+    get_state,
+    set_state_spq!,
     addMesh!,
     add_body_contact!,
     make_eTree_obb,
@@ -87,20 +97,7 @@ export
     add_body!,
     add_body_from_inertia!,  # this needs to be here
     add_friction_regularize!,
-    add_friction!,
     add_friction_bristle!,
-    finalize!,
-    TractionCache,
-    calc_p_dA,
-    spatialStiffness,
-    TypedElasticBodyBodyCache,
-    TypedMechanismScenario,
-    MechanismScenario,
-    num_partials,
-    num_x,
-    type_dual,
-    get_state,
-    set_state_spq!,
 
     # extensions.jl
     principal_value!,
@@ -117,7 +114,6 @@ export
 
     # contact_algorithms_friction.jl
 
-
     # contact_algorithms_normal.jl
     normal_wrench,
 
@@ -125,7 +121,6 @@ export
     set_body_mesh_visual!,
     set_mesh_visual!,
     HomogenousMesh_32,
-    # asHomogenousMesh,
     play_recorded_data,
 
     # example_integrator.jl

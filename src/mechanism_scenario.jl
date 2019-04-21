@@ -246,25 +246,15 @@ function add_body_contact!(m::MechanismScenario, name::String, e_mesh::eMesh;
 end
 
 function make_eTree_obb(eM_box::eMesh{T1,T2}, c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
-
     xor(c_prop == nothing, T2 == Nothing) && error("Attempting to use nothing as the ContartProperties for a Tet mesh")
-
     e_tree = eTree(eM_box, c_prop)
-
     if T1 != Nothing
-        all_obb_tri = [fit_tri_obb(eM_box, k) for k = 1:n_tri(eM_box)]
-        obb_tri = obb_tree_from_aabb(e_tree.tri, all_obb_tri)
+        all_obb = [fit_tri_obb(eM_box, k) for k = 1:n_tri(eM_box)]
     else
-        obb_tri = nothing
+		all_obb = [fit_tet_obb(eM_box, k) for k = 1:n_tet(eM_box)]
     end
-    if T2 != Nothing
-        all_obb_tet = [fit_tet_obb(eM_box, k) for k = 1:n_tet(eM_box)]
-        obb_tet = obb_tree_from_aabb(e_tree.tet, all_obb_tet)
-    else
-        obb_tet = nothing
-    end
-
-    return eTree(obb_tri, obb_tet, c_prop)
+	tree = obb_tree_from_aabb(get_tree(e_tree), all_obb)
+    return eTree(tree, c_prop)
 end
 
 function add_contact!(m::MechanismScenario, name::String, e_mesh::eMesh;  c_prop::Union{Nothing,ContactProperties}=nothing,
@@ -342,19 +332,3 @@ function add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, m_1::Me
 
 	push!(m.ContactInstructions, ContactInstructions(id_1, id_2, fric_model, μ=μ, χ=χ))
 end
-
-# function add_friction!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_c::MeshID, fric_model::Union{Regularized,Bristle};
-# 		μ::Float64, χ::Float64)
-#
-#     mesh_1 = m.MeshCache[mesh_id_1]
-#     mesh_c = m.MeshCache[mesh_id_c]
-#     (mesh_1 == mesh_c) && error("mesh_1 and mesh_c are the same")
-#     is_compliant_1 = is_compliant(mesh_1)
-#     is_compliant_c = is_compliant(mesh_c)
-#     is_compliant_1 || is_compliant_c || error("neither mesh is compliant")
-#     if is_compliant_1
-#         mesh_id_1, mesh_id_c = mesh_id_c, mesh_id_1
-#     end
-#     push!(m.ContactInstructions, ContactInstructions(mesh_id_1, mesh_id_c, fric_model, μ=μ, χ=χ))
-#     return nothing
-# end
