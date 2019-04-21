@@ -24,9 +24,8 @@ const FRAME_ζ² = CartesianFrame3D("FRAME_ζ²")
 const FRAME_ϕ = CartesianFrame3D("FRAME_ϕ")
 
 include("structs.jl")
-include("mesh_inertia.jl")
+include("body_inertia.jl")
 include("matrix_transform.jl")
-include("mesh_body_utility.jl")
 include("mechanism_scenario.jl")
 include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
@@ -57,8 +56,6 @@ export
     MeshCache,
 
     # mesh_inertia.jl
-    make_volume_mesh_inertia_info,
-    make_surface_mesh_inertia_info,
     makeInertiaInfo,
     makeInertiaTensor,
     centroidVolumeCombo,

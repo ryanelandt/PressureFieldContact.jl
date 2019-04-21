@@ -18,7 +18,7 @@
         name_box = "box"
         eM_box = as_tri_eMesh(output_eMesh_box(box_rad))
         eMesh_transform!(eM_box, SVector{3,Float64}(0.0, 0.0, box_rad))
-        body_box, joint_box = add_body_contact!(mech_scen, name_box, as_tri_eMesh(eM_box), i_prop=i_prop_rigid)
+        body_box, joint_box = add_body_contact!(mech_scen, name_box, eM_box, i_prop=i_prop_rigid)
 
         m_id_plane = find_mesh_id(mech_scen, name_plane)
         m_id_box = find_mesh_id(mech_scen, name_box)

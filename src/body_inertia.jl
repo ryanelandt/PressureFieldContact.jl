@@ -1,28 +1,30 @@
 
-function makeInertiaInfoTri(e_mesh::eMesh{Tri,T2}, i_prop::InertiaProperties) where {T2}
-    (i_prop.d == nothing) && error("InertiaProperties must have depth to calculate inertia from surface")
+function newBodyFromInertia(nameBody::String, mesh_inertia_info::MeshInertiaInfo)
+    com = mesh_inertia_info.com
+    m = mesh_inertia_info.mass
+    I3 = mesh_inertia_info.tensor_I
+    skew_com = Spatial.vector_to_skew_symmetric(com)
+    term = SMatrix{3,3,Float64}(I3 + m * skew_com * transpose(skew_com))
+    return RigidBody(SpatialInertia(CartesianFrame3D(nameBody), term, com * m, m))
+end
+
+function outputJointTransform_ParentChild(body_parent::RigidBody, body_child::RigidBody, evaluated_joint_type_in,
+        dh::basic_dh{Float64}=one(basic_dh{Float64}) )
+
+    rot, trans = dh_R_t(dh)
+    rot = RotMatrix{3,Float64}(rot)
+    j_parent_child = Joint(body_parent.name * "_" * body_child.name, evaluated_joint_type_in)
+    x_parent_child = Transform3D(frame_before(j_parent_child), default_frame(body_parent), rot, trans)
+    return j_parent_child, x_parent_child
+end
+
+
+function makeInertiaInfo(e_mesh::eMesh{Tri,Nothing}, i_prop::InertiaProperties{Tri})
     return makeInertiaTensor(getTriQuadRule(3), e_mesh.point, e_mesh.tri, i_prop)
 end
-function makeInertiaInfoTet(e_mesh::eMesh{T1,Tet}, i_prop::InertiaProperties) where {T1}
-    (i_prop.d != nothing) && error("InertiaProperties must have no depth calculate inertia from volume")
+
+function makeInertiaInfo(e_mesh::eMesh{Nothing,Tet}, i_prop::InertiaProperties{Tet})
     return makeInertiaTensor(getTetQuadRule(4), e_mesh.point, e_mesh.tet, i_prop)
-end
-makeInertiaInfo(e_mesh::eMesh{Tri,Nothing}, i_prop::InertiaProperties) = makeInertiaInfoTri(e_mesh, i_prop)
-makeInertiaInfo(e_mesh::eMesh{Nothing,Tet}, i_prop::InertiaProperties) = makeInertiaInfoTet(e_mesh, i_prop)
-function makeInertiaInfo(e_mesh::eMesh{Tri,Tet}, i_prop::InertiaProperties)
-    return ifelse(i_prop.d == nothing, makeInertiaInfoTet, makeInertiaInfoTri)(e_mesh, i_prop)
-end
-
-function make_surface_mesh_inertia_info(point::Vector{SVector{3,Float64}}, vec_vol_ind::Vector{SVector{3,Int64}},
-        i_prop::InertiaProperties)
-
-    makeInertiaTensor(getTriQuadRule(3), point, vec_vol_ind, i_prop)
-end
-
-function make_volume_mesh_inertia_info(point::Vector{SVector{3,Float64}}, vec_vol_ind::Vector{SVector{4,Int64}},
-        i_prop::InertiaProperties)
-
-    makeInertiaTensor(getTetQuadRule(4), point, vec_vol_ind, i_prop)
 end
 
 function makeInertiaTensor(quad_rule::TriTetQuadRule{N_ζ,NQ}, point::Vector{SVector{3,Float64}},

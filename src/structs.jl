@@ -29,13 +29,14 @@ struct eTree{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
     eTree(tree::bin_BB_Tree, c_prop::Nothing)           = new{Tri,Nothing}(tree, c_prop)
 end
 
-struct InertiaProperties
+struct InertiaProperties{T<:Union{Tri,Tet}}
     d::Union{Nothing,Float64}  # if volume mesh is known thickness isn't needed to calculate inertia
     rho::Float64  # rho is always needed to calculate inertia
     function InertiaProperties(rho::Float64; d::Union{Nothing,Float64}=nothing)
         isa(d, Nothing) || (0.001 <= d <= 0.1) || error("thickness in unexpected range.")
         (50.0 <= rho) || error("rho in unexpected range.")
-        return new(d, rho)
+        i_prop_type = ifelse(d==nothing, Tet, Tri)
+        return new{i_prop_type}(d, rho)
     end
 end
 

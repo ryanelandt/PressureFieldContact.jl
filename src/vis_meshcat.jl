@@ -3,18 +3,8 @@ function MeshCatMechanisms.MechanismVisualizer(mech_scen::MechanismScenario, vis
 	return MechanismVisualizer(mech_scen.float.state.mechanism, vis)
 end
 
-# function MeshCatMechanisms.set_configuration!(mech_scen::MechanismScenario, mvis::MechanismVisualizer,
-#         x::Vector{Float64})
-#
-#     copyto!(mech_scen.float, x)
-#     set_configuration!(mvis, mech_scen.float.state.q)
-#     return nothing
-# end
-
 function MeshCatMechanisms.set_configuration!(mech_scen::MechanismScenario, mvis::MechanismVisualizer)
 	set_configuration!(mvis, mech_scen.float.state.q)
-	# x = get_state(mech_scen)
-    # set_configuration!(mech_scen, mvis, x)
 end
 
 function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, m_id::MeshID, color)
@@ -48,18 +38,6 @@ end
 
 as_rgba(color::RGBA{Float32}) = color
 as_rgba(color) = RGBA{Float32}(color...)
-
-# function asHomogenousMesh(meshCache::MeshCache; color::Union{Nothing, RGBA{Float32}}=nothing)
-#     vec_Face = Face{3,Int32}.(get_ind_tri(meshCache))
-#     vec_Point = Point{3,Float32}.(get_point(meshCache))
-#     return HomogenousMesh(vertices=vec_Point, faces=vec_Face, color=color)
-# end
-#
-# function HomogenousMesh_32(h_mesh::HomogenousMesh; color=RGBA{Float32}(0.5, 0.5, 0.5, 1.0))
-#     vertices = get_h_mesh_vertices_32(h_mesh)
-#     faces = get_h_mesh_faces_32(h_mesh)
-#     return HomogenousMesh(vertices=vertices, faces=faces, color=color)
-# end
 
 function HomogenousMesh_32(e_mesh::eMesh{Tri,T2}; color=RGBA{Float32}(0.5, 0.5, 0.5, 1.0)) where {T2}
     vertices = get_vertices_32(e_mesh)
@@ -99,7 +77,6 @@ function play_recorded_data(mvis::MechanismVisualizer, mech_scen::MechanismScena
             sleep(dt * slowdown)
 			copyto!(mech_scen.float, data_state[k, :])
 			set_configuration!(mech_scen, mvis)
-            # set_configuration!(mech_scen, mvis, data_state[k, :])  # visualize configuration
         end
     end
 end

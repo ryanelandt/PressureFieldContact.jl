@@ -25,10 +25,8 @@ Tri_Tet_Intersections.unPad(p::Point4D{SVector{4,T}}) where {T} = Point3D(p.fram
 Tri_Tet_Intersections.onePad(p::Point3D{SVector{3,T}}) where {T} = Point4D(p.frame, onePad(p.v))
 
 ### Binary_BB_Trees
-Binary_BB_Trees.fit_tri_obb(eM::eMesh{Tri,T2}, k::Int64) where {T2} = fit_tri_obb(eM.point[eM.tri[k]])
-function Binary_BB_Trees.fit_tet_obb(eM::eMesh{T1,T2}, k::Int64) where {T1,T2}
-    # TODO: change T1 to Nothing
-
+Binary_BB_Trees.fit_tri_obb(eM::eMesh{Tri,Nothing}, k::Int64) = fit_tri_obb(eM.point[eM.tri[k]])
+function Binary_BB_Trees.fit_tet_obb(eM::eMesh{Nothing,Tet}, k::Int64)
     i = eM.tet[k]
     return fit_tet_obb(eM.point[i], eM.ϵ[i])
 end
