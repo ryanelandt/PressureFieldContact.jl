@@ -1,10 +1,10 @@
 using CoordinateTransformations: Translation, LinearMap
-using StaticArrays
-using LinearAlgebra: BLAS
-using RigidBodyDynamics
 using MeshCat
 using ColorTypes: RGBA, RGB
 using MeshCatMechanisms
+using StaticArrays
+using LinearAlgebra: BLAS
+using RigidBodyDynamics
 using SoftContact
 using Rotations: RotZ
 using Binary_BB_Trees: output_eMesh_half_plane, output_eMesh_box, as_tri_eMesh, as_tet_eMesh
@@ -43,30 +43,45 @@ set_state_spq!(mech_scen, nt_body_2.joint, trans=SVector(0.0, 0.0,  5*box_rad), 
 set_state_spq!(mech_scen, nt_body_3.joint, trans=SVector(0.0, 0.0,  8*box_rad), w=SVector(0.0, 0.0, 3.0))
 set_state_spq!(mech_scen, nt_body_4.joint, trans=SVector(0.0, 0.0, 11*box_rad), w=SVector(0.0, 0.0, 4.0))
 
-### Add meshes to visualizer
-(!@isdefined vis) && (vis = Visualizer(); open(vis))
-color_gray  = RGBA{Float32}(0.5, 0.5, 0.5, 1.0)
-color_red   = RGBA{Float32}(1.0, 0.0, 0.0, 1.0)
-color_green = RGBA{Float32}(0.0, 1.0, 0.0, 1.0)
-color_blue  = RGBA{Float32}(0.0, 0.0, 1.0, 1.0)
-mvis = MechanismVisualizer(mech_scen, vis)
-set_mesh_visual!(     mvis, mech_scen, nt_plane.id,  color_gray)
-set_body_mesh_visual!(mvis, mech_scen, nt_body_1.id, color_red)
-set_body_mesh_visual!(mvis, mech_scen, nt_body_2.id, color_blue)
-set_body_mesh_visual!(mvis, mech_scen, nt_body_3.id, color_green)
-set_body_mesh_visual!(mvis, mech_scen, nt_body_4.id, color_red)
-set_configuration!(mech_scen, mvis)
+function run_visualizer()
 
-### Run forward dynamics
-t_final = 5.0e-0
-rr = Radau_for_MechanismScenario(mech_scen)
-rr.step.h_max = 0.05
-data_time, data_state = integrate_scenario_radau(rr, t_final=t_final)
-println("Finished compiling and running simulation beginning visualization")
+    ### Add meshes to visualizer
+    (!@isdefined vis) && (vis = Visualizer(); open(vis))
+    color_gray  = RGBA{Float32}(0.5, 0.5, 0.5, 1.0)
+    color_red   = RGBA{Float32}(1.0, 0.0, 0.0, 1.0)
+    color_green = RGBA{Float32}(0.0, 1.0, 0.0, 1.0)
+    color_blue  = RGBA{Float32}(0.0, 0.0, 1.0, 1.0)
 
-### Move camera
-setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 7)
-settransform!(vis["/Cameras/default"], Translation(0.0, 0.0, 0.30) ∘ LinearMap(RotZ(-π * 0.35)))
+    mvis = MechanismVisualizer(mech_scen, vis)
+    # mvis = MechanismVisualizer(robot, URDFVisuals(urdf), vis)
+    if !haskey(ENV, "CI")
+        open(mvis)
+        wait(mvis)
+    end
+    set_mesh_visual!(     mvis, mech_scen, nt_plane.id,  color_gray)
+    set_body_mesh_visual!(mvis, mech_scen, nt_body_1.id, color_red)
+    set_body_mesh_visual!(mvis, mech_scen, nt_body_2.id, color_blue)
+    set_body_mesh_visual!(mvis, mech_scen, nt_body_3.id, color_green)
+    set_body_mesh_visual!(mvis, mech_scen, nt_body_4.id, color_red)
+    set_configuration!(mech_scen, mvis)
 
-### Playback data
-play_recorded_data(mvis, mech_scen, data_time, data_state, slowdown=1.0)
+    ### Run forward dynamics
+    t_final = 5.0e-0
+    rr = Radau_for_MechanismScenario(mech_scen)
+    rr.step.h_max = 0.05
+    data_time, data_state = integrate_scenario_radau(rr, t_final=t_final)
+    println("Finished compiling and running simulation beginning visualization")
+
+    ### Move camera
+    setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 7)
+    settransform!(vis["/Cameras/default"], Translation(0.0, 0.0, 0.30) ∘ LinearMap(RotZ(-π * 0.35)))
+
+    ### Playback data
+    play_recorded_data(mvis, mech_scen, data_time, data_state, slowdown=1.0)
+
+    return 0
+end
+
+@testset "visualizer" begin
+    @test run_visualizer() == 0
+end

@@ -293,7 +293,6 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
 	return r², ṙ², dA, p_hc
 end
 
-# TODO: calculate jacobians in body frames and transform a single wrench to body frame 1 to add this wrench
 function addGeneralizedForcesThirdLaw!(wrench::Wrench{T}, tm::TypedMechanismScenario{N,T}, cInfo::ContactInstructions) where {N,T}
     torque_third_law = tm.torque_third_law
     f_generalized = tm.f_generalized

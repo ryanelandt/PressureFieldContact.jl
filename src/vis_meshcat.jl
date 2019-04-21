@@ -12,8 +12,9 @@ end
 # end
 
 function MeshCatMechanisms.set_configuration!(mech_scen::MechanismScenario, mvis::MechanismVisualizer)
-    x = get_state(mech_scen)
-    set_configuration!(mech_scen, mvis, x)
+	set_configuration!(mvis, mech_scen.float.state.q)
+	# x = get_state(mech_scen)
+    # set_configuration!(mech_scen, mvis, x)
 end
 
 function set_body_mesh_visual!(mvis::MechanismVisualizer, mech_scen::MechanismScenario, m_id::MeshID, color)
@@ -96,7 +97,9 @@ function play_recorded_data(mvis::MechanismVisualizer, mech_scen::MechanismScena
         while (t_last_frame + dt) < data_time[k]  # wait until enough real time has passed
             t_last_frame += dt
             sleep(dt * slowdown)
-            set_configuration!(mech_scen, mvis, data_state[k, :])  # visualize configuration
+			copyto!(mech_scen.float, data_state[k, :])
+			set_configuration!(mech_scen, mvis)
+            # set_configuration!(mech_scen, mvis, data_state[k, :])  # visualize configuration
         end
     end
 end
