@@ -43,21 +43,19 @@ set_state_spq!(mech_scen, nt_body_2.joint, trans=SVector(0.0, 0.0,  5*box_rad), 
 set_state_spq!(mech_scen, nt_body_3.joint, trans=SVector(0.0, 0.0,  8*box_rad), w=SVector(0.0, 0.0, 3.0))
 set_state_spq!(mech_scen, nt_body_4.joint, trans=SVector(0.0, 0.0, 11*box_rad), w=SVector(0.0, 0.0, 4.0))
 
+(!@isdefined vis) && (vis = Visualizer())
+
 function run_visualizer()
 
     ### Add meshes to visualizer
-    (!@isdefined vis) && (vis = Visualizer(); open(vis))
     color_gray  = RGBA{Float32}(0.5, 0.5, 0.5, 1.0)
     color_red   = RGBA{Float32}(1.0, 0.0, 0.0, 1.0)
     color_green = RGBA{Float32}(0.0, 1.0, 0.0, 1.0)
     color_blue  = RGBA{Float32}(0.0, 0.0, 1.0, 1.0)
 
     mvis = MechanismVisualizer(mech_scen, vis)
-    # mvis = MechanismVisualizer(robot, URDFVisuals(urdf), vis)
-    if !haskey(ENV, "CI")
-        open(mvis)
-        wait(mvis)
-    end
+    (!haskey(ENV, "CI")) && open(mvis)
+
     set_mesh_visual!(     mvis, mech_scen, nt_plane.id,  color_gray)
     set_body_mesh_visual!(mvis, mech_scen, nt_body_1.id, color_red)
     set_body_mesh_visual!(mvis, mech_scen, nt_body_2.id, color_blue)
@@ -79,9 +77,9 @@ function run_visualizer()
     ### Playback data
     play_recorded_data(mvis, mech_scen, data_time, data_state, slowdown=1.0)
 
-    return 0
+    return true
 end
 
 @testset "visualizer" begin
-    @test run_visualizer() == 0
+    @test run_visualizer()
 end
