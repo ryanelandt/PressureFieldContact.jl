@@ -22,7 +22,12 @@ function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NQ,Dual{
     x = data_state[1, :]
     for k = 2:s1_state
         is_disp_count && println(k)
-        (mech_scen.discrete_controller != nothing) && mech_scen.discrete_controller(x, mech_scen, t_cumulative)
+        if mech_scen.discrete_controller != nothing
+            while mech_scen.discrete_controller.t_last <= t_cumulative
+                mech_scen.discrete_controller.t_last += mech_scen.discrete_controller.dt
+                mech_scen.discrete_controller.control(x, mech_scen, t_cumulative)
+            end
+        end
         h, x = solveRadau(rr, x, t_cumulative)
         principal_value!(mech_scen, x)
         t_cumulative += h

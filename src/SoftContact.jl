@@ -80,6 +80,7 @@ export
     spatialStiffness,
     TypedElasticBodyBodyCache,
     TypedMechanismScenario,
+    DiscreteControl,
     MechanismScenario,
     finalize!,
     num_partials,

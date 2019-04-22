@@ -127,6 +127,14 @@ struct TypedMechanismScenario{N,T}
 	end
 end
 
+mutable struct DiscreteControl
+	dt::Float64
+	t_last::Float64
+	control::Function
+	# DiscreteControl(control::Nothing) = nothing
+	DiscreteControl(control::Function, dt=0.01) = new(dt, 0.0, control)
+end
+
 mutable struct MechanismScenario{NQ,T}
 	float::TypedMechanismScenario{NQ,Float64}
 	dual::TypedMechanismScenario{NQ,T}
@@ -138,14 +146,15 @@ mutable struct MechanismScenario{NQ,T}
 	TT_Cache::TT_Cache
 	de::Function
 	continuous_controller::Union{Nothing,Function}
-	discrete_controller::Union{Nothing,Function}
+	discrete_controller::Union{Nothing,DiscreteControl}
+	# discrete_controller::Union{Nothing,Function}
 
     τ_ext::Vector{Float64}
     path::RigidBodyDynamics.CustomCollections.IndexDict{BodyID,Base.OneTo{BodyID},Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}}
 
 	function MechanismScenario(; de::Function=calcXd!, n_quad_rule::Int64=2, N_chunk::Int64=6,
 			continuous_controller::Union{Nothing,Function}=nothing,
-			discrete_controller::Union{Nothing,Function}=nothing,
+			discrete_controller::Union{Nothing,DiscreteControl}=nothing,
 			gravity::SVector{3,Float64}=SVector{3,Float64}(0.0, 0.0, -round(9.8054, digits=8, base=2) ))
 		#
 		mechanism = Mechanism(RigidBody{Float64}("world"); gravity=gravity)  # create empty mechanism
@@ -160,11 +169,11 @@ mutable struct MechanismScenario{NQ,T}
 		bristle_ids = Base.OneTo(BristleID(0))
 		mesh_cache = MeshCacheDict{MeshCache}(mesh_ids)
 		c_ins = Vector{ContactInstructions}()
+
 		return new{NQ,T}(cache_float, cache_dual, body_ids, mesh_ids, bristle_ids, mesh_cache, c_ins, TT_Cache(), de,
 			continuous_controller, discrete_controller)
     end
 end
-
 
 function finalize!(m::MechanismScenario{NQ,T}) where {NQ,T}
 	function makePaths(mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, body_ids::Base.OneTo{BodyID})
