@@ -7,15 +7,15 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
     wrench_ang = zeros(SVector{3,T})
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
-        cart_vel = trac.v_cart.v
-        n̂ = trac.n̂.v
+        cart_vel = trac.v_cart
+        n̂ = trac.n̂
         cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
         mag_vel_t = safe_norm(cart_vel_t)
         μ_reg = b.μ * fastSigmoid(mag_vel_t, v_tol⁻¹)
         p_dA = calc_p_dA(trac)
         traction_k = p_dA * (μ_reg * safe_normalize(cart_vel_t) - n̂)
         wrench_lin += traction_k
-        wrench_ang += cross(trac.r_cart.v, traction_k)
+        wrench_ang += cross(trac.r_cart, traction_k)
     end
     return Wrench(frame, wrench_ang, wrench_lin)
 end
@@ -78,9 +78,9 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
     for k = 1:length(tc)
         trac = tc.vec[k]
         n̂ = trac.n̂
-        I_minus_n̂n̂ = I - n̂.v * n̂.v'  # suprisingly fast
+        I_minus_n̂n̂ = I - n̂ * n̂'  # suprisingly fast
         p_dA = calc_p_dA(trac)
-        r = trac.r_cart.v
+        r = trac.r_cart
         r_skew = vector_to_skew_symmetric(r)
         p_dA_I_minus_n̂n̂ = p_dA * I_minus_n̂n̂
         p_dA_rx_I_minus_n̂n̂ = r_skew * p_dA_I_minus_n̂n̂
@@ -110,8 +110,8 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     wrench_ang = zeros(SVector{3,T})
     for k = 1:length(tc)
         trac = tc.vec[k]
-        n̂ = trac.n̂.v
-        r = trac.r_cart.v
+        n̂ = trac.n̂
+        r = trac.r_cart
         x̄_δ = spatial_vel_formula(δ, r)
         x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, r)
         p_dA = calc_p_dA(trac)

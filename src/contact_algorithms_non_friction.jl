@@ -155,8 +155,8 @@ function tetrahedron_vertices_ϵ(i_tet::Int64, m::MeshCache)
     return cart_vert, ϵ
 end
 
-function calc_ζ_transforms(frame_ζ::CartesianFrame3D, frame_b ::CartesianFrame3D, p_tet)
-    x_r¹_ζ = MatrixTransform(frame_ζ, frame_b, asMatOnePad(p_tet))
+function calc_ζ_transforms(p_tet)
+	x_r¹_ζ = asMatOnePad(p_tet)
     x_ζ_r¹ = inv(x_r¹_ζ)
     return x_r¹_ζ, x_ζ_r¹
 end
@@ -168,20 +168,20 @@ function integrate_over!(i_1::Int64, i_2::Int64, mesh_1::MeshCache{Nothing,Tet},
 
     vert_1, ϵ¹ = tetrahedron_vertices_ϵ(i_1, mesh_1)
     vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
-    x_r¹_ζ¹, x_ζ¹_r¹ = calc_ζ_transforms(FRAME_ζ¹, mesh_1.FrameID, vert_1)
-    x_r²_ζ², x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2)
+    x_r¹_ζ¹, x_ζ¹_r¹ = calc_ζ_transforms(vert_1)
+    x_r²_ζ², x_ζ²_r² = calc_ζ_transforms(vert_2)
 
-	ϵ_plane_1_r² = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_r¹.mat * b.x_r¹_r².mat)
-	ϵ_r² = ϵ² * x_ζ²_r².mat
-    ϵ_plane_2_r² = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_r².mat)
+	ϵ_plane_1_r² = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_r¹ * b.x_r¹_r².mat)
+	ϵ_r² = ϵ² * x_ζ²_r²
+    ϵ_plane_2_r² = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_r²)
 	ϵ_plane_r² = ϵ_plane_2_r² - ϵ_plane_1_r²  # normalize penetration extent is positive so this describes the plane
 		# of the contact surface pointing towards mesh_2
 
-	x_r²_ζ¹ = b.x_r²_r¹ * x_r¹_ζ¹
+	x_r²_ζ¹ = b.x_r²_r¹.mat * x_r¹_ζ¹
 
-    poly_r² = clip_plane_tet(ϵ_plane_r², x_r²_ζ¹.mat)
+    poly_r² = clip_plane_tet(ϵ_plane_r², x_r²_ζ¹)
     if 3 <= length(poly_r²)
-        poly_ζ² = one_pad_then_mul(x_ζ²_r².mat, poly_r²)
+        poly_ζ² = one_pad_then_mul(x_ζ²_r², poly_r²)
         poly_ζ² = zero_small_coordinates(poly_ζ²)  # This needs to be done to avoid a degenerate situation where the
             # plane lies exactly on the intersection of the faces of two tets. This situation happens EVERY time two
             # tet faces that lie on the surface intersect.
@@ -189,7 +189,6 @@ function integrate_over!(i_1::Int64, i_2::Int64, mesh_1::MeshCache{Nothing,Tet},
         if 3 <= length(poly_ζ²)
 			n² = unPad(ϵ_plane_r²)
 			n̂² = unsafe_normalize(n²)
-			n̂² = FreeVector3D(mesh_2.FrameID, n̂²)
 			integrate_over_polygon_patch!(b, n̂², poly_ζ², x_r²_ζ², x_ζ²_r², ϵ_r²)
         end
     end
@@ -200,11 +199,11 @@ function integrate_over!(i_1::Int64, i_2::Int64, mesh_1::MeshCache{Tri,Nothing},
 
     vert_1 = triangle_vertices(i_1, mesh_1)
     vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
-    x_r²_ζ², x_ζ²_r² = calc_ζ_transforms(FRAME_ζ², mesh_2.FrameID, vert_2)
-	ϵ_r² = ϵ² * x_ζ²_r².mat
+    x_r²_ζ², x_ζ²_r² = calc_ζ_transforms(vert_2)
+	ϵ_r² = ϵ² * x_ζ²_r²
     n̂_r¹ = FreeVector3D(mesh_1.FrameID, triangleNormal(vert_1))
 
-	x_ζ²_r¹ = x_ζ²_r².mat * b.x_r²_r¹.mat
+	x_ζ²_r¹ = x_ζ²_r² * b.x_r²_r¹.mat
 	v1 = x_ζ²_r¹ * onePad(vert_1[1])
 	v2 = x_ζ²_r¹ * onePad(vert_1[2])
 	v3 = x_ζ²_r¹ * onePad(vert_1[3])
@@ -212,37 +211,34 @@ function integrate_over!(i_1::Int64, i_2::Int64, mesh_1::MeshCache{Tri,Nothing},
 
     if 3 <= length(poly_ζ²)
         n̂² = transform(n̂_r¹, b.x_r²_r¹)
-		integrate_over_polygon_patch!(b, n̂², poly_ζ², x_r²_ζ², x_ζ²_r², ϵ_r²)
+		integrate_over_polygon_patch!(b, n̂².v, poly_ζ², x_r²_ζ², ϵ_r²)
     end
 end
 
-function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, n̂²::FreeVector3D{SVector{3,T}},
+function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, n̂²::SVector{3,T},
 		poly_ζ²::poly_eight{4,T},
-        x_r²_ζ²::MatrixTransform{4,4,Float64,16},
-		x_ζ²_r²::MatrixTransform{4,4,Float64,16},
+        x_r²_ζ²::SMatrix{4,4,Float64,16},
 		ϵ_r²::SMatrix{1,4,Float64,4}) where {N,T}
 
-	frame_2 = b.mesh_2.FrameID
-
-	poly_r² = mul_then_un_pad(x_r²_ζ².mat, poly_ζ²)
-	centroid_r² = Point3D(frame_2, centroid(poly_r², n̂².v)[2])
+	poly_r² = mul_then_un_pad(x_r²_ζ², poly_ζ²)
+	centroid_r² = centroid(poly_r², n̂²)[2]
 
     N_vertices = length(poly_ζ²)
-	vert_r²_2 = getPoint(poly_r², frame_2, N_vertices)
+	vert_r²_2 = poly_r²[N_vertices]
 
     for k = 1:N_vertices
 		vert_r²_1 = vert_r²_2
-		vert_r²_2 = getPoint(poly_r², frame_2, k)
-		area_quad_k = triangle_area((vert_r²_1.v, vert_r²_2.v, centroid_r².v), n̂².v)
-		A_r²_ϕ = hcat(onePad(vert_r²_1), onePad(vert_r²_2), onePad(centroid_r²))
+		vert_r²_2 = poly_r²[k]
+		area_quad_k = triangle_area((vert_r²_1, vert_r²_2, centroid_r²), n̂²)
+		A_r²_ϕ = hcat(vert_r²_1, vert_r²_2, centroid_r²)
 		(0.0 < area_quad_k) && fillTractionCacheForTriangle!(b, area_quad_k, n̂², A_r²_ϕ, ϵ_r²)  # no point in adding intersection if area is zero
     end
     return nothing
 end
 
 function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{N,T}, area_quad_k::T,
-        n̂²::FreeVector3D{SVector{3,T}},
-		A_r²_ϕ::MatrixTransform{4,3,T,12},
+        n̂²::SVector{3,T},
+		A_r²_ϕ::SMatrix{3,3,T,9},
 		ϵ_r²::SMatrix{1,4,Float64,4}) where {N,T}
 
 	for k = 1:N
@@ -251,23 +247,17 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{N,T}, area_q
 	end
 end
 
-function dot_one_pad(p::Union{SMatrix{1,4,T1,4},SVector{4,T1}}, v::SVector{3,T2}) where {T1,T2}
-	d =    muladd(p[1], v[1], p[4])
-	d =    muladd(p[2], v[2], d)
-	return muladd(p[3], v[3], d)
-end
+@inline spatial_vel_formula(v::Twist{T}, b::SVector{3,T}) where {T} = linear(v) + cross(angular(v), b)
 
 # TODO: write a function that performs "dot(ϵ_r², r²_pad.v)" without padding
 function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}, area_quad_k::T,
-		A_r²_ϕ::MatrixTransform{4,3,T,12}, ϵ_r²::SMatrix{1,4,Float64,4}) where {N,T}
-	#
-	rϕ = Point3D(FRAME_ϕ, b.quad.zeta[k])
-	r²_pad = A_r²_ϕ * rϕ
-	ϵ_quad = dot(ϵ_r², r²_pad.v)
-	r² = unPad(r²_pad)
-	ṙ² = point_velocity(b.twist_r²_r¹_r², r²)
-	# ϵϵ = - dot(ϵ_r², onePad(ṙ².v))  # TODO: Why is there a negative sign?
-	ϵϵ = - dot_one_pad(ϵ_r², ṙ².v)
+		A_r²_ϕ::SMatrix{3,3,T,9}, ϵ_r²::SMatrix{1,4,Float64,4}) where {N,T}
+
+	rϕ = b.quad.zeta[k]
+	r² = A_r²_ϕ * rϕ
+	ϵ_quad = a_dot_one_pad_b(ϵ_r², r²)
+	ṙ² = spatial_vel_formula(b.twist_r²_r¹_r², r²)
+	ϵϵ = - a_dot_one_pad_b(ϵ_r², ṙ²)  # TODO: Why is there a negative sign?
     damp_term = fastSoftPlus(1.0 + b.χ * ϵϵ)
     p_hc = ϵ_quad * b.Ē * damp_term
 	dA = b.quad.w[k] * area_quad_k

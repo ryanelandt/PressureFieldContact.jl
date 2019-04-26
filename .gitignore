@@ -1,2 +1,3 @@
 /statprof
 *.jl.mem
+*.mem
