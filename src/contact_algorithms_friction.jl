@@ -7,7 +7,6 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
     wrench_ang = zeros(SVector{3,T})
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
-        # for k = 1:N
         cart_vel = trac.v_cart.v
         n̂ = trac.n̂.v
         cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
@@ -17,7 +16,6 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
         traction_k = p_dA * (μ_reg * safe_normalize(cart_vel_t) - n̂)
         wrench_lin += traction_k
         wrench_ang += cross(trac.r_cart.v, traction_k)
-        # end
     end
     return Wrench(frame, wrench_ang, wrench_lin)
 end
@@ -81,8 +79,7 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
         trac = tc.vec[k]
         n̂ = trac.n̂
         I_minus_n̂n̂ = I - n̂.v * n̂.v'  # suprisingly fast
-        # for k_qp = 1:N
-        p_dA = calc_p_dA(trac, k_qp)
+        p_dA = calc_p_dA(trac)
         r = trac.r_cart.v
         r_skew = vector_to_skew_symmetric(r)
         p_dA_I_minus_n̂n̂ = p_dA * I_minus_n̂n̂
@@ -90,7 +87,6 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
         K_11_sum -=  p_dA_rx_I_minus_n̂n̂ * r_skew
         K_12_sum +=  p_dA_rx_I_minus_n̂n̂
         K_22_sum +=  p_dA_I_minus_n̂n̂
-        # end
     end
     b.spatialStiffness.K.data[1:3, 1:3] .= K_11_sum
     b.spatialStiffness.K.data[4:6, 1:3] .= K_12_sum'
@@ -115,7 +111,6 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     for k = 1:length(tc)
         trac = tc.vec[k]
         n̂ = trac.n̂.v
-        # for k_qp = 1:N
         r = trac.r_cart.v
         x̄_δ = spatial_vel_formula(δ, r)
         x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, r)
@@ -127,7 +122,6 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
         λ_s = the_ratio * safe_normalize(λ_s)
         wrench_lin += λ_s
         wrench_ang += cross(r, λ_s)
-        # end
     end
     return Wrench(frame_now, wrench_ang, wrench_lin)
 end
