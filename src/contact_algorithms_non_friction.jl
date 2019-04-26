@@ -247,14 +247,7 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{1,T}, area_q
 		ϵ_r²::SMatrix{1,4,Float64,4}) where {T}
 
     r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, area_quad_k, A_r²_ϕ, ϵ_r²)
-    p = (p_1, )
-    if 0.0 < sum(p)
-        r_cart = (r_cart_1, )
-        v_cart_t = (v_cart_t_1, )
-        dA = (dA_1, )
-        trac_cache = TractionCache(n̂², r_cart, v_cart_t, dA, p)
-        addCacheItem!(b.TractionCache, trac_cache)
-    end
+    (0.0 < p_1) && addCacheItem!(b.TractionCache, TractionCache(n̂², r_cart_1, v_cart_t_1, dA_1, p_1))
     return nothing
 end
 
@@ -263,17 +256,25 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{3,T}, area_q
 		A_r²_ϕ::MatrixTransform{4,3,T,12},
 		ϵ_r²::SMatrix{1,4,Float64,4}) where {T}
 
+	#
 	r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, area_quad_k, A_r²_ϕ, ϵ_r²)
-	r_cart_2, v_cart_t_2, dA_2, p_2 = fillTractionCacheInnerLoop!(2, b, area_quad_k, A_r²_ϕ, ϵ_r²)
-	r_cart_3, v_cart_t_3, dA_3, p_3 = fillTractionCacheInnerLoop!(3, b, area_quad_k, A_r²_ϕ, ϵ_r²)
-    p = (p_1, p_2, p_3)
-    if 0.0 < sum(p)
-        r_cart = (r_cart_1, r_cart_2, r_cart_3)
-        v_cart_t = (v_cart_t_1, v_cart_t_2, v_cart_t_3)
-        dA = (dA_1, dA_2, dA_3)
-        trac_cache = TractionCache(n̂², r_cart, v_cart_t, dA, p)
-        addCacheItem!(b.TractionCache, trac_cache)
-    end
+    (0.0 < p_1) && addCacheItem!(b.TractionCache, TractionCache(n̂², r_cart_1, v_cart_t_1, dA_1, p_1))
+	r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(2, b, area_quad_k, A_r²_ϕ, ϵ_r²)
+    (0.0 < p_1) && addCacheItem!(b.TractionCache, TractionCache(n̂², r_cart_1, v_cart_t_1, dA_1, p_1))
+	r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(3, b, area_quad_k, A_r²_ϕ, ϵ_r²)
+    (0.0 < p_1) && addCacheItem!(b.TractionCache, TractionCache(n̂², r_cart_1, v_cart_t_1, dA_1, p_1))
+
+	# r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(1, b, area_quad_k, A_r²_ϕ, ϵ_r²)
+	# r_cart_2, v_cart_t_2, dA_2, p_2 = fillTractionCacheInnerLoop!(2, b, area_quad_k, A_r²_ϕ, ϵ_r²)
+	# r_cart_3, v_cart_t_3, dA_3, p_3 = fillTractionCacheInnerLoop!(3, b, area_quad_k, A_r²_ϕ, ϵ_r²)
+    # p = (p_1, p_2, p_3)
+    # if 0.0 < sum(p)
+    #     r_cart = (r_cart_1, r_cart_2, r_cart_3)
+    #     v_cart_t = (v_cart_t_1, v_cart_t_2, v_cart_t_3)
+    #     dA = (dA_1, dA_2, dA_3)
+    #     trac_cache = TractionCache(n̂², r_cart, v_cart_t, dA, p)
+    #     addCacheItem!(b.TractionCache, trac_cache)
+    # end
     return nothing
 end
 

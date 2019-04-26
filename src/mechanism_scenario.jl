@@ -28,15 +28,15 @@ struct ContactInstructions
     end
 end
 
-struct TractionCache{N,T}
+struct TractionCache{T}
     n̂::FreeVector3D{SVector{3,T}}
-    r_cart::NTuple{N,Point3D{SVector{3,T}}}
-    v_cart::NTuple{N,FreeVector3D{SVector{3,T}}}
-    dA::NTuple{N,T}
-    p::NTuple{N,T}
+    r_cart::Point3D{SVector{3,T}}
+    v_cart::FreeVector3D{SVector{3,T}}
+    dA::T
+    p::T
 end
 
-@inline calc_p_dA(t::TractionCache, k::Int64) = t.p[k] * t.dA[k]
+@inline calc_p_dA(t::TractionCache) = t.p * t.dA
 
 mutable struct spatialStiffness{T}
     K::Hermitian{T,Matrix{T}}
@@ -55,7 +55,7 @@ end
 mutable struct TypedElasticBodyBodyCache{N,T}
     spatialStiffness::spatialStiffness{T}
     quad::TriTetQuadRule{3,N}
-    TractionCache::VectorCache{TractionCache{N,T}}
+    TractionCache::VectorCache{TractionCache{T}}
     mesh_1::MeshCache
     mesh_2::MeshCache
     x_rʷ_r²::Transform3D{T}
@@ -68,7 +68,7 @@ mutable struct TypedElasticBodyBodyCache{N,T}
     Ē::Float64
     wrench::Wrench{T}
     function TypedElasticBodyBodyCache{N,T}(quad::TriTetQuadRule{3,N}) where {N,T}
-        trac_cache = VectorCache{TractionCache{N, T}}()
+        trac_cache = VectorCache{TractionCache{T}}()
         K = spatialStiffness{T}()
         return new{N,T}(K, quad, trac_cache)
     end
