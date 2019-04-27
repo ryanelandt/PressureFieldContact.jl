@@ -189,7 +189,7 @@ function integrate_over!(i_1::Int64, i_2::Int64, mesh_1::MeshCache{Nothing,Tet},
         if 3 <= length(poly_ζ²)
 			n² = unPad(ϵ_plane_r²)
 			n̂² = unsafe_normalize(n²)
-			integrate_over_polygon_patch!(b, n̂², poly_ζ², x_r²_ζ², x_ζ²_r², ϵ_r²)
+			integrate_over_polygon_patch!(b, n̂², poly_ζ², x_r²_ζ², ϵ_r²)
         end
     end
 end
