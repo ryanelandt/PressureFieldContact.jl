@@ -78,15 +78,13 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
     for k = 1:length(tc)
         trac = tc.vec[k]
         n̂ = trac.n̂
-        I_minus_n̂n̂ = I - n̂ * n̂'  # suprisingly fast
         p_dA = calc_p_dA(trac)
         r = trac.r_cart
-        r_skew = vector_to_skew_symmetric(r)
-        p_dA_I_minus_n̂n̂ = p_dA * I_minus_n̂n̂
-        p_dA_rx_I_minus_n̂n̂ = r_skew * p_dA_I_minus_n̂n̂
-        K_11_sum -=  p_dA_rx_I_minus_n̂n̂ * r_skew
-        K_12_sum +=  p_dA_rx_I_minus_n̂n̂
-        K_22_sum +=  p_dA_I_minus_n̂n̂
+        K_22_sum += p_dA * (I - n̂ * n̂')
+        r_x_n̂     = cross(r, n̂)
+        K_12_sum += p_dA * (vector_to_skew_symmetric(r) - r_x_n̂ * n̂')
+        r_skew²   = vector_to_skew_symmetric_squared(r)
+        K_11_sum -= p_dA * (r_skew² + r_x_n̂ * r_x_n̂')
     end
     b.spatialStiffness.K.data[1:3, 1:3] .= K_11_sum
     b.spatialStiffness.K.data[4:6, 1:3] .= K_12_sum'

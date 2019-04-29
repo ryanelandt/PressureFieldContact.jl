@@ -6,7 +6,7 @@ using StaticArrays
 using Rotations: Quat, Rotation, SPQuat, RotMatrix
 using ForwardDiff: Dual
 using RigidBodyDynamics
-using RigidBodyDynamics.Spatial: vector_to_skew_symmetric
+using RigidBodyDynamics.Spatial: vector_to_skew_symmetric, vector_to_skew_symmetric_squared
 using GeometryTypes: HomogenousMesh, Face, Point
 using ColorTypes: RGBA
 using MeshCatMechanisms
