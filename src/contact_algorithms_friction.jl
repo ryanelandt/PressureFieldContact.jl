@@ -49,12 +49,13 @@ function bristle_wrench_in_world(tm::TypedMechanismScenario{N,T}, c_ins::Contact
     b = tm.bodyBodyCache
     spatial_stiffness = b.spatialStiffness
     τ⁻¹ = 1 / BF.τ
-    wrench²_normal = normal_wrench(b)
+    # wrench²_normal = normal_wrench(b)
     calc_patch_spatial_stiffness!(tm, BF)
     calc_K_sqrt⁻¹!(spatial_stiffness)
     s = get_bristle_d0(tm, bristle_id)
     Δ² = spatial_stiffness.K⁻¹_sqrt * s
-    wrench²_fric = calc_spatial_bristle_force(tm, c_ins, Δ², b.twist_r²_r¹_r²)
+    # wrench²_fric = calc_spatial_bristle_force(tm, c_ins, Δ², b.twist_r²_r¹_r²)
+    wrench²_normal, wrench²_fric = calc_spatial_bristle_force(tm, c_ins, Δ², b.twist_r²_r¹_r²)
     f_spatial = as_static_vector(wrench²_fric)
     get_bristle_d1(tm, bristle_id) .= τ⁻¹ * ( spatial_stiffness.K⁻¹_sqrt * f_spatial - s)
     return wrench²_normal, -wrench²_fric
@@ -96,6 +97,7 @@ end
 function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δ::SVector{6,T},
     twist) where {N,T}
 
+    # TODO: have this include normal tractions too
     b = tm.bodyBodyCache
     frame_now = b.mesh_2.FrameID
     tc = b.TractionCache
@@ -106,6 +108,8 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     vʳᵉˡ = as_static_vector(twist)
     wrench_lin = zeros(SVector{3,T})
     wrench_ang = zeros(SVector{3,T})
+    normal_wrench_lin = zeros(SVector{3,T})
+    normal_wrench_ang = zeros(SVector{3,T})
     for k = 1:length(tc)
         trac = tc.vec[k]
         n̂ = trac.n̂
@@ -120,12 +124,15 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
         λ_s = the_ratio * safe_normalize(λ_s)
         wrench_lin += λ_s
         wrench_ang += cross(r, λ_s)
+        # Normal Wrench
+        λₙ = -p_dA * n̂
+        normal_wrench_lin += λₙ
+        normal_wrench_ang += cross(r, λₙ)
     end
-    return Wrench(frame_now, wrench_ang, wrench_lin)
+    wrench_fric = Wrench(frame_now, wrench_ang, wrench_lin)
+    wrench_normal = Wrench(frame_now, normal_wrench_ang, normal_wrench_lin)
+    return wrench_normal, wrench_fric
 end
-
-
-
 
 # function transform_stiffness!(s::spatialStiffness{T}, xform) where {T}
 #     R = rotation(xform)
