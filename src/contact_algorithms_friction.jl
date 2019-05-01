@@ -10,10 +10,27 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
         cart_vel = trac.v_cart
         n̂ = trac.n̂
         cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
-        mag_vel_t = safe_norm(cart_vel_t)
-        μ_reg = b.μ * fastSigmoid(mag_vel_t, v_tol⁻¹)
+
         p_dA = calc_p_dA(trac)
-        traction_k = p_dA * (μ_reg * safe_normalize(cart_vel_t) - n̂)
+        mag_vel_t = norm(cart_vel_t)
+        if mag_vel_t == 0.0
+            term = zeros(SVector{3,T})
+        else
+            if mag_vel_t < v_tol⁻¹  # going slow
+                μ_reg = b.μ * mag_vel_t * v_tol⁻¹
+            else
+                μ_reg = b.μ
+            end
+            term = μ_reg * cart_vel_t / mag_vel_t
+            # traction_k = μ_reg
+        end
+
+        # mag_vel_t = safe_norm(cart_vel_t)
+        # μ_reg = b.μ * fastSigmoid(mag_vel_t, v_tol⁻¹)
+        # traction_k = p_dA * (μ_reg * safe_normalize(cart_vel_t) - n̂)
+        traction_k = p_dA * (term - n̂)
+
+
         wrench_lin += traction_k
         wrench_ang += cross(trac.r_cart, traction_k)
     end
@@ -119,9 +136,15 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
         p_dA = calc_p_dA(trac)
         λ_s = k̄ * p_dA * (x̄_δ - τ * x̄x̄_vʳᵉˡ)
         λ_s = vec_sub_vec_proj(λ_s, n̂)
-        max_fric = max(μ * p_dA, zero(T))
-        the_ratio = soft_clamp(safe_norm(λ_s), max_fric)
-        λ_s = the_ratio * safe_normalize(λ_s)
+        #
+        mag_λ_s = norm(λ_s)
+        if μ * p_dA < mag_λ_s
+            λ_s = μ * p_dA * λ_s / mag_λ_s
+        end
+        # max_fric = max(μ * p_dA, zero(T))
+        # the_ratio = soft_clamp(safe_norm(λ_s), max_fric)
+        # λ_s = the_ratio * safe_normalize(λ_s)
+
         wrench_lin += λ_s
         wrench_ang += cross(r, λ_s)
         # Normal Wrench
