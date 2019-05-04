@@ -7,12 +7,14 @@ function calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::Mec
     return calcXd!(xx, x, m, m.float, t)
 end
 
-```
+"""
+$(SIGNATURES)
+
 Conventions:
 n̂ refers to the contact surface normal that points into body B
 v_cart refers to + velocity of B - the velocity of A
 the wrench is the wrench applied TO body A
-```
+"""
 function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{NQ,T2},
         tm::TypedMechanismScenario{NQ,T1}, t::Float64=0.0) where {NQ,T1,T2}
 
