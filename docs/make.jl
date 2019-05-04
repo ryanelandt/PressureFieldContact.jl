@@ -7,7 +7,7 @@ makedocs(
     sitename ="SoftContact.jl",
     authors = "Ryan Elandt and contributors.",
     pages = [
-        "Home" => "index.md",
+        "Home" => "index.md"
         "Algorithms" => "algorithms.md"
       ],
     format = Documenter.HTML(prettyurls = parse(Bool, get(ENV, "CI", "false")))

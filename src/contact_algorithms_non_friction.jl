@@ -8,7 +8,7 @@ function calcXd!(xx::AbstractVector{Float64}, x::AbstractVector{Float64}, m::Mec
 end
 
 """
-$(SIGNATURES)
+    calcXd!(xx, x, m, tm, t)
 
 Conventions:
 n̂ refers to the contact surface normal that points into body B
