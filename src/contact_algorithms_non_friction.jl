@@ -94,9 +94,7 @@ function calcTriTetIntersections!(m::MechanismScenario, c_ins::ContactInstructio
     refreshBodyBodyTransform!(m, m.float, c_ins)  # TODO: isn't b.x_r¹_rʷ already calculated?
 	x_r¹_r² = b.x_r¹_r²
     update_TT_Cache!(m.TT_Cache, translation(x_r¹_r²), rotation(x_r¹_r²))
-	tree_1 = get_tree(b.mesh_1)
-	tree_2 = get_tree(b.mesh_2)
-    tree_tree_intersect(m.TT_Cache, tree_1, tree_2)
+    tree_tree_intersect(m.TT_Cache, get_tree(b.mesh_1), get_tree(b.mesh_2))
     return nothing
 end
 
@@ -171,7 +169,7 @@ function integrate_over!(i_1::Int64, i_2::Int64, mesh_1::MeshCache{Nothing,Tet},
     x_r¹_ζ¹, x_ζ¹_r¹ = calc_ζ_transforms(vert_1)
     x_r²_ζ², x_ζ²_r² = calc_ζ_transforms(vert_2)
 
-	ϵ_plane_1_r² = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_r¹ * b.x_r¹_r².mat)
+	ϵ_plane_1_r² = find_plane_tet(get_Ē(mesh_1), ϵ¹, x_ζ¹_r¹ * b.x_r¹_r².mat)  # TODO: is there a faster way to do this multiplication?
 	ϵ_r² = ϵ² * x_ζ²_r²
     ϵ_plane_2_r² = find_plane_tet(get_Ē(mesh_2), ϵ², x_ζ²_r²)
 	ϵ_plane_r² = ϵ_plane_2_r² - ϵ_plane_1_r²  # normalize penetration extent is positive so this describes the plane
@@ -187,8 +185,7 @@ function integrate_over!(i_1::Int64, i_2::Int64, mesh_1::MeshCache{Nothing,Tet},
             # tet faces that lie on the surface intersect.
         poly_ζ² = clip_in_tet_coordinates(poly_ζ²)
         if 3 <= length(poly_ζ²)
-			n² = unPad(ϵ_plane_r²)
-			n̂² = unsafe_normalize(n²)
+			n̂² = normalize(unPad(ϵ_plane_r²))
 			integrate_over_polygon_patch!(b, n̂², poly_ζ², x_r²_ζ², ϵ_r²)
         end
     end
@@ -201,7 +198,6 @@ function integrate_over!(i_1::Int64, i_2::Int64, mesh_1::MeshCache{Tri,Nothing},
     vert_2, ϵ² = tetrahedron_vertices_ϵ(i_2, mesh_2)
     x_r²_ζ², x_ζ²_r² = calc_ζ_transforms(vert_2)
 	ϵ_r² = ϵ² * x_ζ²_r²
-    n̂_r¹ = FreeVector3D(mesh_1.FrameID, triangleNormal(vert_1))
 
 	x_ζ²_r¹ = x_ζ²_r² * b.x_r²_r¹.mat
 	v1 = x_ζ²_r¹ * onePad(vert_1[1])
@@ -210,6 +206,7 @@ function integrate_over!(i_1::Int64, i_2::Int64, mesh_1::MeshCache{Tri,Nothing},
 	poly_ζ² = clip_in_tet_coordinates(v1, v2, v3)
 
     if 3 <= length(poly_ζ²)
+		n̂_r¹ = FreeVector3D(mesh_1.FrameID, triangleNormal(vert_1))
         n̂² = transform(n̂_r¹, b.x_r²_r¹)
 		integrate_over_polygon_patch!(b, n̂².v, poly_ζ², x_r²_ζ², ϵ_r²)
     end
@@ -222,10 +219,8 @@ function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, n̂²:
 
 	poly_r² = mul_then_un_pad(x_r²_ζ², poly_ζ²)
 	centroid_r² = centroid(poly_r², n̂²)[2]
-
     N_vertices = length(poly_ζ²)
 	vert_r²_2 = poly_r²[N_vertices]
-
     for k = 1:N_vertices
 		vert_r²_1 = vert_r²_2
 		vert_r²_2 = poly_r²[k]
@@ -233,7 +228,6 @@ function integrate_over_polygon_patch!(b::TypedElasticBodyBodyCache{N,T}, n̂²:
 		A_r²_ϕ = hcat(vert_r²_1, vert_r²_2, centroid_r²)
 		(0.0 < area_quad_k) && fillTractionCacheForTriangle!(b, area_quad_k, n̂², A_r²_ϕ, ϵ_r²)  # no point in adding intersection if area is zero
     end
-    return nothing
 end
 
 function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{N,T}, area_quad_k::T,
@@ -258,7 +252,8 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
 	ϵ_quad = a_dot_one_pad_b(ϵ_r², r²)
 	ṙ² = spatial_vel_formula(b.twist_r²_r¹_r², r²)
 	ϵϵ = - a_dot_one_pad_b(ϵ_r², ṙ²)  # TODO: Why is there a negative sign?
-    damp_term = fastSoftPlus(1.0 + b.χ * ϵϵ)
+    # damp_term = fastSoftPlus(1.0 + b.χ * ϵϵ)
+	damp_term = max(zero(T), 1.0 + b.χ * ϵϵ)
     p_hc = ϵ_quad * b.Ē * damp_term
 	dA = b.quad.w[k] * area_quad_k
 	return r², ṙ², dA, p_hc

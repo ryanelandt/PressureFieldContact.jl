@@ -3,6 +3,7 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
     b = tm.bodyBodyCache
     frame = b.mesh_2.FrameID
     v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
+    v_tol = 1 / v_tol⁻¹
     wrench_lin = zeros(SVector{3,T})
     wrench_ang = zeros(SVector{3,T})
     for k_trac = 1:length(b.TractionCache)
@@ -11,17 +12,19 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
         n̂ = trac.n̂
         cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
         p_dA = calc_p_dA(trac)
+
         mag_vel_t = norm(cart_vel_t)
         if mag_vel_t == 0.0
             term = zeros(SVector{3,T})
         else
-            if mag_vel_t < v_tol⁻¹  # going slow
+            if mag_vel_t < v_tol  # going slow
                 μ_reg = b.μ * mag_vel_t * v_tol⁻¹
             else
                 μ_reg = b.μ
             end
             term = μ_reg * cart_vel_t / mag_vel_t
         end
+
         traction_k = p_dA * (term - n̂)
         wrench_lin += traction_k
         wrench_ang += cross(trac.r_cart, traction_k)
@@ -137,7 +140,7 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
         normal_wrench_lin += λₙ
         normal_wrench_ang += cross(r, λₙ)
     end
-    wrench_fric = Wrench(frame_now, wrench_ang, wrench_lin)
+    wrench_fric   = Wrench(frame_now, wrench_ang, wrench_lin)
     wrench_normal = Wrench(frame_now, normal_wrench_ang, normal_wrench_lin)
     return wrench_normal, wrench_fric
 end
