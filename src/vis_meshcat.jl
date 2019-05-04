@@ -39,6 +39,9 @@ end
 as_rgba(color::RGBA{Float32}) = color
 as_rgba(color) = RGBA{Float32}(color...)
 
+get_vertices_32(e_mesh::eMesh{T1,T2})  where {T1,T2} = [Point{3,Float32}(k) for k = e_mesh.point]
+get_faces_32(   e_mesh::eMesh{Tri,T2}) where {T2}    = [Face{3,Int32}(k)    for k = e_mesh.tri]
+
 function HomogenousMesh_32(e_mesh::eMesh{Tri,T2}; color=RGBA{Float32}(0.5, 0.5, 0.5, 1.0)) where {T2}
     vertices = get_vertices_32(e_mesh)
     faces = get_faces_32(e_mesh)
