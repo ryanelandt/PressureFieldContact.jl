@@ -17,7 +17,7 @@ using NumericalTricks
 using LinearAlgebra
 using Radau
 using GenericLinearAlgebra
-
+using DocStringExtensions
 
 # const FRAME_ζ¹ = CartesianFrame3D("FRAME_ζ¹")
 # const FRAME_ζ² = CartesianFrame3D("FRAME_ζ²")
