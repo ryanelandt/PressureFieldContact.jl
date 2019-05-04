@@ -3,7 +3,6 @@ function fill_with_nothing!(a)  # TODO: find more elegant way to do this
     for k = keys(a)
         a[k] = nothing
     end
-    return nothing
 end
 
 function Radau_for_MechanismScenario(m::MechanismScenario{NQ,Dual{Type_Tag,Float64,NC}}) where {NQ,Type_Tag,NC}
@@ -12,7 +11,7 @@ function Radau_for_MechanismScenario(m::MechanismScenario{NQ,Dual{Type_Tag,Float
 end
 
 as_static_vector(f::Wrench{T}) where {T} = vcat(angular(f), linear(f))
-as_static_vector(f::Twist{T}) where {T} = vcat(angular(f), linear(f))
+as_static_vector(f::Twist{T})  where {T} = vcat(angular(f), linear(f))
 
 function get_bristle_d0(tm::TypedMechanismScenario{N,T}, bristle_id::BristleID) where {N,T}
     s = segments(tm.s)[bristle_id]

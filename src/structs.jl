@@ -14,21 +14,6 @@ struct ContactProperties
     end
 end
 
-struct eTree{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
-    tree::bin_BB_Tree
-    c_prop::Union{Nothing,ContactProperties}
-    function eTree(e_mesh::eMesh{Tri,Nothing}, c_prop::Nothing=nothing)
-        tri = eMesh_to_tree(e_mesh)
-        return new{Tri,Nothing}(tri, nothing)
-    end
-    function eTree(e_mesh::eMesh{Nothing,Tet}, c_prop::ContactProperties)
-        tet = eMesh_to_tree(e_mesh)
-        return new{Nothing,Tet}(tet, c_prop)
-    end
-    eTree(tree::bin_BB_Tree, c_prop::ContactProperties) = new{Nothing,Tet}(tree, c_prop)
-    eTree(tree::bin_BB_Tree, c_prop::Nothing)           = new{Tri,Nothing}(tree, c_prop)
-end
-
 struct InertiaProperties{T<:Union{Tri,Tet}}
     d::Union{Nothing,Float64}  # if volume mesh is known thickness isn't needed to calculate inertia
     rho::Float64  # rho is always needed to calculate inertia
@@ -45,16 +30,18 @@ struct MeshCache{T1,T2}
     BodyID::Union{Nothing,BodyID}
     FrameID::CartesianFrame3D
     mesh::eMesh{T1,T2}
-    tree::eTree{T1,T2}
-    function MeshCache(name::String, e_mesh::eMesh{T1,T2}, e_tree::eTree{T1,T2}, body::RigidBody{Float64}) where {T1,T2}
-        return new{T1,T2}(name, BodyID(body), default_frame(body), e_mesh, e_tree)
+    tree::bin_BB_Tree{OBB}
+    c_prop::Union{Nothing,ContactProperties}
+    function MeshCache(name::String, e_mesh::eMesh{T1,T2}, tree::bin_BB_Tree, body::RigidBody{Float64},
+        c_prop::Union{Nothing,ContactProperties}) where {T1,T2}
+
+        return new{T1,T2}(name, BodyID(body), default_frame(body), e_mesh, tree, c_prop)
     end
 end
 
-get_tree(m::MeshCache) = m.tree.tree
-get_tree(tree::eTree) = tree.tree
+get_tree(m::MeshCache) = m.tree
 
-@inline get_c_prop(m::MeshCache) = m.tree.c_prop
+@inline get_c_prop(m::MeshCache) = m.c_prop
 @inline Binary_BB_Trees.get_point(m::MeshCache) = m.mesh.point
 @inline get_Ē(m::MeshCache) = get_c_prop(m).Ē
 @inline get_ind_tri(m::MeshCache) = m.mesh.tri

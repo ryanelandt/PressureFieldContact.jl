@@ -19,13 +19,13 @@ using Radau
 using GenericLinearAlgebra
 
 
-const FRAME_ζ¹ = CartesianFrame3D("FRAME_ζ¹")
-const FRAME_ζ² = CartesianFrame3D("FRAME_ζ²")
-const FRAME_ϕ = CartesianFrame3D("FRAME_ϕ")
+# const FRAME_ζ¹ = CartesianFrame3D("FRAME_ζ¹")
+# const FRAME_ζ² = CartesianFrame3D("FRAME_ζ²")
+# const FRAME_ϕ = CartesianFrame3D("FRAME_ϕ")
 
 include("structs.jl")
 include("body_inertia.jl")
-include("matrix_transform.jl")
+# include("matrix_transform.jl")
 include("mechanism_scenario.jl")
 include("extensions.jl")
 include("contact_algorithms_non_friction.jl")
@@ -36,14 +36,14 @@ include("example_integrator.jl")
 include("utility.jl")
 
 export
-    FRAME_ζ¹,
-    FRAME_ζ²,
-    FRAME_ϕ,
+    # FRAME_ζ¹,
+    # FRAME_ζ²,
+    # FRAME_ϕ,
 
     # structs.jl
     MeshInertiaInfo,
     ContactProperties,
-    eTree,
+    # eTree,
     InertiaProperties,
     get_c_prop,
     get_ind_tri,
@@ -61,10 +61,10 @@ export
     centroidVolumeCombo,
     equiv_volume,
 
-    # matrix_transform.jl
-    Point4D,
-    MatrixTransform,
-    getPoint,
+    # # matrix_transform.jl
+    # Point4D,
+    # MatrixTransform,
+    # getPoint,
 
     # mesh_body_utility.jl
     newBodyFromInertia,
