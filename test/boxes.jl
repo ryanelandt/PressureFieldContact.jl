@@ -5,7 +5,7 @@ using MeshCatMechanisms
 using StaticArrays
 using LinearAlgebra: BLAS
 using RigidBodyDynamics
-using SoftContact
+using PressureFieldContact
 using Rotations: RotZ
 using Binary_BB_Trees: output_eMesh_half_plane, output_eMesh_box, as_tri_eMesh, as_tet_eMesh
 

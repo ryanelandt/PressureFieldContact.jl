@@ -1,7 +1,7 @@
 
-module SoftContact
+module PressureFieldContact
 
-using Printf
+# using Printf
 using StaticArrays
 using Rotations: Quat, Rotation, SPQuat, RotMatrix
 using ForwardDiff: Dual

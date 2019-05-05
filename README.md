@@ -1,7 +1,7 @@
-# SoftContact.jl
+# PressureFieldContact.jl
 
-[![Build Status](https://travis-ci.com/ryanelandt/SoftContact.jl.svg?branch=master)](https://travis-ci.com/ryanelandt/SoftContact.jl)
-[![codecov.io](https://codecov.io/github/ryanelandt/SoftContact.jl/coverage.svg?branch=master)](https://codecov.io/github/ryanelandt/SoftContact.jl?branch=master)
+[![Build Status](https://travis-ci.com/ryanelandt/PressureFieldContact.jl.svg?branch=master)](https://travis-ci.com/ryanelandt/PressureFieldContact.jl)
+[![codecov.io](https://codecov.io/github/ryanelandt/PressureFieldContact.jl/coverage.svg?branch=master)](https://codecov.io/github/ryanelandt/PressureFieldContact.jl?branch=master)
 
 This module implements an elastic foundation contact model for rigid body dynamics.
 The surface of bodies is represented with a triangular mesh.

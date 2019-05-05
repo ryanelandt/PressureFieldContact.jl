@@ -79,7 +79,7 @@ end
 #
 #     s = spatialStiffness{Float64}()
 #     s.K.data .= SMatrix(inertia_pre)
-#     SoftContact.transform_stiffness!(s, xform)
+#     PressureFieldContact.transform_stiffness!(s, xform)
 #
 #     @test i66 ≈ s.K
 # end
@@ -88,7 +88,7 @@ end
     s = spatialStiffness{Float64}()
 	K_orig = Matrix(rand_pd(6))
     s.K.data .= K_orig
-    SoftContact.calc_K_sqrt⁻¹!(s)
+    PressureFieldContact.calc_K_sqrt⁻¹!(s)
     @test s.K⁻¹_sqrt ≈ sqrt(inv(K_orig))
 end
 
@@ -160,9 +160,9 @@ end
     # c_ins = mech_scen.ContactInstructions[1]
     # Δ² = (rand(SVector{6,Float64}) + 0.5) * 1.0e-8
 	#
-    # s = SoftContact.set_s_from_Δʷ(mech_scen, c_ins, Δ²)
+    # s = PressureFieldContact.set_s_from_Δʷ(mech_scen, c_ins, Δ²)
     # mech_scen.float.s.segments[c_ins.FrictionModel.BristleID] .= s
-    # _, wrench²_fric = SoftContact.bristle_wrench_in_world(tm,  c_ins)
+    # _, wrench²_fric = PressureFieldContact.bristle_wrench_in_world(tm,  c_ins)
     # wrench²_fric = as_static_vector(wrench²_fric)
 	# wrench²_fric_2 = - K² * Δ²
     # @test (0.999999 <  dot(normalize(wrench²_fric), normalize(wrench²_fric_2)))

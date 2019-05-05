@@ -1,0 +1,9 @@
+A
+inv_A
+b
+c
+lambda
+T
+inv_T
+bi
+b_hat

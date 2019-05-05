@@ -1,6 +1,6 @@
-# SoftContact
+# PressureFieldContact
 
-SoftContact implements...
+PressureFieldContact implements...
 
 ## Design
 
@@ -12,7 +12,7 @@ Words here
 
 To install you
 
-# SoftContact.jl Documentation
+# PressureFieldContact.jl Documentation
 
 ```@contents
 ```

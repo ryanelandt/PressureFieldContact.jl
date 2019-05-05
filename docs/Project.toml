@@ -1,6 +1,6 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-SoftContact = "cc70e79d-bb4b-541d-b08a-98ddd37072e3"
+PressureFieldContact = "c1c8952f-9ec2-53ab-abaf-65f29ade2354"
 
 [compat]
-Documenter = "~0.20"
+Documenter = "~0.19"

@@ -1,10 +1,10 @@
-using Documenter, SoftContact
+using Documenter, PressureFieldContact
 
 makedocs(
-    modules = [SoftContact],
+    modules = [PressureFieldContact],
     root = @__DIR__,
     checkdocs = :exports,
-    sitename ="SoftContact.jl",
+    sitename ="PressureFieldContact.jl",
     authors = "Ryan Elandt and contributors.",
     pages = [
         "Home" => "index.md"
@@ -14,5 +14,5 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/ryanelandt/SoftContact.jl.git"
+    repo = "github.com/ryanelandt/PressureFieldContact.jl.git"
 )

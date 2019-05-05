@@ -8,12 +8,12 @@ using RigidBodyDynamics
 using MeshCat
 using ColorTypes: RGBA, RGB
 using MeshCatMechanisms
-using SoftContact
+using PressureFieldContact
 using FileIO
 
 set_zero_subnormals(true)  # optional tweak to make simulation run faster
 BLAS.set_num_threads(1)  # optional tweak to make simulation run faster (Disable if using MKL)
-spoon_path = joinpath(dirname(pathof(SoftContact)), "..", "test", "data", "spoon.obj")
+spoon_path = joinpath(dirname(pathof(PressureFieldContact)), "..", "test", "data", "spoon.obj")
 
 ### Create mechanism and temporary structure
 my_mechanism = Mechanism(RigidBody{Float64}("world"); gravity=SVector{3,Float64}(0.0, 0.0, -9.8054))  # create empty mechanism
