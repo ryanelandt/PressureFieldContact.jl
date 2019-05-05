@@ -5,8 +5,9 @@ module Tri_Tet_Intersections
 using StaticArrays
 using ForwardDiff: value
 using LinearAlgebra
-using NumericalTricks
+using ..NumericalTricks
 using RigidBodyDynamics.Spatial
+
 
 
 include("poly_eight.jl")

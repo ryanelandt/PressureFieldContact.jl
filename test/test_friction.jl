@@ -41,18 +41,6 @@ end
 i_box_y_vel = 11
 v_tol = 1.0e-4
 
-@testset "regularized friction" begin
-	for n_quad_rule = 1:2
-		# Test that the box slows down when traveling at v_tol and a force less than friction strength is applied
-		mech_scen = create_box_and_plane(n_quad_rule, 0.999, v_tol)
-		@test calcXd(get_state(mech_scen), mech_scen)[i_box_y_vel] < 0.0
-
-		# Test that the box speeds up when traveling at v_tol and a force less than friction strength is applied
-		mech_scen = create_box_and_plane(n_quad_rule, 1.001, v_tol)
-		@test 0.0 < calcXd(get_state(mech_scen), mech_scen)[i_box_y_vel]
-	end
-end
-
 @testset "spatial spring friction" begin
 	for n_quad_rule = 1:2
 		# Test that velocity of box is positive when pushed with 1.5 the friction strength
@@ -68,6 +56,19 @@ end
 		@test abs(data_state[end, i_box_y_vel]) < 1.0e-12
 	end
 end
+
+@testset "regularized friction" begin
+	for n_quad_rule = 1:2
+		# Test that the box slows down when traveling at v_tol and a force less than friction strength is applied
+		mech_scen = create_box_and_plane(n_quad_rule, 0.999, v_tol)
+		@test calcXd(get_state(mech_scen), mech_scen)[i_box_y_vel] < 0.0
+
+		# Test that the box speeds up when traveling at v_tol and a force less than friction strength is applied
+		mech_scen = create_box_and_plane(n_quad_rule, 1.001, v_tol)
+		@test 0.0 < calcXd(get_state(mech_scen), mech_scen)[i_box_y_vel]
+	end
+end
+
 
 # @testset "transform_stiffness" begin
 #     f2 = CartesianFrame3D()

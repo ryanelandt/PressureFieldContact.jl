@@ -10,7 +10,7 @@ using StaticArrays
 using DataStructures
 using Statistics
 using NearestNeighbors
-using NumericalTricks
+using ..NumericalTricks
 
 include("box_types.jl")
 include("mesh.jl")

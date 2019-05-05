@@ -7,10 +7,8 @@ ForwardDiff
 ColorTypes
 MeshCatMechanisms
 CoordinateTransformations
-Tri_Tet_Intersections
-Binary_BB_Trees
-NumericalTricks
-Radau
 WebIO
 GenericLinearAlgebra
 DocStringExtensions
+DataStructures
+NearestNeighbors

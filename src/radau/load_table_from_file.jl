@@ -3,7 +3,18 @@ radau_stage_to_order(n::Int64) = 2 * n - 1
 radau_rule_to_stage(n::Int64) = 2 * n - 1
 radau_rule_to_order(n::Int64) = radau_rule_to_stage(radau_stage_to_order(n))
 
-get_radau_table_path() = joinpath(first(splitdir(Base.pathof(Radau))), "table")
+# get_radau_table_path() = joinpath(first(splitdir(Base.pathof(.Radau))), "table")
+
+function get_radau_table_path()
+
+    path_to_this_file = first(splitdir(Base.functionloc(load_radau_table_from_file)[1]))
+
+    # println(@__MODULE__)
+    # the_place = Base.functionloc(load_radau_table_from_file)[1]
+
+    # println("the_place: ", the_place)
+    joinpath(path_to_this_file, "table")
+end
 
 function load_radau_table_from_file(n_rule::Int64)
     radau_table_path = get_radau_table_path()

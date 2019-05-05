@@ -10,12 +10,21 @@ using RigidBodyDynamics.Spatial: vector_to_skew_symmetric, vector_to_skew_symmet
 using GeometryTypes: HomogenousMesh, Face, Point
 using ColorTypes: RGBA
 using MeshCatMechanisms
-using Tri_Tet_Intersections
 using CoordinateTransformations: Translation
-using Binary_BB_Trees
-using NumericalTricks
+
+include(joinpath("math_kernel", "NumericalTricks.jl"))
+using .NumericalTricks
+
+include(joinpath("Tri_Tet_Intersections", "Tri_Tet_Intersections.jl"))
+using .Tri_Tet_Intersections
+
+include(joinpath("obb", "Binary_BB_Trees.jl"))
+using .Binary_BB_Trees
+
+include(joinpath("radau", "Radau.jl"))
+using .Radau
+
 using LinearAlgebra
-using Radau
 using GenericLinearAlgebra
 using DocStringExtensions
 
