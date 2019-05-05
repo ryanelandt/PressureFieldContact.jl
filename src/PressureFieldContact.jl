@@ -150,6 +150,12 @@ export
     output_eMesh_box,
     as_tet_eMesh,
     as_tri_eMesh,
+    n_tri,
+    n_tet,
+    n_point,
+    get_tri,
+    get_tet,
+    get_point,
 
     # math_kernel/NumericalTricks.jl
     make_pd_gains

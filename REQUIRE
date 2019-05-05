@@ -1,6 +1,6 @@
 julia 1.1
 StaticArrays
-RigidBodyDynamics 1.0.2
+RigidBodyDynamics
 GeometryTypes
 Rotations
 ForwardDiff
