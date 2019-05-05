@@ -154,12 +154,32 @@ function eMesh_to_tree(eM::eMesh{T1,T2}) where {T1,T2}
     end
     dict_blob, is_abort = createBlobDictionary(eM, vec_obb_leaf, vec_tri_tet, scale)
     is_abort && error("not implemented error: disconnected mesh")
+
     pq_delta_cost = createBlobPriorityQueue(dict_blob, scale)
     bottomUp!(dict_blob, pq_delta_cost, scale)
     all_tree = collect(values(dict_blob))
     if (length(all_tree) != 1)
         error("not implemented error: disconnected mesh")
     else
-        return all_tree[1].bin_BB_Tree
+        tree = all_tree[1].bin_BB_Tree
+        tight_fit_leaves!(eM, tree)
+        return tree
+    end
+end
+
+function tight_fit_leaf!(eM::eMesh{Tri,Nothing}, eT::bin_BB_Tree{OBB})
+    eT.box = fit_tri_obb(vertex_pos_for_tri_ind(eM, eT.id))
+end
+
+function tight_fit_leaf!(eM::eMesh{Nothing,Tet}, eT::bin_BB_Tree{OBB})
+    eT.box = fit_tet_obb(vertex_pos_for_tet_ind(eM, eT.id), eM.ϵ[eM.tet[eT.id]])
+end
+
+function tight_fit_leaves!(eM::eMesh, eT::bin_BB_Tree{OBB})
+    if is_leaf(eT)
+        tight_fit_leaf!(eM, eT)
+    else
+        tight_fit_leaves!(eM, eT.node_1)
+        tight_fit_leaves!(eM, eT.node_2)
     end
 end
