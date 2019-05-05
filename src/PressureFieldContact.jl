@@ -1,7 +1,6 @@
 
 module PressureFieldContact
 
-
 # using Printf
 using StaticArrays
 using Rotations: Quat, Rotation, SPQuat, RotMatrix
