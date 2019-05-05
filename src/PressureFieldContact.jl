@@ -142,6 +142,16 @@ export
     get_bristle_d1,
     as_static_vector,
     find_mesh,
-    find_mesh_id
+    find_mesh_id,
+
+    # obb/Binary_BB_Trees.jl
+    output_eMesh_half_plane,
+    output_eMesh_sphere,
+    output_eMesh_box,
+    as_tet_eMesh,
+    as_tri_eMesh,
+
+    # math_kernel/NumericalTricks.jl
+    make_pd_gains
 
 end
