@@ -1,6 +1,6 @@
 # PressureFieldContact.jl
 
-[![Build Status](https://travis-ci.com/ryanelandt/PressureFieldContact.jl.svg?branch=master)](https://travis-ci.com/ryanelandt/PressureFieldContact.jl)
+[![Build Status](https://travis-ci.org/ryanelandt/PressureFieldContact.jl.svg?branch=master)](https://travis-ci.org/ryanelandt/PressureFieldContact.jl)
 [![codecov.io](https://codecov.io/github/ryanelandt/PressureFieldContact.jl/coverage.svg?branch=master)](https://codecov.io/github/ryanelandt/PressureFieldContact.jl?branch=master)
 
 This module implements an elastic foundation contact model for rigid body dynamics.
