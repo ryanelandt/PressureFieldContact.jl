@@ -31,7 +31,7 @@ end
 struct TractionCache{T}
 	n̂::SVector{3,T}
     r_cart::SVector{3,T}
-    v_cart::SVector{3,T}
+    v_cart::SVector{3,T}  # TODO: is is faster to delete this field?
     dA::T
     p::T
 end

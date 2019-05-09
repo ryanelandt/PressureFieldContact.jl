@@ -5,6 +5,10 @@
 
 This module implements the elastic foundation contact model for rigid body dynamics described in [this video](https://drive.google.com/open?id=1R_q9eIaIBnTLhvTE5U2uzUsbZOM8hdeV).
 [This paper](https://arxiv.org/pdf/1904.11433.pdf) describes the method in greater detail.
+UNDER CONSTRUCTION: See the latest [documentation](https://ryanelandt.github.io/PressureFieldContact.jl/dev) for installation instructions, a quick-start guide and summary of how the different pieces of this method work.
+
+### Summary
+
 The surface of bodies are represented with a triangular mesh.
 The compliant portion of bodies is represented with a tetrahedral mesh.
 The easiest way to get started is to run the boxes.jl example in the test directory.

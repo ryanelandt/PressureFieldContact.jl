@@ -24,4 +24,18 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 WebIO = "0f1e0344-ec1d-5b48-a673-e5cf874b6c29"
 
 [compat]
-julia = "1.1"
+julia                     = "1.1"
+ColorTypes                = ">=0.7.5"   # not a dynamic package
+CoordinateTransformations = ">=0.5.0"   # only release for 0.7+
+DataStructures            = ">=0.15.0"
+DocStringExtensions       = ">=0.7.0"
+ForwardDiff               = ">=0.8.4"
+GenericLinearAlgebra      = ">=0.1.0"
+# GeometryTypes                         # addressed by MeshCat
+MeshCat                   = ">=0.6.0"
+MeshCatMechanisms         = ">=0.3.0"
+NearestNeighbors          = ">=0.4.3"
+RigidBodyDynamics         = ">=1.1.0"   # because of SPQuat
+Rotations                 = ">=0.9.1"   # because of principal_value!
+StaticArrays              = ">=0.10.3"
+# WebIO                                 # addressed by MeshCat

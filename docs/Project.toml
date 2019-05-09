@@ -2,5 +2,5 @@
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 PressureFieldContact = "1a2887a7-38b6-5ebe-8978-3a02049ebf6f"
 
-# [compat]
-# Documenter = "~0.19"
+[compat]
+Documenter = "^0.22.3"
