@@ -13,16 +13,11 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
         cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
         p_dA = calc_p_dA(trac)
 
-        mag_vel_t = norm(cart_vel_t)
-        if mag_vel_t == 0.0
-            term = zeros(SVector{3,T})
+        mag_vel_t² = dot(cart_vel_t, cart_vel_t)
+        if mag_vel_t² <= v_tol^2
+            term = b.μ * cart_vel_t * v_tol⁻¹
         else
-            if mag_vel_t < v_tol  # going slow
-                μ_reg = b.μ * mag_vel_t * v_tol⁻¹
-            else
-                μ_reg = b.μ
-            end
-            term = μ_reg * cart_vel_t / mag_vel_t
+            term = b.μ * cart_vel_t / sqrt(mag_vel_t²)
         end
 
         traction_k = p_dA * (term - n̂)
