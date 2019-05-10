@@ -17,14 +17,16 @@ end
 struct ContactInstructions
     id_1::MeshID
     id_2::MeshID
-    μ::Float64
+    μs::Float64
+	μd::Float64
     χ::Float64
     FrictionModel::Union{Regularized,Bristle}
     function ContactInstructions(id_tri::MeshID, id_tet::MeshID, fric_model::Union{Regularized,Bristle};
-            μ::Float64, χ::Float64)
+            μs::Float64, μd::Float64, χ::Float64)
 
-        (0.0 <= μ <= 3.0) || error("mu in unexpected range.")
-        return new(id_tri, id_tet, μ, χ, fric_model)
+		(0.0 <= μs <= 3.0) || error("mu in unexpected range.")
+		(0.0 <= μd <= 3.0) || error("mu in unexpected range.")
+        return new(id_tri, id_tet, μs, μd, χ, fric_model)
     end
 end
 
@@ -63,7 +65,8 @@ mutable struct TypedElasticBodyBodyCache{N,T}
 	x_r²_r¹::Transform3D{T}
     twist_r²_r¹_r²::Twist{T}
     χ::Float64
-    μ::Float64
+	μs::Float64
+	μd::Float64
     Ē::Float64
     wrench::Wrench{T}
     function TypedElasticBodyBodyCache{N,T}(quad::TriTetQuadRule{3,N}) where {N,T}
@@ -294,34 +297,49 @@ end
 default_χ() = 0.5
 default_μ() = 0.3
 
-function add_friction_regularize!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_2::MeshID; μ::Float64=default_μ(),
-		χ::Float64=default_χ(), v_tol::Float64=0.01)
+determine_μs_μd(μs::Nothing, μd::Nothing) = (default_χ(), default_χ())
+determine_μs_μd(us::Float64, μd::Nothing) = error("need to specify μd")
+determine_μs_μd(μs::Nothing, μd::Float64) = (μd, μd)
+function determine_μs_μd(μs::Float64, μd::Float64)
+	(μd <= μs) || error("something is wrong")
+	return μs, μd
+end
 
+# μ=μ
+function add_friction_regularize!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_2::MeshID;
+		μs::Union{Float64,Nothing}=nothing,
+		μd::Union{Float64,Nothing}=nothing,
+		χ::Float64=default_χ(), v_tol::Float64=0.01)
+	#
+	μs, μd = determine_μs_μd(μs, μd)
     regularized = Regularized(v_tol)
-    return add_friction!(m, mesh_id_1, mesh_id_2, regularized, μ=μ, χ=χ)
+    return add_friction!(m, mesh_id_1, mesh_id_2, regularized, μs=μs, μd=μd, χ=χ)
 end
 
 function add_friction_bristle!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_c::MeshID; τ::Float64=0.05, k̄=1.0e4,
-		μ::Float64=default_μ(), χ::Float64=default_χ())
-
-    isa(μ, Nothing) || (0 < μ) || error("μ cannot be 0 for bristle friction")
+		μs::Union{Float64,Nothing}=nothing,
+		μd::Union{Float64,Nothing}=nothing,
+		χ::Float64=default_χ())
+	#
+	μs, μd = determine_μs_μd(μs, μd)
+    isa(μd, Nothing) || (0 < μd) || error("μd cannot be 0 for bristle friction")
     bristle_id = BristleID(1 + length(m.bristle_ids))
     bf = Bristle(bristle_id, τ=τ, k̄=k̄)
     m.bristle_ids = Base.OneTo(bristle_id)
-    return add_friction!(m, mesh_id_1, mesh_id_c, bf, μ=μ, χ=χ)
+    return add_friction!(m, mesh_id_1, mesh_id_c, bf, μs=μs, μd=μd, χ=χ)
 end
 
-add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, fric_model::FrictionModel; μ::Float64,
-	χ::Float64) = add_friction!(m, id_1, id_2, m.MeshCache[id_1], m.MeshCache[id_2], fric_model, μ=μ, χ=χ)
+add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, fric_model::FrictionModel; μs::Float64, μd::Float64,
+	χ::Float64) = add_friction!(m, id_1, id_2, m.MeshCache[id_1], m.MeshCache[id_2], fric_model, μs=μs, μd=μd, χ=χ)
 
 function add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, m_1::MeshCache{Nothing,Tet},
-	m_2::MeshCache{Tri,Nothing}, fric_model::Union{Regularized,Bristle}; μ::Float64, χ::Float64)
+	m_2::MeshCache{Tri,Nothing}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64)
 
-	return add_friction!(m, id_2, id_1, fric_model; μ=μ, χ=χ)
+	return add_friction!(m, id_2, id_1, fric_model; μs=μs, μd=μd, χ=χ)
 end
 
 function add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, m_1::MeshCache{T1,T2},
-	m_2::MeshCache{Nothing,Tet}, fric_model::Union{Regularized,Bristle}; μ::Float64, χ::Float64) where {T1,T2}
+	m_2::MeshCache{Nothing,Tet}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64) where {T1,T2}
 
-	push!(m.ContactInstructions, ContactInstructions(id_1, id_2, fric_model, μ=μ, χ=χ))
+	push!(m.ContactInstructions, ContactInstructions(id_1, id_2, fric_model, μs=μs, μd=μd, χ=χ))
 end

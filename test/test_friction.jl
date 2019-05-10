@@ -19,13 +19,13 @@ function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v
 	eMesh_transform!(eM_box_1, SVector(0, 0, box_rad))
 	nt_box_1 = add_body_contact!(mech_scen, "box_1", as_tri_eMesh(eM_box_1), i_prop=i_prop_rigid)
 
-	μ = 0.3
+	μd = 0.3
 	is_regularize = !isnan(v_tol)
 	if is_regularize
-		add_friction_regularize!(mech_scen, nt_plane.id, nt_box_1.id, μ=μ, v_tol=v_tol)
+		add_friction_regularize!(mech_scen, nt_plane.id, nt_box_1.id, μd=μd, v_tol=v_tol)
 		vel_box = SVector(0.0, v_tol, 0.0)
 	else
-		add_friction_bristle!(mech_scen, nt_plane.id, nt_box_1.id, μ=μ, k̄=1.0e4, τ=0.03)
+		add_friction_bristle!(mech_scen, nt_plane.id, nt_box_1.id, μd=μd, k̄=1.0e4, τ=0.03)
 		vel_box = SVector(0.0, 0.0, 0.0)
 	end
 	finalize!(mech_scen)
@@ -33,13 +33,25 @@ function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v
 	area_box_face =  4 * box_rad^2
 	pene = mass_time_grav / (Ē * area_box_face)
 	set_state_spq!(mech_scen, nt_box_1.joint, vel=vel_box, trans=SVector(0.0, 0.0, -pene))
-	mech_scen.τ_ext[5] = mass_time_grav * μ * tang_force_coe
+	mech_scen.τ_ext[5] = mass_time_grav * μd * tang_force_coe
 	return mech_scen
 end
 
 
 i_box_y_vel = 11
 v_tol = 1.0e-4
+
+@testset "regularized friction" begin
+	for n_quad_rule = 1:2
+		# Test that the box slows down when traveling at v_tol and a force less than friction strength is applied
+		mech_scen = create_box_and_plane(n_quad_rule, 0.999, v_tol)
+		@test calcXd(get_state(mech_scen), mech_scen)[i_box_y_vel] < 0.0
+
+		# Test that the box speeds up when traveling at v_tol and a force less than friction strength is applied
+		mech_scen = create_box_and_plane(n_quad_rule, 1.001, v_tol)
+		@test 0.0 < calcXd(get_state(mech_scen), mech_scen)[i_box_y_vel]
+	end
+end
 
 @testset "spatial spring friction" begin
 	for n_quad_rule = 1:2
@@ -57,17 +69,55 @@ v_tol = 1.0e-4
 	end
 end
 
-@testset "regularized friction" begin
-	for n_quad_rule = 1:2
-		# Test that the box slows down when traveling at v_tol and a force less than friction strength is applied
-		mech_scen = create_box_and_plane(n_quad_rule, 0.999, v_tol)
-		@test calcXd(get_state(mech_scen), mech_scen)[i_box_y_vel] < 0.0
+μs_std = 0.7
+p_dA_ = 3.0
+v_dir_ = normalize(SVector(1.0, 2.0, 3.0))
+v_tol_ = 0.01
 
-		# Test that the box speeds up when traveling at v_tol and a force less than friction strength is applied
-		mech_scen = create_box_and_plane(n_quad_rule, 1.001, v_tol)
-		@test 0.0 < calcXd(get_state(mech_scen), mech_scen)[i_box_y_vel]
-	end
+test_μs_μd = ((μs_std, μs_std), (μs_std, μs_std / 2), (0.0, 0.0))
+
+@testset "regularized" begin
+    for k = 1:3
+        μs_, μd_ = test_μs_μd[k]
+
+        test_ans = (
+            (0.00 * v_tol_, -v_dir_ * p_dA_ * 0.0 * μs_),
+            (0.50 * v_tol_, -v_dir_ * p_dA_ * 0.5 * μs_),
+            (1.00 * v_tol_, -v_dir_ * p_dA_ * 1.0 * μs_),
+            (1.25 * v_tol_, -v_dir_ * p_dA_ * (μs_ + μd_) / 2),
+            (1.50 * v_tol_, -v_dir_ * p_dA_ * 1.0 * μd_),
+            (1.75 * v_tol_, -v_dir_ * p_dA_ * 1.0 * μd_),
+        )
+        for (k_test, test_) = enumerate(test_ans)
+            v_mag_, correct_ans = test_
+            v_ = v_dir_ * v_mag_
+            @test correct_ans ≈ PressureFieldContact.regularized_μs_μd(v_, p_dA_, v_tol_, μs_, μd_)
+        end
+    end
 end
+
+T_s_ = normalize(SVector(1.0, 2.0, 3.0))
+
+@testset "bristle" begin
+    for k = 1:3
+        μs_, μd_ = test_μs_μd[k]
+        term = p_dA_ * μs_
+        test_ans = (
+            (0.00 * term, T_s_ * term * 0.0),
+            (0.50 * term, T_s_ * term * 0.5),
+            (1.00 * term, T_s_ * term * 1.0),
+            (1.25 * term, T_s_ * p_dA_ * (μs_ + μd_) / 2),
+            (1.50 * term, T_s_ * p_dA_ * 1.0 * μd_),
+            (1.75 * term, T_s_ * p_dA_ * 1.0 * μd_),
+        )
+        for test_ = test_ans
+            T_mag_, correct_ans = test_
+            T_ = T_s_ * T_mag_
+            @test correct_ans ≈ PressureFieldContact.bristle_μs_μd(T_, p_dA_, μs_, μd_)
+        end
+    end
+end
+
 
 
 # @testset "transform_stiffness" begin
@@ -120,7 +170,7 @@ end
 
     τ = 0.03
     k̄ = 1.0e6
-    add_friction_bristle!(mech_scen, nt_part.id, nt_hol_1.id, μ=0.3, χ=0.6, k̄=k̄, τ=τ)
+    add_friction_bristle!(mech_scen, nt_part.id, nt_hol_1.id, μd=0.3, χ=0.6, k̄=k̄, τ=τ)
 
     finalize!(mech_scen)  # , calcXd!, n_quad_rule=2)
 	mech_scen = mech_scen

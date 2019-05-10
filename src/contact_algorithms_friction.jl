@@ -1,4 +1,25 @@
 
+function regularized_μs_μd(cart_vel_t::SVector{3,T}, p_dA::T, v_tol::Float64, μs::Float64, μd::Float64) where {T}
+    mag_vel_t = norm(cart_vel_t)
+    if mag_vel_t <= v_tol
+        term = T(μs / v_tol)
+    else
+        μ = max(μd, μs * (2 - mag_vel_t / v_tol) )
+        term = μ / mag_vel_t
+    end
+    return (-term) * p_dA * cart_vel_t
+end
+
+function bristle_μs_μd(T_s::SVector{3,T}, p_dA::T, μs::Float64, μd::Float64) where {T}
+    mag_T_s = norm(T_s)
+    if mag_T_s <= p_dA * μs  # can stick
+        return T_s
+    else
+        μ_now = max(μd, 2 * μs - mag_T_s / p_dA)
+        return T_s * p_dA * μ_now / mag_T_s
+    end
+end
+
 function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
     b = tm.bodyBodyCache
     frame = b.mesh_2.FrameID
@@ -16,14 +37,55 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
         cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
         p_dA = calc_p_dA(trac)
 
-        mag_vel_t² = dot(cart_vel_t, cart_vel_t)
-        if mag_vel_t² <= v_tol^2
-            term = b.μ * cart_vel_t * v_tol⁻¹
-        else
-            term = b.μ * cart_vel_t / sqrt(mag_vel_t²)
-        end
+        T_c = regularized_μs_μd(cart_vel_t, p_dA, v_tol, b.μs, b.μd)
 
-        traction_k = p_dA * (term - n̂)
+        traction_k = -p_dA * n̂ - T_c
+        # traction_k = -p_dA * (T_c + n̂)
+
+
+
+        # ### μ_s = μ_d
+        # mag_vel_t² = dot(cart_vel_t, cart_vel_t)
+        # if mag_vel_t² <= v_tol^2  # sliding
+        #     term = b.μ * cart_vel_t * v_tol⁻¹
+        # else
+        #     term = b.μ * cart_vel_t / sqrt(mag_vel_t²)
+        # end
+        #
+        # ### μ_s != μ_d
+        # mag_vel_t² = dot(cart_vel_t, cart_vel_t)
+        # mag_vel_t = sqrt(mag_vel_t²)
+        #
+        # if mag_vel_t <= v_tol
+        #     term = b.μ_s * cart_vel_t * v_tol⁻¹
+        # else
+        #     μ = 2 * b.μ_s - mag_vel_t * v_tol⁻¹
+        #     μ = max(μ, b.μ_d)
+        #     term = μ * cart_vel_t / mag_vel_t
+        # end
+
+        # if mag_vel_t² <= v_tol^2  # sliding slowly
+        #     term = b.μ_s * cart_vel_t * v_tol⁻¹
+        # else
+        #     mag_vel_t = sqrt(mag_vel_t²)
+        #     slip_direction = cart_vel_t / mag_vel_t
+        #     if 2 * v_tol <= mag_vel_t
+        #         term = b.μ_d * slip_direction
+        #     else  # sliding medium
+        #         term = slip_direction *
+        #     end
+        #
+        #     if 4 * v_tol^2 <= mag_vel_t²  # sliding fast
+        #         term = b.μ_d * slip_direction
+        #     else  # sliding medium
+        #
+        #     end
+        # end
+        #
+        #
+        # traction_k = p_dA * (term - n̂)
+
+
         wrench_lin += traction_k
         wrench_ang += cross(r, traction_k)
     end
@@ -111,7 +173,7 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     tc = b.TractionCache
     BF = c_ins.FrictionModel
     τ = BF.τ
-    μ = b.μ
+    # μ = b.μ
     k̄ = BF.k̄
     vʳᵉˡ = as_static_vector(twist)
     wrench_lin = zeros(SVector{3,T})
@@ -127,12 +189,68 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
         p_dA = calc_p_dA(trac)
         λ_s = k̄ * p_dA * (x̄_δ - τ * x̄x̄_vʳᵉˡ)
         λ_s = vec_sub_vec_proj(λ_s, n̂)
-        mag_λ_s = norm(λ_s)
-        if μ * p_dA < mag_λ_s
-            λ_s = μ * p_dA * λ_s / mag_λ_s
-        end
-        wrench_lin += λ_s
-        wrench_ang += cross(r, λ_s)
+
+        # function bristle_μs_μd(T_s::SVector{3,T}, p_dA::T, μs::Float64, μd::Float64) where {T}
+        T_c = bristle_μs_μd(λ_s, p_dA, b.μs, b.μd)
+
+        wrench_lin += T_c
+        wrench_ang += cross(r, T_c)
+
+        # ### μ_s == μ_d
+        # mag_λ_s = norm(λ_s)
+        # if μ * p_dA < mag_λ_s
+        #     λ_s = μ * p_dA * λ_s / mag_λ_s
+        # end
+        #
+        # ### μ_s != μ_d
+        # mag_λ_s = norm(λ_s)
+        # if mag_λ_s == 0.0  # avoid divide by zero issues
+        #     λ_s = zeros(SVector{3,T})
+        # elseif mag_λ_s <= p_dA * b.μ_s  # can stick
+        #     λ_s = λ_s
+        # else
+        #     T̂_s = λ_s / mag_λ_s
+        #     T_c_μ_d = b.μ_d * p_dA * T̂_s
+        #     v_slip_μ_d = (T_c_μ_d - λ_s) / (p_dA * τ)
+        #     v_μ_d_start = 2 * (b.μ_s - b.μ_d) / τ
+        #     if v_μ_d_start < -dot(v_slip_μ_d, T̂_s)  # sliding fast
+        #         μ_now = b.μ_d
+        #     else
+        #         μ_now = 2 * (mag_λ_s / p - b.μ_s) / τ
+        #     end
+        #     λ_s = T̂_s * p_dA * μ_now
+        # end
+
+
+        ### New Attempt
+        # μ = μ_s + τ * (μ_d - μ_s) * v_m
+        # k_slope = -τ / 2
+        #
+        # c * v_slip        = T_c - T_s
+        # T_s               = T_c - c * v_slip
+        # T_s_mag           = μ * p + c * v_m
+        # T_s_mag / p       = μ + p * τ * v_m
+        # T_s_mag / p       = μ_s + k_slope * v_m + τ * v_m
+        # T_s_mag / p - μ_s = v_m * (k_slope + τ)
+        # v_m               = (T_s_mag / p - μ_s) / (k_slope + τ)
+        # v_m               = (T_s_mag / p - μ_s) / (τ / 2)
+        #
+        #
+        ### Algorithm
+        #
+        # μ = μ_s - τ / 2 * v_m
+        # v_m_fast = 2 * (μ_s - μ_d) / τ
+        #
+        #
+        # 1. check if can stick with μ_s
+        # 2. check if slide faster than v_m_fast with μ_d
+        # 3. calculate v_m using formula
+        #
+        #
+        #
+        # wrench_lin += λ_s
+        # wrench_ang += cross(r, λ_s)
+
         # Normal Wrench
         λₙ = -p_dA * n̂
         normal_wrench_lin += λₙ

@@ -32,10 +32,10 @@ nt_body_3 = add_body_contact!(mech_scen, "box_3", eM_box_rigid,     i_prop=i_pro
 nt_body_4 = add_body_contact!(mech_scen, "box_4", eM_box_compliant, i_prop=i_prop_compliant, c_prop=c_prop_compliant)
 
 ### Friction
-add_friction_regularize!(mech_scen, nt_plane.id,  nt_body_1.id, μ=0.0, χ=2.2)
-add_friction_regularize!(mech_scen, nt_body_1.id, nt_body_2.id, μ=0.2, χ=0.2)
-add_friction_regularize!(mech_scen, nt_body_2.id, nt_body_3.id, μ=0.2, χ=0.2)
-add_friction_regularize!(mech_scen, nt_body_3.id, nt_body_4.id, μ=0.2, χ=0.2)
+add_friction_regularize!(mech_scen, nt_plane.id,  nt_body_1.id, μd=0.0, χ=2.2)
+add_friction_regularize!(mech_scen, nt_body_1.id, nt_body_2.id, μd=0.2, χ=0.2)
+add_friction_regularize!(mech_scen, nt_body_2.id, nt_body_3.id, μd=0.2, χ=0.2)
+add_friction_regularize!(mech_scen, nt_body_3.id, nt_body_4.id, μd=0.2, χ=0.2)
 
 finalize!(mech_scen)
 set_state_spq!(mech_scen, nt_body_1.joint, trans=SVector(0.0, 0.0,  2*box_rad), w=SVector(0.0, 0.0, 1.0))
