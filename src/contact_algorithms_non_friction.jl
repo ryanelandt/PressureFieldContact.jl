@@ -238,8 +238,8 @@ function fillTractionCacheForTriangle!(b::TypedElasticBodyBodyCache{N,T}, area_q
 		ϵ_r²::SMatrix{1,4,Float64,4}) where {N,T}
 
 	for k = 1:N
-		r_cart_1, v_cart_t_1, dA_1, p_1 = fillTractionCacheInnerLoop!(k, b, area_quad_k, A_r²_ϕ, ϵ_r²)
-		(0.0 < p_1) && addCacheItem!(b.TractionCache, TractionCache(n̂², r_cart_1, v_cart_t_1, dA_1, p_1))
+		r_cart_1, dA_1, p_1 = fillTractionCacheInnerLoop!(k, b, area_quad_k, A_r²_ϕ, ϵ_r²)
+		(0.0 < p_1) && addCacheItem!(b.TractionCache, TractionCache(n̂², r_cart_1, dA_1, p_1))
 	end
 end
 
@@ -254,11 +254,10 @@ function fillTractionCacheInnerLoop!(k::Int64, b::TypedElasticBodyBodyCache{N,T}
 	ϵ_quad = a_dot_one_pad_b(ϵ_r², r²)
 	ṙ² = spatial_vel_formula(b.twist_r²_r¹_r², r²)
 	ϵϵ = - a_dot_one_pad_b(ϵ_r², ṙ²)  # TODO: Why is there a negative sign?
-    # damp_term = fastSoftPlus(1.0 + b.χ * ϵϵ)
 	damp_term = max(zero(T), 1.0 + b.χ * ϵϵ)
     p_hc = ϵ_quad * b.Ē * damp_term
 	dA = b.quad.w[k] * area_quad_k
-	return r², ṙ², dA, p_hc
+	return r², dA, p_hc
 end
 
 function addGeneralizedForcesThirdLaw!(wrench::Wrench{T}, tm::TypedMechanismScenario{N,T}, cInfo::ContactInstructions) where {N,T}

@@ -4,12 +4,15 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
     frame = b.mesh_2.FrameID
     v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
     v_tol = 1 / v_tol⁻¹
+    twist = b.twist_r²_r¹_r²
+    vʳᵉˡ = as_static_vector(twist)
     wrench_lin = zeros(SVector{3,T})
     wrench_ang = zeros(SVector{3,T})
     for k_trac = 1:length(b.TractionCache)
         trac = b.TractionCache[k_trac]
-        cart_vel = trac.v_cart
+        r = trac.r_cart
         n̂ = trac.n̂
+        cart_vel = spatial_vel_formula(vʳᵉˡ, r)
         cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
         p_dA = calc_p_dA(trac)
 
@@ -22,7 +25,7 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c
 
         traction_k = p_dA * (term - n̂)
         wrench_lin += traction_k
-        wrench_ang += cross(trac.r_cart, traction_k)
+        wrench_ang += cross(r, traction_k)
     end
     return Wrench(frame, wrench_ang, wrench_lin)
 end
