@@ -385,6 +385,12 @@ function output_eMesh_half_plane(plane_w::Float64=1.0, is_include_vis_sides::Boo
     return eMesh(point, tri, tet, ϵ)
 end
 
+"""
+    output_eMesh_sphere(radius, n_div::Int64)
+
+Outputs an eMesh for a sphere. Larger values of n_div create finer discretizations. Example:
+    mesh_sphere = output_eMesh_sphere(0.05)
+"""
 function output_eMesh_sphere(rad::Union{Float64,SVector{3,Float64}}=1.0, n_div::Int64=4)
     function make_icosahedron()
         φ = Base.MathConstants.golden
@@ -488,6 +494,12 @@ function output_box_ind()
     return tri, tet, ϵ
 end
 
+"""
+    output_eMesh_box(radius, center)
+
+Outputs an eMesh for a box. Example:
+    mesh_box = output_eMesh_box(0.05)
+"""
 function output_eMesh_box(r::Union{Float64,SVector{3,Float64}}=1.0, c::SVector{3,Float64}=zeros(SVector{3,Float64}))
     point = [
         SVector{3,Float64}(-1,-1,-1),

@@ -2,8 +2,9 @@
 
 [![Build Status](https://travis-ci.org/ryanelandt/PressureFieldContact.jl.svg?branch=master)](https://travis-ci.org/ryanelandt/PressureFieldContact.jl)
 [![codecov.io](https://codecov.io/github/ryanelandt/PressureFieldContact.jl/coverage.svg?branch=master)](https://codecov.io/github/ryanelandt/PressureFieldContact.jl?branch=master)
+[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://JuliaRobotics.github.io/RigidBodyDynamics.jl/dev)
 
-This module implements the elastic foundation contact model for rigid body dynamics described in [this video](https://drive.google.com/open?id=1R_q9eIaIBnTLhvTE5U2uzUsbZOM8hdeV).
+This module implements the elastic foundation-themed contact model for rigid body dynamics described in [this short video](https://drive.google.com/open?id=1R_q9eIaIBnTLhvTE5U2uzUsbZOM8hdeV).
 [This paper](https://arxiv.org/pdf/1904.11433.pdf) describes the method in greater detail.
 UNDER CONSTRUCTION: See the latest [documentation](https://ryanelandt.github.io/PressureFieldContact.jl/dev) for installation instructions, a quick-start guide and summary of how the different pieces of this method work.
 
