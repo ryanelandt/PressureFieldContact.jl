@@ -24,13 +24,13 @@ using .Binary_BB_Trees
 include(joinpath("radau", "Radau.jl"))
 using .Radau
 
+include(joinpath("geometry", "Geometry.jl"))
+using .Geometry
+
 using LinearAlgebra
 using GenericLinearAlgebra
 using DocStringExtensions
 
-# const FRAME_ζ¹ = CartesianFrame3D("FRAME_ζ¹")
-# const FRAME_ζ² = CartesianFrame3D("FRAME_ζ²")
-# const FRAME_ϕ = CartesianFrame3D("FRAME_ϕ")
 
 include("structs.jl")
 include("body_inertia.jl")
@@ -45,10 +45,6 @@ include("example_integrator.jl")
 include("utility.jl")
 
 export
-    # FRAME_ζ¹,
-    # FRAME_ζ²,
-    # FRAME_ϕ,
-
     # structs.jl
     MeshInertiaInfo,
     ContactProperties,

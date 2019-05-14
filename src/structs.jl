@@ -42,7 +42,7 @@ end
 get_tree(m::MeshCache) = m.tree
 
 @inline get_c_prop(m::MeshCache) = m.c_prop
-@inline Binary_BB_Trees.get_point(m::MeshCache) = m.mesh.point
+@inline Geometry.get_point(m::MeshCache) = m.mesh.point
 @inline get_Ē(m::MeshCache) = get_c_prop(m).Ē
 @inline get_ind_tri(m::MeshCache) = m.mesh.tri
 @inline get_ind_tet(m::MeshCache) = m.mesh.tet

@@ -7,7 +7,7 @@ using LinearAlgebra: BLAS
 using RigidBodyDynamics
 using PressureFieldContact
 using Rotations: RotZ
-using PressureFieldContact.Binary_BB_Trees: output_eMesh_half_plane, output_eMesh_box, as_tri_eMesh, as_tet_eMesh
+using PressureFieldContact.Geometry: output_eMesh_half_plane, output_eMesh_box, as_tri_eMesh, as_tet_eMesh
 using Test
 
 

@@ -22,8 +22,7 @@ function Base.show(io::IO, bin_tree::bin_BB_Tree)
     if n_depth == 1
         frac_high = n_leaf / (2^n_depth - 1)
         frac_low = n_leaf / (2^(n_depth - 1) - 1)
-        # TODO: Remove @printf to remove Printf dependency
-        @printf("    fill between %.3f and %.3f of optimal \n", frac_high, frac_low)
+        println("    fill between $(frac_high) and $(frac_low) of optimal")
         if (frac_high < 0.1) || (frac_low < 0.2)
             @warn("tree may be unbalanced")
         end

@@ -11,4 +11,5 @@ Convince functions to create meshes for common shapes are documented below.
 ```@docs
 output_eMesh_box
 output_eMesh_sphere
+output_eMesh_half_plane
 ```

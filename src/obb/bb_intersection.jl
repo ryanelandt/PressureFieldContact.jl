@@ -1,7 +1,3 @@
-# function BB_BB_intersect(tt::TT_Cache, a::AABB, b::AABB)
-#     t = tt.R_a_b * b.c + tt.t_a_b - a.c
-#     return BB_BB_intersect(a.e, b.e, t, tt.R_a_b, tt.abs_R_a_b)
-# end
 
 function BB_BB_intersect(tt::TT_Cache, a::OBB, b::OBB)
     i_dh_a = basic_dh(a.R', -a.R' * a.c)   # transform from frame A to   OBB A
