@@ -2,7 +2,7 @@
 
 This contact implementation represents rigid objects with triangular meshes and compliant objects with tetrahedral meshes.
 
-This package uses the custom geometry data type eMesh.
+This package uses the custom geometry data type `eMesh`.
 
 Convince functions to create meshes for common shapes are documented below.
 
