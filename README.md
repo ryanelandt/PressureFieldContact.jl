@@ -1,6 +1,6 @@
 # PressureFieldContact.jl
 
-[![Build Status](https://travis-ci.org/ryanelandt/PressureFieldContact.jl.svg?branch=master)](https://travis-ci.org/ryanelandt/PressureFieldContact.jl)
+[![Build Status](https://travis-ci.com/ryanelandt/PressureFieldContact.jl.svg?branch=master)](https://travis-ci.com/ryanelandt/PressureFieldContact.jl)
 [![codecov.io](https://codecov.io/github/ryanelandt/PressureFieldContact.jl/coverage.svg?branch=master)](https://codecov.io/github/ryanelandt/PressureFieldContact.jl?branch=master)
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://ryanelandt.github.io/PressureFieldContact.jl/dev)
 

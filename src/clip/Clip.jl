@@ -1,6 +1,6 @@
 __precompile__(true)
 
-module Tri_Tet_Intersections
+module Clip
 
 using DocStringExtensions
 using StaticArrays

@@ -11,11 +11,6 @@ matrix:
   allow_failures:
     - julia: nightly
 before_script:
-  # - julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/ryanelandt/NumericalTricks.jl.git"))'
-  # - julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/ryanelandt/Tri_Tet_Intersections.jl.git"))'
-  # - julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/ryanelandt/Binary_BB_Trees.jl.git"))'
-  # - julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/ryanelandt/Radau.jl.git"))'
-  # - julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/JuliaLinearAlgebra/GenericLinearAlgebra.jl.git"))'
 
 after_success:
   # push coverage results to Codecov

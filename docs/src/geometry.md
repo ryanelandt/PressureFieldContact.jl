@@ -2,14 +2,13 @@
 
 This contact implementation represents rigid objects with triangular meshes and compliant objects with tetrahedral meshes.
 This package uses the custom geometry data type `eMesh`.
-Convince functions to create meshes for common shapes are documented below.
+Convenience functions to create meshes for common shapes are documented below.
 
 ```@autodocs
 Modules = [PressureFieldContact.Geometry]
 Order   = [:type]
 Pages   = ["mesh.jl"]
 ```
-
 
 ## Basic Shapes
 
@@ -24,3 +23,9 @@ output_eMesh_half_plane
 
 
 ## Rotationally Symmetric Meshes
+
+
+
+## Mesh from an STL file
+
+For an example of this this example:

@@ -1,7 +1,6 @@
 # Polygon clipping
 
-
 ```@autodocs
-Modules = [PressureFieldContact.Tri_Tet_Intersections]
+Modules = [PressureFieldContact.Clip]
 Order   = [:function]
 ```

@@ -1,0 +1,5 @@
+# MechanismScenario
+
+```@docs
+MechanismScenario
+```

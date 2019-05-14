@@ -16,8 +16,8 @@ using CoordinateTransformations: Translation
 include(joinpath("math_kernel", "NumericalTricks.jl"))
 using .NumericalTricks
 
-include(joinpath("Tri_Tet_Intersections", "Tri_Tet_Intersections.jl"))
-using .Tri_Tet_Intersections
+include(joinpath("clip", "Clip.jl"))
+using .Clip
 
 include(joinpath("obb", "Binary_BB_Trees.jl"))
 using .Binary_BB_Trees

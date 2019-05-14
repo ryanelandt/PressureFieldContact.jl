@@ -1,3 +1,7 @@
 # Algorithms
 
-There is no content here yet.
+## Functions
+
+```@docs
+calcXd!
+```
