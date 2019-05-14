@@ -1,5 +1,7 @@
 
 """
+$(SIGNATURES)
+
 A structure that is assumed to hold a homogenous transform.
 """
 struct basic_dh{T}
@@ -56,6 +58,8 @@ struct basic_dh{T}
 end
 
 """
+$(SIGNATURES)
+
 Extracts the rotational and translational part of the transformation matrix.
 """
 function dh_R_t(a::basic_dh{T}) where {T}

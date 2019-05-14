@@ -1,5 +1,7 @@
 
 """
+$(SIGNATURES)
+
 Stores a convex planar polygon in with at most 8 sides. The polygon should be in 3 dimensions (Cartesian coordinates)
 or 4 dimensions (tetrahedral coondinates).
 """
@@ -25,6 +27,8 @@ end
 @inline Base.getindex(p::poly_eight, k::Int64) = p.v[k]
 
 """
+$(SIGNATURES)
+
 Finds the centroid of a 3 dimensional poly_eight by dividing the area into triangles. This funciton requires a reference
 normal n̂.
 """
@@ -48,6 +52,8 @@ function NumericalTricks.centroid(p_new::poly_eight{3,T}, n̂::SVector{3,T}) whe
 end
 
 """
+$(SIGNATURES)
+
 One pads each element of a 3 dimensional polygon and then multiplies it by a 4x4 matrix m. This funciton is used to
 convert each element of a Cartesian polygon into tetrahedral coordinates.
 """
@@ -69,6 +75,8 @@ function NumericalTricks.one_pad_then_mul(m::SMatrix{4,4,T1,16}, p::poly_eight{3
 end
 
 """
+$(SIGNATURES)
+
 Multiplies a 4 dimensional polygon by a 4x4 matrix and then unpads the 4 dimensional polygon. This function is used to
 convert a polygon in tetrahedral coordinates to a polygon in Cartesian coordinates.
 """
@@ -90,6 +98,8 @@ function NumericalTricks.mul_then_un_pad(m::SMatrix{4,4,T1,16}, p::poly_eight{4,
 end
 
 """
+$(SIGNATURES)
+
 Sets small coondinates of a polygon in tetrahedral coordinates to zero. This function addresses a specific probability
 one degeneracy that results when clipping an edge in the same place twice.
 """

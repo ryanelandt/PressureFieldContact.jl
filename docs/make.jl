@@ -12,6 +12,7 @@ makedocs(
         "Geometry" => "geometry.md"
         "Friction" => "friction.md"
         "Quickstart guide" => "quick_start.md"
+        "Polygon clipping" => "polygon_clipping.md"
       ],
     format = Documenter.HTML(prettyurls = parse(Bool, get(ENV, "CI", "false")))
 )

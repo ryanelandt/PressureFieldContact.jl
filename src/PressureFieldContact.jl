@@ -1,7 +1,7 @@
 
 module PressureFieldContact
 
-# using Printf
+using DocStringExtensions
 using StaticArrays
 using Rotations: Quat, Rotation, SPQuat, RotMatrix
 using ForwardDiff: Dual
@@ -10,6 +10,7 @@ using RigidBodyDynamics.Spatial: vector_to_skew_symmetric, vector_to_skew_symmet
 using GeometryTypes: HomogenousMesh, Face, Point
 using ColorTypes: RGBA
 using MeshCatMechanisms
+using DocStringExtensions
 using CoordinateTransformations: Translation
 
 include(joinpath("math_kernel", "NumericalTricks.jl"))
@@ -29,7 +30,6 @@ using .Geometry
 
 using LinearAlgebra
 using GenericLinearAlgebra
-using DocStringExtensions
 
 
 include("structs.jl")

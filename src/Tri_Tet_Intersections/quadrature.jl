@@ -1,5 +1,7 @@
 
 """
+$(SIGNATURES)
+
 Stores information associated with a quadrature rule. zeta contains the positions of quadrature points.
 """
 struct TriTetQuadRule{N_zeta, N_point}
@@ -12,6 +14,8 @@ struct TriTetQuadRule{N_zeta, N_point}
 end
 
 """
+$(SIGNATURES)
+
 Outputs the XiaoGimbutas triangle quadrature rules from the Python package quadpy.
 """
 function getTriQuadRule(n_rule::Int64)
@@ -97,7 +101,9 @@ function getTriQuadRule(n_rule::Int64)
 end
 
 """
-Outputs the Yu tetrahedron quadrature rules from the Python package quadpy. 
+$(SIGNATURES)
+
+Outputs the Yu tetrahedron quadrature rules from the Python package quadpy.
 """
 function getTetQuadRule(n_rule::Int64)
     if n_rule == 1

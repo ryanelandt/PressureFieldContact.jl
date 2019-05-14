@@ -136,6 +136,15 @@ mutable struct DiscreteControl
 	DiscreteControl(control::Function, dt=0.01) = new(dt, 0.0, control)
 end
 
+"""
+$(TYPEDEF)
+
+A `MechanismScenario` contains contact information for an entire mechanism.
+
+Type parameters:
+* `NQ`: quadrature rule number
+* `T`: the `ForwardDiff.Dual` scalar type
+"""
 mutable struct MechanismScenario{NQ,T}
 	float::TypedMechanismScenario{NQ,Float64}
 	dual::TypedMechanismScenario{NQ,T}
@@ -174,6 +183,11 @@ mutable struct MechanismScenario{NQ,T}
     end
 end
 
+"""
+$(SIGNATURES)
+
+Calculates `MechanismScenario` information needed for simulation. 
+"""
 function finalize!(m::MechanismScenario{NQ,T}) where {NQ,T}
 	function makePaths(mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, body_ids::Base.OneTo{BodyID})
 		the_type = Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}
@@ -305,7 +319,11 @@ function determine_μs_μd(μs::Float64, μd::Float64)
 	return μs, μd
 end
 
-# μ=μ
+"""
+$(SIGNATURES)
+
+Adds regularized friction to a scenario.
+"""
 function add_friction_regularize!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_2::MeshID;
 		μs::Union{Float64,Nothing}=nothing,
 		μd::Union{Float64,Nothing}=nothing,
@@ -316,6 +334,11 @@ function add_friction_regularize!(m::MechanismScenario, mesh_id_1::MeshID, mesh_
     return add_friction!(m, mesh_id_1, mesh_id_2, regularized, μs=μs, μd=μd, χ=χ)
 end
 
+"""
+$(SIGNATURES)
+
+Adds bristle friction to a scenario.
+"""
 function add_friction_bristle!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_c::MeshID; τ::Float64=0.05, k̄=1.0e4,
 		μs::Union{Float64,Nothing}=nothing,
 		μd::Union{Float64,Nothing}=nothing,

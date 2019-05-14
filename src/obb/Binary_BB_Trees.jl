@@ -2,6 +2,8 @@ __precompile__(true)
 
 module Binary_BB_Trees
 
+
+using DocStringExtensions
 # using Printf
 # using GeometryTypes: HomogenousMesh
 using Rotations

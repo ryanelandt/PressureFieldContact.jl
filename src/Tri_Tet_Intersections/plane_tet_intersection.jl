@@ -1,5 +1,7 @@
 
 """
+$(SIGNATURES)
+
 Clips a plane by a tetrahedron.
 The plane takes the form of a static row matrix
 The tet takes the form of a static matrix
@@ -35,12 +37,10 @@ function clip_plane_tet(plane::SMatrix{1,4,T,4}, tet::SMatrix{4,4,T,16}) where {
             bool_neg[2] && (return clip_plane_tet_2(proj, v))
             bool_neg[3] && (return clip_plane_tet_3(proj, v))
             bool_neg[4] && (return clip_plane_tet_4(proj, v))
-        else  # if (n_pos == 2) && (n_neg == 2)
+        else
             (bool_pos[1] == bool_pos[2]) && (return clip_plane_tet_12(proj, v))
             (bool_pos[1] == bool_pos[3]) && (return clip_plane_tet_13(proj, v))
             (bool_pos[1] == bool_pos[4]) && (return clip_plane_tet_14(proj, v))
-        # else
-        #     error("something is wrong")
         end
     end
 end

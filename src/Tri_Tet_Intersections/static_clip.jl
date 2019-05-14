@@ -1,5 +1,7 @@
 
 """
+$(SIGNATURES)
+
 Calls clip
 """
 function clip_in_tet_coordinates(p::poly_eight{4,T}) where {T}
@@ -21,6 +23,8 @@ function clip_in_tet_coordinates(z1::SVector{4,T}, z2::SVector{4,T}, z3::SVector
 end
 
 """
+$(SIGNATURES)
+
 Together with cut_clip, implements the clipping of polygons by tetrahedra using the Sutherland–Hodgman algorithm.
 The Sutherland-Hodgman algorithm essentially clips a polygon by one plane at a time.
 You should not call this function directly.
@@ -124,6 +128,8 @@ function clip(z1::SVector{4,T}, z2::SVector{4,T}, z3::SVector{4,T}, z4::SVector{
 end
 
 """
+$(SIGNATURES)
+
 Removes a non-positive vertex from a polygon.
 """
 function cut_clip(z1::SVector{4,T}, z2::SVector{4,T}, z3::SVector{4,T}, i::Int64) where {T}

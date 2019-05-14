@@ -2,6 +2,8 @@ __precompile__(true)
 
 module NumericalTricks
 
+
+using DocStringExtensions
 using StaticArrays
 using LinearAlgebra
 using Rotations
@@ -10,12 +12,10 @@ using ForwardDiff: Dual, value
 
 include("geometry_kernel.jl")
 include("poly_approx.jl")
-include("div_by_zero.jl")
 include("rotations.jl")
 include("vector_projections.jl")
 include("utility.jl")
 include("basic_dh.jl")
-# include("matrix_factor_derivatives.jl")
 
 
 export
@@ -26,24 +26,6 @@ export
   triangle_area,
   vector_area,
   volume,
-
-  # # poly_approx.jl
-  # fastSoftPlus,
-  # fastSigmoid,
-  # soft_clamp,
-  # # smooth_c1_ramp,
-  # # smooth_c2_ramp,
-
-  # # div_by_zero.jl
-  # safe_normalize,
-  # unsafe_normalize,
-  # safe_inv_norm²,
-  # safe_inv_norm,
-  # safe_norm,
-  # norm²,
-  # safe_scalar_divide,
-  # unsafe_norm,
-  # unsafe_inv_norm,
 
   # rotations.jl
   quatErr,
@@ -73,8 +55,5 @@ export
   dh_R_t,
   povray_12,
   dh_vector_mul
-
-  # # matrix_factor_derivatives.jl
-  # cholesky_U_deravitive
 
 end

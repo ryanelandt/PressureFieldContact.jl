@@ -1,6 +1,7 @@
 module Radau
 
 
+using DocStringExtensions
 using ForwardDiff
 using StaticArrays
 using LinearAlgebra

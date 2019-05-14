@@ -14,6 +14,11 @@ struct ContactProperties
     end
 end
 
+"""
+$(TYPEDEF)
+
+Contains informaiton to calculate the inertia of a body.
+"""
 struct InertiaProperties{T<:Union{Tri,Tet}}
     d::Union{Nothing,Float64}  # if volume mesh is known thickness isn't needed to calculate inertia
     rho::Float64  # rho is always needed to calculate inertia

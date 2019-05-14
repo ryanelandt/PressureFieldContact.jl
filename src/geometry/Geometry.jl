@@ -3,12 +3,12 @@ __precompile__(true)
 module Geometry
 
 
+using DocStringExtensions
 using GeometryTypes: HomogenousMesh
 using Rotations
 using LinearAlgebra
 using StaticArrays
 using DataStructures
-# using Statistics
 using NearestNeighbors
 using ..Binary_BB_Trees
 using ..NumericalTricks

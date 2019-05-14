@@ -2,6 +2,11 @@
 abstract type Tri end
 abstract type Tet end
 
+"""
+$(TYPEDEF)
+
+Data structure for holding geometry data.
+"""
 struct eMesh{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
     point::Vector{SVector{3,Float64}}
     tri::Union{Nothing,Vector{SVector{3,Int64}}}
@@ -371,6 +376,11 @@ function sub_div_mesh(eM_ico::eMesh{Tri,T2}, n_div::Int64) where {T2}
 end
 
 ### BASIC SHAPES
+"""
+$(SIGNATURES)
+
+Outputs an `eMesh` for a half-plane.
+"""
 function output_eMesh_half_plane(plane_w::Float64=1.0, is_include_vis_sides::Bool=false)
     v1, v2, v3 = [SVector{3,Float64}(cos(theta), sin(theta), 0.0) for theta = (0.0, 2*pi/3, 4*pi/3)]
     v4 = SVector{3,Float64}(0.0, 0.0, -1.0) * plane_w
@@ -386,10 +396,9 @@ function output_eMesh_half_plane(plane_w::Float64=1.0, is_include_vis_sides::Boo
 end
 
 """
-    output_eMesh_sphere(radius, n_div::Int64)
+$(SIGNATURES)
 
-Outputs an eMesh for a sphere. Larger values of n_div create finer discretizations. Example:
-    mesh_sphere = output_eMesh_sphere(0.05)
+Outputs an `eMesh` for a sphere. Larger values of n_div create finer discretizations.
 """
 function output_eMesh_sphere(rad::Union{Float64,SVector{3,Float64}}=1.0, n_div::Int64=4)
     function make_icosahedron()
@@ -495,10 +504,9 @@ function output_box_ind()
 end
 
 """
-    output_eMesh_box(radius, center)
+$(SIGNATURES)
 
-Outputs an eMesh for a box. Example:
-    mesh_box = output_eMesh_box(0.05)
+Outputs an `eMesh` for a box.
 """
 function output_eMesh_box(r::Union{Float64,SVector{3,Float64}}=1.0, c::SVector{3,Float64}=zeros(SVector{3,Float64}))
     point = [
