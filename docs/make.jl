@@ -9,6 +9,9 @@ makedocs(
     pages = [
         "Home" => "index.md"
         "Algorithms" => "algorithms.md"
+        "Geometry" => "geometry.md"
+        "Friction" => "friction.md"
+        "Quickstart guide" => "quick_start.md"
       ],
     format = Documenter.HTML(prettyurls = parse(Bool, get(ENV, "CI", "false")))
 )
