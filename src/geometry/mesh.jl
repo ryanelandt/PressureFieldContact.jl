@@ -314,6 +314,7 @@ function delete_triangles!(e_mesh::eMesh{Tri,T2}) where {T2}
     end
 
     ### Actually delete the opposing triangles
+    i_delete = sort(i_delete)
     deleteat!(e_mesh.tri, i_delete)
 	return length(i_delete)
 end
@@ -565,3 +566,97 @@ end
 #     end
 #     return eM_cone
 # end
+
+
+const SF3 = SVector{3,Float64}
+const SI3 = SVector{3,Int64}
+const SI4 = SVector{4,Int64}
+
+function create_2D_circle(rad::Float64=1.0; n::Int64=12)
+    points_2D = Vector{SF3}()
+    tri_2D = Vector{SI3}()
+    i_center = n + 1
+    θ_range = LinRange(0.0, 2 * π, n + 1)[2:end]
+    for (k, θ) = enumerate(θ_range)
+        s, c = sincos(θ)
+        push!(points_2D, rad * SF3(c, s, 0.0))
+        push!(tri_2D, SI3(k, mod1(k + 1, n), i_center))
+    end
+    push!(points_2D, SF3(0, 0, 0))
+    return eMesh(points_2D, tri_2D)
+end
+
+function smallest_first(v::SI4)
+	_, i = findmin(v)
+	return SI4(v[i], v[mod1(i + 1, 4)], v[mod1(i + 2, 4)], v[mod1(i + 3, 4)])
+end
+
+function add_stuff_for_extrude!(tri::Vector{SI3}, tet::Vector{SI4}, k::Int64, i_tri_k::SI3, n_✴_2D::Int64)
+	b1, b2, b3 = i_tri_k
+	t4, t5, t6 = i_tri_k + n_✴_2D
+	i_center = k + n_✴_2D * 2
+	oriented_slice_faces = (
+        SI4(b1,b2,t5,t4),
+        SI4(b2,b3,t6,t5),
+        SI4(b1,t4,t6,b3)
+    )
+    tri_add = Vector{SI3}()
+    push!(tri_add, SI3(b1,b3,b2))
+    push!(tri_add, SI3(t4,t5,t6))
+    for bf_k = oriented_slice_faces
+		bf_k = smallest_first(bf_k)
+		push!(tri_add, bf_k[SI3(1,2,3)])
+        push!(tri_add, bf_k[SI3(1,3,4)])
+    end
+    for tri_k = tri_add
+        push!(tri, tri_k)
+        push!(tet, SI4(i_center, tri_k[1], tri_k[2], tri_k[3]))
+    end
+end
+
+function verify_trianges_have_same_normal(surf::eMesh{Tri,Nothing})
+	n̂ = [triangleNormal(vertex_pos_for_tri_ind(surf, k)) for k = 1:n_tri(surf)]
+	n̂_mean = n̂[1]
+	for n̂_k = n̂
+		(n̂_k ≈ n̂_mean) || error("All triangles must have the same normal.")
+	end
+	return n̂_mean
+end
+
+"""
+$(SIGNATURES)
+
+Extrudes a planar `eMesh` of type `eMesh{Tri,Nothing}` into a type `eMesh{Tri,Tet}` in the direction of the plane
+normal. This direction is detected automatically. The function errors if the points do not lie on a plane.
+"""
+function extrude_mesh(surf::eMesh{Tri,Nothing}, thick::Float64)
+	n̂ = verify_trianges_have_same_normal(surf)
+
+    tri_2D    = surf.tri
+    points_2D = surf.point
+	n_▲_2D = length(tri_2D )
+	n_✴_2D = length(points_2D)
+    point_lo = points_2D .- [n̂ * thick / 2]
+    point_hi = points_2D .+ [n̂ * thick / 2]
+    point_centroid = [centroid(points_2D[k]) for k = tri_2D]
+    point = vcat(point_lo, point_hi, point_centroid)
+    ϵ = vcat(zeros(2 * n_✴_2D), ones(n_▲_2D))
+    tri = Vector{SI3}()
+    tet = Vector{SI4}()
+    for (k, i_tri_k) = enumerate(tri_2D)
+		add_stuff_for_extrude!(tri, tet, k, i_tri_k, n_✴_2D)
+    end
+    eM_thick = eMesh(point, tri, tet, ϵ)
+	mesh_repair!(eM_thick)
+    return eM_thick
+end
+
+"""
+$(SIGNATURES)
+
+Outputs an `eMesh` for a cylinder.
+"""
+function output_eMesh_cylinder(rad::Float64=1.0, height::Float64=1.0; n::Int64=6)
+	eM_circle = create_2D_circle(rad, n=n)
+	return extrude_mesh(eM_circle, height)
+end

@@ -83,3 +83,38 @@ end
         (k == 4) && @test n_point(eM_sphere) == 1 + 12 + 3 * 30 + 3 * 20  # each edge bisected + two more points in center
     end
 end
+
+@testset "polygon circle" begin
+	for n = 3:64
+		eM_circle = PressureFieldContact.Geometry.create_2D_circle(1.0, n=n)
+		b = sin(pi / n)  # distance from center to bisector
+		a = sqrt(1.0^2 - b^2)  # distance from top of triangle to point on circle
+		my_area = n * a * b
+		@test my_area ≈ area(eM_circle)
+	end
+end
+
+@testset "prism" begin
+	thick = 0.1
+	p1 = SVector(0.0, 0.0, 0.0)
+	p2 = SVector(1.0, 0.0, 0.0)
+	p3 = SVector(0.0, 1.0, 0.0)
+	eM_tri = eMesh([p1, p2, p3], [SVector(1, 2, 3)])
+	eM_prism = extrude_mesh(eM_tri, thick)
+	vol_ = volume(eM_prism)
+	area_ = area(eM_prism)
+	@test vol_ ≈ thick * 0.5
+	@test area_ ≈ 1.0 + thick * (2.0 + sqrt(2))
+end
+
+@testset "cylinder" begin
+	for n = 3:64
+		rad = 1.0
+		height = 1000.0
+		eM_cylinder = output_eMesh_cylinder(rad, height, n=n)
+		eM_circle = PressureFieldContact.Geometry.create_2D_circle(rad, n=n)
+		area_circle = area(eM_circle)
+		@test volume(eM_cylinder) ≈ height * area_circle
+		@test area(eM_cylinder) ≈ 2 * area_circle + height * 2 * n * sin(pi / n)
+	end
+end

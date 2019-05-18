@@ -51,6 +51,8 @@ export
     output_eMesh_sphere,
     output_eMesh_box,
     crop_mesh,
+    extrude_mesh,
+    output_eMesh_cylinder,
 
     # mesh_create_rot_sym.jl
     obj_from_point_sequence,
