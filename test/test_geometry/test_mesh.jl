@@ -25,6 +25,26 @@
     @test volume(output_eMesh_box()) ≈ 8.0
 end
 
+@testset "delete_triangles" begin
+	random_points = [randn(SVector{3,Float64}) for _ = 1:3]
+	i3_tri = SVector{3,Int64}(1,2,3)
+	i3_tri_oppose = SVector{3,Int64}(i3_tri[2], i3_tri[3], i3_tri[1])
+
+	eM_delete = eMesh(random_points, [i3_tri, i3_tri_oppose])
+	@test 2 == delete_triangles!(eM_delete)
+	@test isempty(eM_delete)
+
+	eM_delete = eMesh(random_points, [i3_tri, SVector{3,Int64}(2,3,4)])
+	@test 0 == delete_triangles!(eM_delete)
+	@test !isempty(eM_delete)
+
+	eM_delete = eMesh(random_points, [i3_tri, i3_tri])
+	@test_throws ErrorException delete_triangles!(eM_delete)
+
+	eM_delete = eMesh(random_points, [i3_tri, i3_tri_oppose, i3_tri])
+	@test_throws ErrorException delete_triangles!(eM_delete)
+end
+
 two = 2.0
 @testset "half_plane" begin
     eM_hp_f = output_eMesh_half_plane(two, false)

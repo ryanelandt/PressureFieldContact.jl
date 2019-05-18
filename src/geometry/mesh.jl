@@ -299,7 +299,7 @@ function delete_triangles!(e_mesh::eMesh{Tri,T2}) where {T2}
         push!(dict_ind[sort_iΔ], (k, iΔ))
     end
 
-    ### delete duplicates
+    ### check for issues is triangle pairs
     i_delete = Vector{Int64}()
     for (key_k, val_k) = dict_ind
         length_val_k = length(val_k)
@@ -312,6 +312,10 @@ function delete_triangles!(e_mesh::eMesh{Tri,T2}) where {T2}
             error("something is wrong")
         end
     end
+
+    ### Actually delete the opposing triangles
+    deleteat!(e_mesh.tri, i_delete)
+	return length(i_delete)
 end
 
 function sub_div_mesh(eM_ico::eMesh{Tri,T2}, n_div::Int64) where {T2}
