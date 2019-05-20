@@ -12,9 +12,9 @@ function recursive_top_down(bb_aabb::Vector{bin_BB_Tree{OBB}})
     (n == 1) && (return bb_aabb[1])
     (n == 2) && (return bin_BB_Tree(bb_aabb[1], bb_aabb[2]))
 
-    final_AABB = bb_aabb[1]
+    final_AABB = bb_aabb[1].box
     for box_k = bb_aabb
-        final_AABB = OBB(final_AABB, box_k)
+        final_AABB = OBB(final_AABB, box_k.box)
     end
     _, mi_ = findmax(final_AABB.e)
 
