@@ -45,7 +45,7 @@ end
 
 function obj_from_point_sequence(point_vec_2D::Vector{SVector{2,Float64}}, n_theta::Int64=10)
     # creates a rotationally symmetric object by rotating a vector of 2D points (x,z) about the z axis to create a
-    # vector of 3D points (x,y,z)
+    # vector of 3D points (x,y,z) 
 
     ### FIXES degenerate points near the axis of rotation
     for k = 1:length(point_vec_2D)
