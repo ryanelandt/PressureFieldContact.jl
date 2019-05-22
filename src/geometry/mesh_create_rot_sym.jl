@@ -53,9 +53,6 @@ function obj_from_point_sequence(point_vec_2D::Vector{SVector{2,Float64}}, n_the
         tol = 1.0e-12
         if item_1 <= -tol
             error("negative extent")
-        # elseif item_1 == 0.0
-        #     #
-        # elseif item_1 <= tol
         elseif 0.0 < item_1 <= tol
             @warn("point near rotation axis set to 0.0")
             point_vec_2D[k] = SVector{2,Float64}(0.0, item_2)

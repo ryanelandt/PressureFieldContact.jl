@@ -133,8 +133,8 @@ end
 """
 $(SIGNATURES)
 
-Creates a transformation matrix by creating a basic_dh from `extra_arguments` and then transforms the eMesh.
-See $basic_dh for how to create common transformation types.
+Creates a transformation matrix by creating a `basic_dh` from `extra_arguments` and then transforms the `eMesh`.
+See [`basic_dh`](@ref) for how to create common transformation types.
 Reflections are not allowed.
 """
 function transform!(e_mesh::eMesh{T1,T2}, extra_args...) where {T1,T2}
@@ -538,41 +538,6 @@ function eMesh_box(r::Union{Float64,SVector{3,Float64}}=1.0, c::SVector{3,Float6
     transform!(e_mesh, c)
     return e_mesh
 end
-
-# function make_cone_points(rⁱ::Float64, rᵒ::Float64, h::Float64, k_slice::Int64, tot_slice::Int64)
-#     polar_point(r::Float64, θ::Float64, z::Float64) = SVector{3,Float64}(r * cos(θ), r * sin(θ), z)
-#
-#     @assert(0 < rⁱ < rᵒ)
-#     @assert(0 < h)
-#     @assert(1 <= k_slice <= tot_slice)
-#
-#     v = Vector{SVector{3,Float64}}()
-#     θ_space = LinRange{Float64}(0.0, 2*pi, tot_slice + 1)
-#     θ_1 = θ_space[k_slice]
-#     θ_2 = θ_space[k_slice + 1]
-#     for k = 1:8
-#         θ = ifelse(mod1(k, 4) <= 2, θ_1, θ_2)
-#         r = ifelse(isodd(k), rⁱ, rᵒ)
-#         z = ifelse(k <= 4, -0.5, +0.5) * h
-#         push!(v, polar_point(r, θ, z))
-#     end
-#     push!(v, polar_point((rⁱ + rᵒ) / 2, (θ_1 + θ_2) / 2, 0.0))
-# end
-#
-# function eMesh_slice(rⁱ::Float64, rᵒ::Float64, h::Float64, k_slice::Int64, tot_slice::Int64)
-#     point = make_cone_points(rⁱ, rᵒ, h, k_slice, tot_slice)
-#     tri, tet, ϵ = output_box_ind()
-#     return eMesh(point, tri, tet, ϵ)
-# end
-#
-# function eMesh_hole(rⁱ::Float64, rᵒ::Float64, h::Float64, tot_slice::Int64)
-#     eM_cone = eMesh{Tri,Tet}()
-#     for k = 1:tot_slice
-#         append!(eM_cone, eMesh_slice(rⁱ, rᵒ, h, k, tot_slice))
-#     end
-#     return eM_cone
-# end
-
 
 const SF3 = SVector{3,Float64}
 const SI3 = SVector{3,Int64}

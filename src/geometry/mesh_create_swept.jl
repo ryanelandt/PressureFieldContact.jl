@@ -1,13 +1,26 @@
 
+"""
+$(SIGNATURES)
+
+Circular path for a swept mesh.
+Specify the radius by evaluating it ahead of time.
+For example, define `my_circle(θ) = f_swept_circle(0.1, θ)`, and then pass `my_circle` to [`create_swept_mesh`](@ref).
+"""
 function f_swept_circle(r::Float64, θ::Float64)
     n̂_1 = SVector{3,Float64}( cos(θ), sin(θ), 0.0)
     n̂_2 = SVector{3,Float64}(-sin(θ), cos(θ), 0.0)
     return r * n̂_1, n̂_1, n̂_2
 end
 
+"""
+$(SIGNATURES)
+
+Straight path for a swept mesh.
+Pass this to [`create_swept_mesh`](@ref) to make a basic swept mesh.
+"""
 function f_swept_triv(θ::Float64)
 	n̂_1 = SVector(0.0, 0.0, -1.0)
-	n̂_2 = SVector(0.0, 1.0, 0.0)
+	n̂_2 = SVector(0.0, 1.0,  0.0)
 	return n̂_2 * θ, n̂_1, n̂_2
 end
 
@@ -46,7 +59,18 @@ function add_rot_sym_segment!(eM, fun_gen, θ, ϕ, rad, is_open::NTuple{2,Bool})
     return nothing
 end
 
-function create_swept_mesh(fun_gen_2, lr, rad, num_ϕ=4, is_open::Bool=true; rot_half::Bool=true)
+"""
+$(SIGNATURES)
+
+Creates a mesh by sweeping a 3D path for the given inputs:
+* `fun_gen`: function that takes a single input arc length and outputs 1.) the position on path, 2.) a single direction normal to path and 3.) direction along the path.
+* `lr`: arc length locations of nodes on path
+* `rad`: thickness of swept mesh
+* `n_side`: number of sides of swept path
+* `is_open`: if the path starts and ends at the same point (e.g. ring) set this to false
+* `rot_half`: if the sides of the path are "off" set this to false
+"""
+function create_swept_mesh(fun_gen::Function, lr::Union{LinRange,Vector{Float64}}, rad::Float64, n_side::Int64=4, is_open::Bool=true; rot_half::Bool=true)
 	l_lr = length(lr)
 	if isa(rad, Float64)
 		rad = zeros(l_lr) .+ rad
@@ -54,13 +78,13 @@ function create_swept_mesh(fun_gen_2, lr, rad, num_ϕ=4, is_open::Bool=true; rot
 		(l_lr == length(rad)) || error("the length of lr and length of rad must be the same")
 	end
     eM = eMesh{Tri,Tet}()
-    Δ_ϕ = 2 * pi / num_ϕ
+    Δ_ϕ = 2 * pi / n_side
     rad = rad ./ cos(Δ_ϕ / 2)
 	n_θ = l_lr - 1
     for k_θ = 1:n_θ
         θ = (lr[k_θ], lr[k_θ + 1])
 		rad_k = (rad[k_θ], rad[k_θ + 1])
-        for k_ϕ = 1:num_ϕ
+        for k_ϕ = 1:n_side
             ϕ_0 = Δ_ϕ * (k_ϕ  - 0.5 * rot_half)
             ϕ_1 = ϕ_0 + Δ_ϕ
             ϕ = (ϕ_0, ϕ_1)
@@ -69,7 +93,7 @@ function create_swept_mesh(fun_gen_2, lr, rad, num_ϕ=4, is_open::Bool=true; rot
             else
                 is_open_ = (false, false)
             end
-            add_rot_sym_segment!(eM, fun_gen_2, θ, ϕ, rad_k, is_open_)
+            add_rot_sym_segment!(eM, fun_gen, θ, ϕ, rad_k, is_open_)
         end
     end
 	remove_degenerate!(eM)

@@ -19,20 +19,27 @@ eMesh_half_plane
 eMesh_cylinder
 ```
 
-## Transforming Meshes
-
-```@docs
-transform!
-```
-
 ## Swept Meshes
 
-
+```@docs
+create_swept_mesh
+f_swept_triv
+f_swept_circle
+```
 
 ## Rotationally Symmetric Meshes
 
-
+```@docs
+```
 
 ## Mesh from an STL file
 
 For an example of this this example:
+
+
+## Transforming Meshes
+
+```@docs
+transform!
+basic_dh
+```

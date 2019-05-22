@@ -66,11 +66,6 @@ export
     centroidVolumeCombo,
     equiv_volume,
 
-    # # matrix_transform.jl
-    # Point4D,
-    # MatrixTransform,
-    # getPoint,
-
     # mesh_body_utility.jl
     newBodyFromInertia,
     outputJointTransform_ParentChild,
@@ -95,7 +90,6 @@ export
     set_state_spq!,
     addMesh!,
     add_body_contact!,
-    # make_eTree_obb,
     add_contact!,
     add_body!,
     add_body_from_inertia!,  # this needs to be here
@@ -141,6 +135,7 @@ export
     find_mesh_id,
 
     # obb/Binary_BB_Trees.jl
+    transform!,
     eMesh_half_plane,
     eMesh_sphere,
     eMesh_box,
@@ -153,6 +148,9 @@ export
     get_tri,
     get_tet,
     get_point,
+    create_swept_mesh,
+    f_swept_triv,
+    f_swept_circle,
 
     # math_kernel/NumericalTricks.jl
     make_pd_gains
