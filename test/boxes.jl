@@ -7,7 +7,7 @@ using LinearAlgebra: BLAS
 using RigidBodyDynamics
 using PressureFieldContact
 using Rotations: RotZ
-using PressureFieldContact.Geometry: output_eMesh_half_plane, output_eMesh_box, as_tri_eMesh, as_tet_eMesh
+# using PressureFieldContact.Geometry: eMesh_half_plane, eMesh_box, as_tri_eMesh, as_tet_eMesh
 using Test
 
 
@@ -20,13 +20,13 @@ box_density = 400.0
 c_prop_compliant = ContactProperties(Ē=1.0e6)
 i_prop_compliant = InertiaProperties(box_density)
 i_prop_rigid     = InertiaProperties(box_density, d=box_rad)
-eM_box_rigid     = as_tri_eMesh(output_eMesh_box(box_rad))
-eM_box_compliant = as_tet_eMesh(output_eMesh_box(box_rad))
+eM_box_rigid     = as_tri_eMesh(eMesh_box(box_rad))
+eM_box_compliant = as_tet_eMesh(eMesh_box(box_rad))
 
 mech_scen = MechanismScenario(n_quad_rule=2)
 
 ### Add planes and boxes
-nt_plane  = add_contact!(     mech_scen, "plane", as_tet_eMesh(output_eMesh_half_plane()),   c_prop=c_prop_compliant)
+nt_plane  = add_contact!(     mech_scen, "plane", as_tet_eMesh(eMesh_half_plane()),   c_prop=c_prop_compliant)
 nt_body_1 = add_body_contact!(mech_scen, "box_1", eM_box_rigid,     i_prop=i_prop_rigid)
 nt_body_2 = add_body_contact!(mech_scen, "box_2", eM_box_compliant, i_prop=i_prop_compliant, c_prop=c_prop_compliant)
 nt_body_3 = add_body_contact!(mech_scen, "box_3", eM_box_rigid,     i_prop=i_prop_rigid)

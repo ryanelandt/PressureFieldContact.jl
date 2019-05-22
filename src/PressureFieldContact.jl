@@ -141,9 +141,10 @@ export
     find_mesh_id,
 
     # obb/Binary_BB_Trees.jl
-    output_eMesh_half_plane,
-    output_eMesh_sphere,
-    output_eMesh_box,
+    eMesh_half_plane,
+    eMesh_sphere,
+    eMesh_box,
+    eMesh_cylinder,
     as_tet_eMesh,
     as_tri_eMesh,
     n_tri,

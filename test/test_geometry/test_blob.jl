@@ -1,6 +1,6 @@
 
 @testset "tree creation" begin
-	eM = output_eMesh_sphere()
+	eM = eMesh_sphere()
 
 	@test_throws ErrorException eMesh_to_tree(eM)
 	num_tri = length(eM.tri)

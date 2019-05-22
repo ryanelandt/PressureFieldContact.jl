@@ -28,7 +28,7 @@ i_prop_box = InertiaProperties(rho=500.0)
 c_prop_box = ContactProperties(Ē=1.0e6, d=rad_box)
 
 ### Lower Box
-eM_box_compliant = output_eMesh_box(rad_box, SVector{3,Float64}(0.0, 0.0, -rad_box))
+eM_box_compliant = eMesh_box(rad_box, SVector{3,Float64}(0.0, 0.0, -rad_box))
 add_contact!(ts, name_lo, eM_box_compliant, c_prop_box)
 
 ### Upper Box

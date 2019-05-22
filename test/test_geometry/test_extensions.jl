@@ -1,5 +1,5 @@
 
-eM_box = output_eMesh_box()
+eM_box = eMesh_box()
 
 @testset "extensions" begin
     @test_throws ErrorException volume(as_tri_eMesh(eM_box))

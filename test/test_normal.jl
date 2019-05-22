@@ -12,12 +12,12 @@
         mech_scen = MechanismScenario(n_quad_rule=k_quad_rule)
 
         name_plane = "plane"
-        eM_plane = output_eMesh_half_plane()
+        eM_plane = eMesh_half_plane()
         add_contact!(mech_scen, name_plane, as_tet_eMesh(eM_plane), c_prop=c_prop_compliant)
 
         name_box = "box"
-        eM_box = as_tri_eMesh(output_eMesh_box(box_rad))
-        eMesh_transform!(eM_box, SVector{3,Float64}(0.0, 0.0, box_rad))
+        eM_box = as_tri_eMesh(eMesh_box(box_rad))
+        transform!(eM_box, SVector{3,Float64}(0.0, 0.0, box_rad))
         body_box, joint_box = add_body_contact!(mech_scen, name_box, eM_box, i_prop=i_prop_rigid)
 
         m_id_plane = find_mesh_id(mech_scen, name_plane)

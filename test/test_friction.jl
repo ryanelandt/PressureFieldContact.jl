@@ -5,18 +5,18 @@ function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v
     i_prop_rigid     = InertiaProperties(400.0, d=0.09)
     Ē = 1.0e9
     c_prop_compliant = ContactProperties(Ē=Ē)
-    eM_box_rigid     = as_tri_eMesh(output_eMesh_box(box_rad))
-    eM_box_compliant = output_eMesh_box(box_rad)
+    eM_box_rigid     = as_tri_eMesh(eMesh_box(box_rad))
+    eM_box_compliant = eMesh_box(box_rad)
 
     ### Create mechanism and temporary structure
 	mag_grav = 9.8054
     mech_scen = MechanismScenario(n_quad_rule=n_quad_rule)
 
-	eM_plane = output_eMesh_half_plane(1.0)
+	eM_plane = eMesh_half_plane(1.0)
     nt_plane = add_contact!(mech_scen, "plane", as_tet_eMesh(eM_plane), c_prop=c_prop_compliant)
 
-    eM_box_1 = output_eMesh_box(box_rad * ones(SVector{3,Float64}))
-	eMesh_transform!(eM_box_1, SVector(0, 0, box_rad))
+    eM_box_1 = eMesh_box(box_rad * ones(SVector{3,Float64}))
+	transform!(eM_box_1, SVector(0, 0, box_rad))
 	nt_box_1 = add_body_contact!(mech_scen, "box_1", as_tri_eMesh(eM_box_1), i_prop=i_prop_rigid)
 
 	μd = 0.3
@@ -150,20 +150,20 @@ end
     i_prop_rigid     = InertiaProperties(400.0, d=0.09)
     Ē = 1.0e9
     c_prop_compliant = ContactProperties(Ē=Ē)
-    eM_box_rigid     = as_tri_eMesh(output_eMesh_box(box_rad))
-    eM_box_compliant = output_eMesh_box(box_rad)
+    eM_box_rigid     = as_tri_eMesh(eMesh_box(box_rad))
+    eM_box_compliant = eMesh_box(box_rad)
 
     ### Create mechanism and temporary structure
     mech_scen = MechanismScenario(n_quad_rule=2)
 
     name_part = "part"
-	eM_box = output_eMesh_half_plane(1.0)
+	eM_box = eMesh_half_plane(1.0)
     nt_part = add_body_contact!(mech_scen, name_part, as_tri_eMesh(eM_box), i_prop=i_prop_rigid)
 
     name_hol_1 = "hol_1"
     hol_rad = 0.2 * box_rad
-    eM_hol_1 = output_eMesh_box(hol_rad * ones(SVector{3,Float64}))
-	eMesh_transform!(eM_hol_1, SVector{3,Float64}(0.0, 0.0, hol_rad))  # box_rad + hol_rad, 0.0, 0.0))
+    eM_hol_1 = eMesh_box(hol_rad * ones(SVector{3,Float64}))
+	transform!(eM_hol_1, SVector{3,Float64}(0.0, 0.0, hol_rad))  # box_rad + hol_rad, 0.0, 0.0))
 
     joint_1 = Prismatic(SVector{3,Float64}(0.0, 0.0, 1.0))
     nt_hol_1 = add_body_contact!(mech_scen, name_hol_1, as_tet_eMesh(eM_hol_1), c_prop=c_prop_compliant, i_prop=i_prop_compliant, joint=joint_1)

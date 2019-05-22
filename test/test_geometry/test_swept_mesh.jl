@@ -14,7 +14,7 @@ end
 	@test is_convex_mesh_oriented_outward(eM_box)
 	@test 8.0 ≈ volume(eM_box)
 
-	eM_box_check = output_eMesh_box()
+	eM_box_check = eMesh_box()
 	@test is_convex_mesh_oriented_outward(eM_box_check)
 	@test 8.0 ≈ volume(eM_box_check)
 end

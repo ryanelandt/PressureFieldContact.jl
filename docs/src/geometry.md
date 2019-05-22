@@ -13,9 +13,16 @@ Pages   = ["mesh.jl"]
 ## Basic Shapes
 
 ```@docs
-output_eMesh_box
-output_eMesh_sphere
-output_eMesh_half_plane
+eMesh_box
+eMesh_sphere
+eMesh_half_plane
+eMesh_cylinder
+```
+
+## Transforming Meshes
+
+```@docs
+transform!
 ```
 
 ## Swept Meshes

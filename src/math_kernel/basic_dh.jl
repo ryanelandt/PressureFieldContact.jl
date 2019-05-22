@@ -2,7 +2,14 @@
 """
 $(SIGNATURES)
 
-A structure that is assumed to hold a homogenous transform.
+A matrix used to represent any transformation for `eMesh` and homogenous transformations for dynamics.
+The invert method for this object assumes that the matrix corresponds to a homogenous transform.
+Common transformation types and how to make them:
+* translate 1.0 in x: basic_dh(SVector(1.0, 0.0, 0.0))
+* rotate pi/2 about z: basic_dh(RotZ(pi/2))
+* scale each axis by 2.0: basic_dh(2.0)
+* scale x axis by 2.0: basic_dh(Diagonal(SVector(2.0, 1.0, 1.0)))
+* rotate by R and translate by t: basic_dh(R, t)
 """
 struct basic_dh{T}
     mat::SMatrix{4,4,T,16}
