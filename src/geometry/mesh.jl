@@ -45,8 +45,21 @@ struct eMesh{T1<:Union{Nothing,Tri},T2<:Union{Nothing,Tet}}
     eMesh{Tri,Tet}()     = eMesh(Vector{SVector{3,Float64}}(), Vector{SVector{3,Int64}}(), Vector{SVector{4,Int64}}(), Vector{Float64}())
 end
 
+"""
+$(SIGNATURES)
+
+Converts an `eMesh` to a mesh that contains only tetrahedrons.
+You need to do this before adding an `eMesh` as contact geometry.
+"""
 as_tet_eMesh(e_mesh::eMesh{Tri,Tet}) = eMesh(e_mesh.point, nothing, e_mesh.tet, e_mesh.ϵ)
 as_tet_eMesh(e_mesh::eMesh{Nothing,Tet}) = deepcopy(e_mesh)
+
+"""
+$(SIGNATURES)
+
+Converts an `eMesh` to a mesh that contains only triangles.
+You need to do this before adding an `eMesh` as contact geometry.
+"""
 as_tri_eMesh(e_mesh::eMesh{Tri,Tet}) = eMesh(e_mesh.point, e_mesh.tri, nothing, nothing)
 as_tri_eMesh(e_mesh::eMesh{Tri,Nothing}) = deepcopy(e_mesh)
 
@@ -409,7 +422,7 @@ end
 """
 $(SIGNATURES)
 
-Outputs an `eMesh` for a sphere. Larger values of n_div create finer discretizations.
+Outputs an `eMesh` for a sphere. Larger values of `n_div` create finer discretizations.
 """
 function eMesh_sphere(rad::Union{Float64,SVector{3,Float64}}=1.0, n_div::Int64=4)
     function make_icosahedron()
@@ -598,7 +611,8 @@ end
 $(SIGNATURES)
 
 Extrudes a planar `eMesh` of type `eMesh{Tri,Nothing}` into a type `eMesh{Tri,Tet}` in the direction of the plane
-normal. This direction is detected automatically. The function errors if the points do not lie on a plane.
+normal. This direction is detected automatically.
+The function errors if the points do not lie on a plane.
 """
 function extrude_mesh(surf::eMesh{Tri,Nothing}, thick::Float64)
 	n̂ = verify_trianges_have_same_normal(surf)

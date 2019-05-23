@@ -4,13 +4,15 @@ This contact implementation represents rigid objects with triangular meshes and 
 This package uses the custom geometry data type `eMesh`.
 Convenience functions to create meshes for common shapes are documented below.
 
+## `eMesh` Data Type
+
 ```@autodocs
 Modules = [PressureFieldContact.Geometry]
 Order   = [:type]
 Pages   = ["mesh.jl"]
 ```
 
-## Basic Shapes
+## Simple Shapes
 
 ```@docs
 eMesh_box
@@ -41,5 +43,8 @@ For an example of this this example:
 
 ```@docs
 transform!
+```
+
+```@docs
 basic_dh
 ```

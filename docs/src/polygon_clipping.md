@@ -1,4 +1,4 @@
-# Polygon clipping
+# Polygon Clipping
 
 ```@autodocs
 Modules = [PressureFieldContact.Clip]

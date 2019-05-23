@@ -153,6 +153,7 @@ export
     f_swept_circle,
 
     # math_kernel/NumericalTricks.jl
-    make_pd_gains
+    make_pd_gains,
+    basic_dh
 
 end

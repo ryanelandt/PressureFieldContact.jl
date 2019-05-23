@@ -186,7 +186,7 @@ end
 """
 $(SIGNATURES)
 
-Calculates `MechanismScenario` information needed for simulation. 
+Calculates `MechanismScenario` information needed for simulation.
 """
 function finalize!(m::MechanismScenario{NQ,T}) where {NQ,T}
 	function makePaths(mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, body_ids::Base.OneTo{BodyID})
@@ -255,6 +255,12 @@ end
 
 get_mechanism(m::MechanismScenario) = m.float.state.mechanism
 
+"""
+$(SIGNATURES)
+
+Creates a body with the contact geometry and inertia specified by the inputs.
+Internally, this function calls [`add_contact!`](@ref) and [`add_body!`](@ref).
+"""
 function add_body_contact!(m::MechanismScenario, name::String, e_mesh::eMesh;
         i_prop::InertiaProperties,
         c_prop::Union{Nothing,ContactProperties}=nothing,
@@ -267,6 +273,13 @@ function add_body_contact!(m::MechanismScenario, name::String, e_mesh::eMesh;
     return NamedTuple{(:body, :joint, :id)}((nt.body, nt.joint, nt_new_contact.id))
 end
 
+"""
+$(SIGNATURES)
+
+Adds contact geometry without creating a new body.
+In addition to being used by other functions, this function allows you to add contact geometry to an imported mechanism,
+or add multiple contact geometries to a single body.
+"""
 function add_contact!(m::MechanismScenario, name::String, e_mesh::eMesh;  c_prop::Union{Nothing,ContactProperties}=nothing,
         body::Union{RigidBody{Float64},Nothing}=nothing)
 
@@ -285,6 +298,14 @@ function add_contact!(m::MechanismScenario, name::String, e_mesh::eMesh;  c_prop
     return NamedTuple{(:id,)}((find_mesh_id(m, mesh),))
 end
 
+"""
+$(SIGNATURES)
+
+Adds a body to the mechanism with whose inertia properties are those of the contact geometry in `e_mesh` and inertia
+properties in `i_prop`.
+In addition to being used by other functions, this function is helpful to create bodies with specific inertia properties
+in an intuitive manner.
+"""
 function add_body!(m::MechanismScenario, name::String, e_mesh::eMesh; i_prop::InertiaProperties,
         body::Union{RigidBody{Float64},Nothing}=nothing, joint::JT=SPQuatFloating{Float64}(),
         dh::basic_dh=one(basic_dh{Float64})) where {JT<:JointType}
@@ -324,6 +345,7 @@ $(SIGNATURES)
 
 Adds regularized friction to a scenario.
 """
+# TODO: explain what the tunable paramaters are.
 function add_friction_regularize!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_2::MeshID;
 		μs::Union{Float64,Nothing}=nothing,
 		μd::Union{Float64,Nothing}=nothing,
@@ -339,6 +361,7 @@ $(SIGNATURES)
 
 Adds bristle friction to a scenario.
 """
+# TODO: explain what the tunable paramaters are.
 function add_friction_bristle!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_c::MeshID; τ::Float64=0.05, k̄=1.0e4,
 		μs::Union{Float64,Nothing}=nothing,
 		μd::Union{Float64,Nothing}=nothing,
