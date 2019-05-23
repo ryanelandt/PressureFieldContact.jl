@@ -1,6 +1,6 @@
 __precompile__(true)
 
-module NumericalTricks
+module MathKernel
 
 
 using DocStringExtensions

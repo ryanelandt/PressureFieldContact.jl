@@ -11,7 +11,7 @@ using StaticArrays
 using DataStructures
 using NearestNeighbors
 using ..Binary_BB_Trees
-using ..NumericalTricks
+using ..MathKernel
 
 
 include("mesh.jl")

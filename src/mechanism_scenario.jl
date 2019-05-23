@@ -340,12 +340,12 @@ function determine_μs_μd(μs::Float64, μd::Float64)
 	return μs, μd
 end
 
+# TODO: explain what the tunable paramaters are.
 """
 $(SIGNATURES)
 
 Adds regularized friction to a scenario.
 """
-# TODO: explain what the tunable paramaters are.
 function add_friction_regularize!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_2::MeshID;
 		μs::Union{Float64,Nothing}=nothing,
 		μd::Union{Float64,Nothing}=nothing,
@@ -356,12 +356,12 @@ function add_friction_regularize!(m::MechanismScenario, mesh_id_1::MeshID, mesh_
     return add_friction!(m, mesh_id_1, mesh_id_2, regularized, μs=μs, μd=μd, χ=χ)
 end
 
+# TODO: explain what the tunable paramaters are.
 """
 $(SIGNATURES)
 
 Adds bristle friction to a scenario.
 """
-# TODO: explain what the tunable paramaters are.
 function add_friction_bristle!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_c::MeshID; τ::Float64=0.05, k̄=1.0e4,
 		μs::Union{Float64,Nothing}=nothing,
 		μd::Union{Float64,Nothing}=nothing,

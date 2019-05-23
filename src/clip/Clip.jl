@@ -6,7 +6,7 @@ using DocStringExtensions
 using StaticArrays
 using ForwardDiff: value
 using LinearAlgebra
-using ..NumericalTricks
+using ..MathKernel
 using RigidBodyDynamics.Spatial
 
 

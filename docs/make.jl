@@ -12,8 +12,8 @@ makedocs(
         "Geometry" => "geometry.md"
         "Add Contact/Friction" => "friction.md"
         "MechanismScenario" => "mechanism_scenario.md"
-        "Polygon Clipping" => "polygon_clipping.md"
         "Algorithms" => "algorithms.md"
+        "Polygon Clipping" => "polygon_clipping.md"
         "Examples" => "examples.md"
       ],
     format = Documenter.HTML(prettyurls = parse(Bool, get(ENV, "CI", "false")))

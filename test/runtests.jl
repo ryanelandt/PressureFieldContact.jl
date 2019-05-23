@@ -5,7 +5,7 @@ using Rotations
 using LinearAlgebra
 using RigidBodyDynamics
 using PressureFieldContact.Clip
-using PressureFieldContact.NumericalTricks
+using PressureFieldContact.MathKernel
 using PressureFieldContact.Binary_BB_Trees
 using PressureFieldContact.Radau
 using PressureFieldContact.Geometry

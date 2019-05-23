@@ -13,8 +13,8 @@ using MeshCatMechanisms
 using DocStringExtensions
 using CoordinateTransformations: Translation
 
-include(joinpath("math_kernel", "NumericalTricks.jl"))
-using .NumericalTricks
+include(joinpath("math_kernel", "MathKernel.jl"))
+using .MathKernel
 
 include(joinpath("clip", "Clip.jl"))
 using .Clip
@@ -152,7 +152,7 @@ export
     f_swept_triv,
     f_swept_circle,
 
-    # math_kernel/NumericalTricks.jl
+    # math_kernel/MathKernel.jl
     make_pd_gains,
     basic_dh
 
