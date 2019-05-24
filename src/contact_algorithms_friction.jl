@@ -70,18 +70,20 @@ function calc_K_sqrt⁻¹!(s::spatialStiffness{T}) where {T}
 end
 
 function bristle_wrench_in_world(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+    # cop: patch center of pressure
+
     BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     b = tm.bodyBodyCache
     spatial_stiffness = b.spatialStiffness
     τ⁻¹ = 1 / BF.τ
-    calc_patch_spatial_stiffness!(tm, BF)
+    cop, wrench²_normal = normal_wrench_cop(b)
+    calc_patch_spatial_stiffness!(tm, BF, cop.v)
     calc_K_sqrt⁻¹!(spatial_stiffness)
     s = get_bristle_d0(tm, bristle_id)
     Δ² = spatial_stiffness.K⁻¹_sqrt * s
-    wrench²_normal, wrench²_fric = calc_spatial_bristle_force(tm, c_ins, Δ², b.twist_r²_r¹_r²)
-    f_spatial = as_static_vector(wrench²_fric)
-    get_bristle_d1(tm, bristle_id) .= τ⁻¹ * ( spatial_stiffness.K⁻¹_sqrt * f_spatial - s)
+    wrenchᶜᵒᵖ_fric, wrench²_fric = calc_spatial_bristle_force(tm, c_ins, Δ², b.twist_r²_r¹_r², cop.v)
+    get_bristle_d1(tm, bristle_id) .= τ⁻¹ * ( spatial_stiffness.K⁻¹_sqrt * wrenchᶜᵒᵖ_fric - s)
     return wrench²_normal, -wrench²_fric
 end
 
@@ -94,7 +96,8 @@ end
 
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
 
-function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) where {N,T}
+
+function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF, cop::SVector{3,T}) where {N,T}
     b = tm.bodyBodyCache
     tc = b.TractionCache
     K_11_sum = zeros(SMatrix{3,3,T,9})
@@ -104,7 +107,7 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
         trac = tc.vec[k]
         n̂ = trac.n̂
         p_dA = calc_p_dA(trac)
-        r = trac.r_cart
+        r = trac.r_cart - cop
         K_22_sum += p_dA * (I - n̂ * n̂')
         r_x_n̂     = cross(r, n̂)
         K_12_sum += p_dA * (vector_to_skew_symmetric(r) - r_x_n̂ * n̂')
@@ -118,12 +121,10 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF) wher
     b.spatialStiffness.K.data .*= BF.k̄
 end
 
-function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, δ::SVector{6,T},
-    twist) where {N,T}
+function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, Δ²::SVector{6,T},
+    twist, cop::SVector{3,T}) where {N,T}
 
-    # TODO: have this include normal tractions too
     b = tm.bodyBodyCache
-    frame_now = b.mesh_2.FrameID
     tc = b.TractionCache
     BF = c_ins.FrictionModel
     τ = BF.τ
@@ -131,32 +132,23 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::Cont
     vʳᵉˡ = as_static_vector(twist)
     wrench_lin = zeros(SVector{3,T})
     wrench_ang = zeros(SVector{3,T})
-    normal_wrench_lin = zeros(SVector{3,T})
-    normal_wrench_ang = zeros(SVector{3,T})
     for k = 1:length(tc)
         trac = tc.vec[k]
         n̂ = trac.n̂
         r = trac.r_cart
-        x̄_δ = spatial_vel_formula(δ, r)
-        x̄x̄_vʳᵉˡ = spatial_vel_formula(vʳᵉˡ, r)
+        x² = r - cop
+        δ² = spatial_vel_formula(Δ², x²)
+        ṙ²_perp = spatial_vel_formula(vʳᵉˡ, r)
         p_dA = calc_p_dA(trac)
-        λ_s = k̄ * p_dA * (x̄_δ - τ * x̄x̄_vʳᵉˡ)
+        λ_s = k̄ * p_dA * (δ² - τ * ṙ²_perp)
         λ_s = vec_sub_vec_proj(λ_s, n̂)
-
-        # function bristle_μs_μd(T_s::SVector{3,T}, p_dA::T, μs::Float64, μd::Float64) where {T}
         T_c = bristle_μs_μd(λ_s, p_dA, b.μs, b.μd)
-
         wrench_lin += T_c
-        wrench_ang += cross(r, T_c)
-
-        # Normal Wrench
-        λₙ = -p_dA * n̂
-        normal_wrench_lin += λₙ
-        normal_wrench_ang += cross(r, λₙ)
+        wrench_ang += cross(x², T_c)
     end
-    wrench_fric   = Wrench(frame_now, wrench_ang, wrench_lin)
-    wrench_normal = Wrench(frame_now, normal_wrench_ang, normal_wrench_lin)
-    return wrench_normal, wrench_fric
+    wrenchᶜᵒᵖ_fric = vcat(wrench_ang, wrench_lin)
+    wrench²_fric = vcat(wrench_ang + cross(cop, wrench_lin), wrench_lin)
+    return wrenchᶜᵒᵖ_fric, Wrench(b.mesh_2.FrameID, wrench_ang + cross(cop, wrench_lin), wrench_lin)
 end
 
 

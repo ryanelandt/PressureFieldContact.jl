@@ -218,3 +218,32 @@ end
 	# wrench²_fric_2 = - K² * Δ²
     # @test (0.999999 <  dot(normalize(wrench²_fric), normalize(wrench²_fric_2)))
 end
+
+function calc_it(t::SVector{3,Float64})
+    box_rad = 0.05
+    box_density = 400.0
+    c_prop_compliant = ContactProperties(Ē=1.0e6)
+    i_prop_rigid     = InertiaProperties(box_density, d=box_rad)
+    eM_box_rigid     = as_tri_eMesh(eMesh_box(box_rad))
+    mech_scen = MechanismScenario(n_quad_rule=2)
+    nt_plane  = add_contact!(     mech_scen, "plane", as_tet_eMesh(eMesh_half_plane()),   c_prop=c_prop_compliant)
+    nt_body_1 = add_body_contact!(mech_scen, "box_1", eM_box_rigid,     i_prop=i_prop_rigid)
+    add_friction_bristle!(mech_scen, nt_plane.id,  nt_body_1.id, μd=1.0, χ=2.2)
+    finalize!(mech_scen)
+    set_state_spq!(mech_scen, nt_body_1.joint, trans=t + SVector(0.0, 0.0,  0.99 * box_rad), w=SVector(0.4, 0.3, 1.0))
+    calcXd(get_state(mech_scen), mech_scen)
+    tm = mech_scen.float
+    cop, _ = PressureFieldContact.normal_wrench_cop(tm.bodyBodyCache)
+    BF = mech_scen.ContactInstructions[1].FrictionModel
+    calc_patch_spatial_stiffness!(mech_scen.float, BF, cop.v)
+    return mech_scen.float.bodyBodyCache.spatialStiffness.K, cop.v
+end
+
+t = SVector(0.35, 0.10, 0.0)
+K_t, cop_t = calc_it(t)
+K_0, cop_0 = calc_it(SVector(0.0, 0.0, 0.0))
+
+@testset "spatial stiffness" begin
+    @test K_0 ≈ K_t
+    @test cop_t ≈ (cop_0 + t)
+end
