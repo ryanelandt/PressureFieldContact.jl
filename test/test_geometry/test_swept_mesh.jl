@@ -13,6 +13,7 @@ end
 	eM_box = create_swept_mesh(f_swept_triv, [-1.0, 1.0], 1.0, 4, true)
 	@test is_convex_mesh_oriented_outward(eM_box)
 	@test 8.0 ≈ volume(eM_box)
+	@test verify_mesh(eM_box) == nothing
 
 	eM_box_check = eMesh_box()
 	@test is_convex_mesh_oriented_outward(eM_box_check)

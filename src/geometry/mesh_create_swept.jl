@@ -46,7 +46,7 @@ function add_rot_sym_segment!(eM, fun_gen, θ, ϕ, rad, is_open::NTuple{2,Bool})
     append!(eM.tri, [i5, i6])
     append!(eM.tet, [i1, i2, i3, i4])
     ϵ = zeros(7)
-    ϵ[1:3] .= -1.0
+    ϵ[1:3] .= 1.0
     if is_open[1]
         ϵ[1] = 0.0
         push!(eM.tri, SVector{3,Int64}(1,6,4) + n_offset)

@@ -25,6 +25,49 @@
     @test volume(eMesh_box()) ≈ 8.0
 end
 
+@testset "verify_mesh" begin
+    p1 = SVector(0.0, 0.0, 0.0)
+    p2 = SVector(1.0, 0.0, 0.0)
+    p3 = SVector(0.0, 1.0, 0.0)
+    p4 = SVector(0.0, 0.0, 1.0)
+
+    ### TRI
+    eM_tri = eMesh{Tri,Nothing}()
+    @test verify_mesh(eM_tri) == nothing
+
+    push!(eM_tri.tri, SVector(1, 2, 3))
+    @test_throws BoundsError verify_mesh(eM_tri)  # no points
+
+    push!(eM_tri.point, p1, p2, p3)
+    @test verify_mesh(eM_tri) == nothing
+
+    push!(eM_tri.tri, SVector(1, 2, 0))
+    @test_throws BoundsError verify_mesh(eM_tri)  # index less than 1
+
+    ### TET
+    eM_tet = eMesh{Nothing, Tet}()
+    @test verify_mesh(eM_tet) == nothing
+
+    push!(eM_tet.tet, SVector(1, 2, 3, 4))
+    @test_throws BoundsError verify_mesh(eM_tet)  # no points
+
+    eM_tet = eMesh{Nothing, Tet}()
+    push!(eM_tet.point, p1, p2, p3, p4)
+    @test_throws ErrorException verify_mesh(eM_tet)  # no ϵ
+
+    push!(eM_tet.ϵ, 0.0, 0.0, 0.0, -1.0)
+    @test_throws ErrorException verify_mesh(eM_tet)  # negative ϵ
+
+    eM_tet.ϵ[end] = 1.0
+    @test verify_mesh(eM_tet) == nothing
+
+    push!(eM_tet.tet, SVector(1, 2, 4, 3))
+    @test_throws ErrorException verify_mesh(eM_tet)  # negative volume)
+
+    eM_tet.tet[1] = SVector(1, 2, 3, 4)
+    @test verify_mesh(eM_tet) == nothing
+end
+
 @testset "delete_triangles" begin
 	random_points = [randn(SVector{3,Float64}) for _ = 1:3]
 	i3_tri = SVector{3,Int64}(1,2,3)
@@ -61,6 +104,8 @@ two = 2.0
     @test n_tri(eM_hp_f) == 1
     @test n_tri(eM_hp_t) == 4
     @test n_tet(eM_hp_f) == n_tet(eM_hp_t) == 1
+	@test verify_mesh(eM_hp_f) == nothing
+	@test verify_mesh(eM_hp_t) == nothing
 end
 
 @testset "sphere" begin
@@ -81,6 +126,7 @@ end
         (k == 2) && @test n_point(eM_sphere) == 1 + 12 + 30  # each edge bisected
         (k == 3) && @test n_point(eM_sphere) == 1 + 12 + 2 * 30 + 20  # each edge bisected + point in center
         (k == 4) && @test n_point(eM_sphere) == 1 + 12 + 3 * 30 + 3 * 20  # each edge bisected + two more points in center
+		@test verify_mesh(eM_sphere) == nothing
     end
 end
 
@@ -91,6 +137,7 @@ end
 		a = sqrt(1.0^2 - b^2)  # distance from top of triangle to point on circle
 		my_area = n * a * b
 		@test my_area ≈ area(eM_circle)
+		@test verify_mesh(eM_circle) == nothing
 	end
 end
 
@@ -105,6 +152,7 @@ end
 	area_ = area(eM_prism)
 	@test vol_ ≈ thick * 0.5
 	@test area_ ≈ 1.0 + thick * (2.0 + sqrt(2))
+	@test verify_mesh(eM_prism) == nothing
 end
 
 @testset "cylinder" begin
@@ -116,5 +164,6 @@ end
 		area_circle = area(eM_circle)
 		@test volume(eM_cylinder) ≈ height * area_circle
 		@test area(eM_cylinder) ≈ 2 * area_circle + height * 2 * n * sin(pi / n)
+		@test verify_mesh(eM_cylinder) == nothing
 	end
 end

@@ -37,7 +37,6 @@ function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v
 	return mech_scen
 end
 
-
 i_box_y_vel = 11
 v_tol = 1.0e-4
 
@@ -118,23 +117,6 @@ T_s_ = normalize(SVector(1.0, 2.0, 3.0))
     end
 end
 
-
-
-# @testset "transform_stiffness" begin
-#     f2 = CartesianFrame3D()
-#     f3 = CartesianFrame3D()
-#     I3 = @SMatrix([9.0 2.0 1.0; 2.0 8.0 3.0; 1.0 3.0 7.0])
-#     inertia_pre = SpatialInertia{Float64}(f2, I3, randn(SVector{3,Float64}), 1.5)
-#     xform = Transform3D(f2, f3, rand(RotMatrix{3,Float64}), rand(SVector{3,Float64}))
-#     i66 = SMatrix(transform(inertia_pre, xform))
-#
-#     s = spatialStiffness{Float64}()
-#     s.K.data .= SMatrix(inertia_pre)
-#     PressureFieldContact.transform_stiffness!(s, xform)
-#
-#     @test i66 ≈ s.K
-# end
-
 @testset "calc_K_sqrt⁻¹" begin
     s = spatialStiffness{Float64}()
 	K_orig = Matrix(rand_pd(6))
@@ -201,22 +183,6 @@ end
 	K_55 = K²[5,5]
 	@test K_44 ≈ K_55
     @test 0.99 * K_ana < K_55 < 1.01 * K_ana
-
-    # ### Test 2 -- see if stiffness was decomposed correctly
-    # tm = mech_scen.float
-    # b  = tm.bodyBodyCache
-    # spaStiff = b.spatialStiffness
-	#
-    # ### Test 3 -- see if spring force calculated both ways agrees
-    # c_ins = mech_scen.ContactInstructions[1]
-    # Δ² = (rand(SVector{6,Float64}) + 0.5) * 1.0e-8
-	#
-    # s = PressureFieldContact.set_s_from_Δʷ(mech_scen, c_ins, Δ²)
-    # mech_scen.float.s.segments[c_ins.FrictionModel.BristleID] .= s
-    # _, wrench²_fric = PressureFieldContact.bristle_wrench_in_world(tm,  c_ins)
-    # wrench²_fric = as_static_vector(wrench²_fric)
-	# wrench²_fric_2 = - K² * Δ²
-    # @test (0.999999 <  dot(normalize(wrench²_fric), normalize(wrench²_fric_2)))
 end
 
 function calc_it(t::SVector{3,Float64})
@@ -235,7 +201,7 @@ function calc_it(t::SVector{3,Float64})
     tm = mech_scen.float
     cop, _ = PressureFieldContact.normal_wrench_cop(tm.bodyBodyCache)
     BF = mech_scen.ContactInstructions[1].FrictionModel
-    calc_patch_spatial_stiffness!(mech_scen.float, BF, cop.v)
+    PressureFieldContact.calc_patch_spatial_stiffness!(mech_scen.float, BF, cop.v)
     return mech_scen.float.bodyBodyCache.spatialStiffness.K, cop.v
 end
 
@@ -247,3 +213,18 @@ K_0, cop_0 = calc_it(SVector(0.0, 0.0, 0.0))
     @test K_0 ≈ K_t
     @test cop_t ≈ (cop_0 + t)
 end
+
+# @testset "transform_stiffness" begin
+#     f2 = CartesianFrame3D()
+#     f3 = CartesianFrame3D()
+#     I3 = @SMatrix([9.0 2.0 1.0; 2.0 8.0 3.0; 1.0 3.0 7.0])
+#     inertia_pre = SpatialInertia{Float64}(f2, I3, randn(SVector{3,Float64}), 1.5)
+#     xform = Transform3D(f2, f3, rand(RotMatrix{3,Float64}), rand(SVector{3,Float64}))
+#     i66 = SMatrix(transform(inertia_pre, xform))
+#
+#     s = spatialStiffness{Float64}()
+#     s.K.data .= SMatrix(inertia_pre)
+#     PressureFieldContact.transform_stiffness!(s, xform)
+#
+#     @test i66 ≈ s.K
+# end

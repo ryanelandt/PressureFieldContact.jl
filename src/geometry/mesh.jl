@@ -111,11 +111,9 @@ function Base.append!(eM_1::eMesh{T1,T2}, eM_2::eMesh{T1,T2}) where {T1,T2}
 end
 
 ### VERIFICATION
-
 function verify_mesh(eM::eMesh{T1,T2}) where {T1,T2}
     verify_mesh_triangles(eM)
     verify_mesh_tets(eM)
-    return nothing
 end
 
 verify_mesh_tets(eM::eMesh{T1,Nothing}) where {T1} = nothing
@@ -125,19 +123,22 @@ function verify_mesh_tets(eM::eMesh{T1,Tet}) where {T1}
     length_ϵ = length(eM.ϵ)
     for k = 1:length_tet
         iΔ = eM.tet[k]
-        all(1 .<= iΔ .<= length_point) || error("index in tet with sides $(iΔ) not within points")
+        point_Δ = eM.point[iΔ]
+        (0.0 < volume(point_Δ)) || error("tet with negative volume")
     end
     (length_ϵ == length_point) || error("number of points not equal to number or ϵ")
+    if !isempty(eM.ϵ)
+        (minimum(eM.ϵ) < 0.0) && error("normalized penetration extent must be non-negative")
+        (minimum(eM.ϵ) == 0.0) || error("normalized penetration extent must be 0.0 somewhere")
+    end
     return nothing
 end
 
 verify_mesh_triangles(eM::eMesh{Nothing,T2}) where {T2} = nothing
 function verify_mesh_triangles(eM::eMesh{Tri,T2}) where {T2}
-    length_tri = n_tri(eM)
-    length_point = n_point(eM)
-    for k = 1:length_tri
+    for k = 1:n_tri(eM)
         iΔ = eM.tri[k]
-        all(1 .<= iΔ .<= length_point) || error("index in triangle with sides $(iΔ) not within points")
+        point_Δ = eM.point[iΔ]
     end
     return nothing
 end
