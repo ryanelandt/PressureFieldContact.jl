@@ -83,6 +83,7 @@ export
     DiscreteControl,
     MechanismScenario,
     finalize!,
+    get_mechanism,
     num_partials,
     num_x,
     type_dual,
