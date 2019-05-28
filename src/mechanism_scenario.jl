@@ -287,7 +287,7 @@ function add_contact!(m::MechanismScenario, name::String, e_mesh::eMesh;  c_prop
 		(T1 == Tri) && (T2 == Tet)         && error("eMesh has triangles and tets. Use as_tri_eMesh or as_tet_eMesh to convert eMesh.")
 		(T1 == nothing) && (T2 == nothing) && error("eMesh has neither triangles and tets.")
 		(T1 == Tri) && (c_prop != nothing) && error("Using ContactProperties for triangular eMesh")
-		(T2 == Tet) && (c_prop == nothing) && error("Using nothing for tet eMesh")
+		(T2 == Tet) && (c_prop == nothing) && error("Using nothing as ContactProperties for tet eMesh")
 	end
 
     verify_eMesh_ContactProperties(e_mesh, c_prop)
@@ -345,6 +345,7 @@ end
 $(SIGNATURES)
 
 Adds regularized friction to a scenario.
+Returns the added contact instruction.
 """
 function add_friction_regularize!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_2::MeshID;
 		μs::Union{Float64,Nothing}=nothing,
@@ -361,6 +362,7 @@ end
 $(SIGNATURES)
 
 Adds bristle friction to a scenario.
+Returns the added contact instruction.
 """
 function add_friction_bristle!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_c::MeshID; τ::Float64=0.05, k̄=1.0e4,
 		μs::Union{Float64,Nothing}=nothing,
@@ -379,13 +381,15 @@ add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, fric_model::Fric
 	χ::Float64) = add_friction!(m, id_1, id_2, m.MeshCache[id_1], m.MeshCache[id_2], fric_model, μs=μs, μd=μd, χ=χ)
 
 function add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, m_1::MeshCache{Nothing,Tet},
-	m_2::MeshCache{Tri,Nothing}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64)
+		m_2::MeshCache{Tri,Nothing}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64)
 
 	return add_friction!(m, id_2, id_1, fric_model; μs=μs, μd=μd, χ=χ)
 end
 
 function add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, m_1::MeshCache{T1,T2},
-	m_2::MeshCache{Nothing,Tet}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64) where {T1,T2}
+		m_2::MeshCache{Nothing,Tet}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64) where {T1,T2}
 
-	push!(m.ContactInstructions, ContactInstructions(id_1, id_2, fric_model, μs=μs, μd=μd, χ=χ))
+	c_ins_new = ContactInstructions(id_1, id_2, fric_model, μs=μs, μd=μd, χ=χ)
+	push!(m.ContactInstructions, c_ins_new)
+	return c_ins_new
 end

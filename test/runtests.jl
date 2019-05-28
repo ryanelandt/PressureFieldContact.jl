@@ -14,8 +14,8 @@ set_zero_subnormals(true)
 BLAS.set_num_threads(1)  # NOTE: comment out this line if using IntelMKL
 
 
-include("test_friction.jl")
 include(joinpath("test_geometry", "runtests.jl"))
+include("test_friction.jl")
 include(joinpath("test_obb", "runtests.jl"))
 include(joinpath("test_math_kernel", "runtests.jl"))
 include(joinpath("test_clip", "runtests.jl"))

@@ -2,7 +2,7 @@
 @testset "mesh" begin
     eM = eMesh{Tri,Tet}()
     push!(eM.point, SVector{3,Float64}(NaN, NaN, NaN))
-    @test_throws ErrorException verify_mesh(eM)
+    @test_throws AssertionError verify_mesh(eM)
     push!(eM.ϵ, NaN)
 
     append!(eM, eMesh_half_plane())
@@ -105,7 +105,8 @@ two = 2.0
     @test n_tri(eM_hp_t) == 4
     @test n_tet(eM_hp_f) == n_tet(eM_hp_t) == 1
 	@test verify_mesh(eM_hp_f) == nothing
-	@test verify_mesh(eM_hp_t) == nothing
+	@test verify_mesh(as_tri_eMesh(eM_hp_t)) == nothing
+	@test verify_mesh(as_tet_eMesh(eM_hp_t)) == nothing
 end
 
 @testset "sphere" begin

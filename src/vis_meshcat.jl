@@ -42,24 +42,31 @@ as_rgba(color) = RGBA{Float32}(color...)
 get_vertices_32(e_mesh::eMesh{T1,T2})  where {T1,T2} = [Point{3,Float32}(k) for k = e_mesh.point]
 get_faces_32(   e_mesh::eMesh{Tri,T2}) where {T2}    = [Face{3,Int32}(k)    for k = e_mesh.tri]
 
-function HomogenousMesh_32(e_mesh::eMesh{Tri,T2}; color=RGBA{Float32}(0.5, 0.5, 0.5, 1.0)) where {T2}
-    vertices = get_vertices_32(e_mesh)
-    faces = get_faces_32(e_mesh)
-    return HomogenousMesh(vertices=vertices, faces=faces, color=color)
+function HomogenousMesh_32(eM::eMesh)
+	eM = as_tri_eMesh(eM)
+	vertices = get_vertices_32(eM)
+    faces = get_faces_32(eM)
+    return HomogenousMesh(vertices=vertices, faces=faces)
 end
 
-function HomogenousMesh_32(eM::eMesh{Nothing,Tet})
-	i3 = Vector{SVector{3,Int32}}()
-	for k = 1:n_tet(eM)
-		i_tet = eM.tet[k]
-		ϵ_tet = eM.ϵ[i_tet]
-		i_tet_new = sort_so_big_ϵ_last(ϵ_tet, i_tet)
-		push!(i3, i_tet_new[1:3])
-	end
-	vertices=get_vertices_32(eM)
-	faces = [Face{3,Int32}(k) for k = i3]
-	return HomogenousMesh(vertices=vertices, faces=faces)
-end
+# function HomogenousMesh_32(e_mesh::eMesh{Tri,T2}; color=RGBA{Float32}(0.5, 0.5, 0.5, 1.0)) where {T2}
+#     vertices = get_vertices_32(e_mesh)
+#     faces = get_faces_32(e_mesh)
+#     return HomogenousMesh(vertices=vertices, faces=faces, color=color)
+# end
+#
+# function HomogenousMesh_32(eM::eMesh{Nothing,Tet})
+# 	i3 = Vector{SVector{3,Int32}}()
+# 	for k = 1:n_tet(eM)
+# 		i_tet = eM.tet[k]
+# 		ϵ_tet = eM.ϵ[i_tet]
+# 		i_tet_new = sort_so_big_ϵ_last(ϵ_tet, i_tet)
+# 		push!(i3, i_tet_new[1:3])
+# 	end
+# 	vertices=get_vertices_32(eM)
+# 	faces = [Face{3,Int32}(k) for k = i3]
+# 	return HomogenousMesh(vertices=vertices, faces=faces)
+# end
 
 function play_recorded_data(mvis::MechanismVisualizer, mech_scen::MechanismScenario, data_time::Vector{Float64},
         data_state::Matrix{Float64}; dt::Float64=1/60, slowdown::Float64=1.0, t0::Float64=-Inf, t1::Float64=Inf)
