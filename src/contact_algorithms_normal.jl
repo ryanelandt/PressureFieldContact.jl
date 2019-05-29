@@ -1,5 +1,5 @@
 
-function normal_wrench(b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+function normal_wrench(b::TypedElasticBodyBodyCache{T}) where {T}
     wrench_lin = zeros(SVector{3,T})
     wrench_ang = zeros(SVector{3,T})
     @inbounds begin
@@ -14,7 +14,7 @@ function normal_wrench(b::TypedElasticBodyBodyCache{N,T}) where {N,T}
     return Wrench(b.mesh_2.FrameID, wrench_ang, wrench_lin)
 end
 
-function normal_wrench_cop(b::TypedElasticBodyBodyCache{N,T}) where {N,T}
+function normal_wrench_cop(b::TypedElasticBodyBodyCache{T}) where {T}
     wrench_lin = zeros(SVector{3,T})
     wrench_ang = zeros(SVector{3,T})
     int_p_dA_cop = zeros(SVector{3,T})

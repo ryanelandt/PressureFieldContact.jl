@@ -18,7 +18,7 @@ function Binary_BB_Trees.fit_tet_obb(eM::eMesh{Nothing,Tet}, k::Int64)
 end
 
 ### Base ###
-function Base.copyto!(dest::TypedMechanismScenario{N,T}, src::AbstractVector{T}) where {N,T}
+function Base.copyto!(dest::TypedMechanismScenario{T}, src::AbstractVector{T}) where {N,T}
     nq = num_positions(dest.state)
     nv = num_velocities(dest.state)
     ns = length(dest.s)
@@ -29,7 +29,7 @@ function Base.copyto!(dest::TypedMechanismScenario{N,T}, src::AbstractVector{T})
     setdirty!(dest.state)
     dest
 end
-function Base.copyto!(dest::AbstractVector{T}, src::TypedMechanismScenario{N,T}) where {N,T}
+function Base.copyto!(dest::AbstractVector{T}, src::TypedMechanismScenario{T}) where {N,T}
     nq = num_positions(src.state)
     nv = num_velocities(src.state)
     ns = length(src.s)
@@ -39,7 +39,7 @@ function Base.copyto!(dest::AbstractVector{T}, src::TypedMechanismScenario{N,T})
     @inbounds copyto!(dest, nq + nv + 1, src.s,       1, ns)
     dest
 end
-function Base.copyto!(ẋ::AbstractVector, src::TypedMechanismScenario{N,T}, result::DynamicsResult) where {N,T}
+function Base.copyto!(ẋ::AbstractVector, src::TypedMechanismScenario{T}, result::DynamicsResult) where {N,T}
     nq = length(result.q̇)
     nv = length(result.v̇)
     ns = length(src.ṡ)

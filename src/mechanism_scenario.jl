@@ -21,12 +21,16 @@ struct ContactInstructions
 	μd::Float64
     χ::Float64
     FrictionModel::Union{Regularized,Bristle}
+	quad::TriTetQuadRule{3,N} where {N}
     function ContactInstructions(id_tri::MeshID, id_tet::MeshID, fric_model::Union{Regularized,Bristle};
-            μs::Float64, μd::Float64, χ::Float64)
+            μs::Float64, μd::Float64, χ::Float64, n_quad_rule)
 
 		(0.0 <= μs <= 3.0) || error("mu in unexpected range.")
 		(0.0 <= μd <= 3.0) || error("mu in unexpected range.")
-        return new(id_tri, id_tet, μs, μd, χ, fric_model)
+
+		(1 <= n_quad_rule <= 2) || error("only quadrature rules 1 (first order) and 2 (second? order) are currently implemented")
+		quad = getTriQuadRule(n_quad_rule)
+        return new(id_tri, id_tet, μs, μd, χ, fric_model, quad)
     end
 end
 
@@ -53,10 +57,10 @@ mutable struct spatialStiffness{T}
     end
 end
 
-mutable struct TypedElasticBodyBodyCache{N,T}
+mutable struct TypedElasticBodyBodyCache{T}
     spatialStiffness::spatialStiffness{T}
-    quad::TriTetQuadRule{3,N}
-    TractionCache::VectorCache{TractionCache{T}}
+	TractionCache::VectorCache{TractionCache{T}}
+    quad::TriTetQuadRule{3,N} where {N}
     mesh_1::MeshCache
     mesh_2::MeshCache
     x_rʷ_r²::Transform3D{T}
@@ -69,28 +73,27 @@ mutable struct TypedElasticBodyBodyCache{N,T}
 	μd::Float64
     Ē::Float64
     wrench::Wrench{T}
-    function TypedElasticBodyBodyCache{N,T}(quad::TriTetQuadRule{3,N}) where {N,T}
+    function TypedElasticBodyBodyCache{T}() where {T}
         trac_cache = VectorCache{TractionCache{T}}()
         K = spatialStiffness{T}()
-        return new{N,T}(K, quad, trac_cache)
+        return new{T}(K, trac_cache)
     end
 end
 
-struct TypedMechanismScenario{N,T}
+struct TypedMechanismScenario{T}
     state::MechanismState{T}
     s::SegmentedVector{BristleID,T,Base.OneTo{BristleID},Array{T,1}}
     result::DynamicsResult{T}
     ṡ::SegmentedVector{BristleID,T,Base.OneTo{BristleID},Array{T,1}}
     f_generalized::Vector{T}
-    bodyBodyCache::TypedElasticBodyBodyCache{N,T}
+    bodyBodyCache::TypedElasticBodyBodyCache{T}
     GeometricJacobian::RigidBodyDynamics.CustomCollections.CacheIndexDict{BodyID,Base.OneTo{BodyID},Union{Nothing,GeometricJacobian{Array{T,2}}}}
     torque_third_law::Vector{T}
     τ_ext::Vector{T}
     rhs::Vector{T}
     nv::Int64
 
-    function TypedMechanismScenario{N,T}(mechanism::Mechanism, quad::TriTetQuadRule{3,N}, v_path, body_ids,
-            n_bristle_pairs::Int64) where {N,T}
+    function TypedMechanismScenario{T}(mechanism::Mechanism, v_path, body_ids, n_bristle_pairs::Int64) where {T}
 
         function makeJacobian(v_path, state::MechanismState{T}, body_ids::Base.OneTo{BodyID}) where {T}
             v_jac = RigidBodyDynamics.BodyCacheDict{Union{Nothing,GeometricJacobian{Array{T,2}}}}(body_ids)
@@ -112,7 +115,7 @@ struct TypedMechanismScenario{N,T}
         state = MechanismState{T}(mechanism)
         result = DynamicsResult{T}(mechanism)
         f_generalized = Vector{T}(undef, num_positions(mechanism))
-        bodyBodyCache = TypedElasticBodyBodyCache{N,T}(quad)
+        bodyBodyCache = TypedElasticBodyBodyCache{T}()
         v_jac = makeJacobian(v_path, state, body_ids)
         n_dof_bristle = 6 * n_bristle_pairs
         s = SegmentedVector{BristleID}(zeros(T, n_dof_bristle), Base.OneTo(BristleID(n_bristle_pairs)), function_Int64_six)
@@ -121,11 +124,11 @@ struct TypedMechanismScenario{N,T}
         τ_ext = zeros(T, num_positions(mechanism))
         rhs = zeros(T, num_positions(mechanism))
         nv = num_velocities(mechanism)
-        return new{N,T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac, torque_third_law, τ_ext, rhs, nv)
+        return new{T}(state, s, result, ṡ, f_generalized, bodyBodyCache, v_jac, torque_third_law, τ_ext, rhs, nv)
     end
 
-	function TypedMechanismScenario{N,T}(mechanism::Mechanism) where {N,T}
-		return new{N,T}(MechanismState{T}(mechanism))
+	function TypedMechanismScenario{T}(mechanism::Mechanism) where {T}
+		return new{T}(MechanismState{T}(mechanism))
 	end
 end
 
@@ -142,12 +145,11 @@ $(TYPEDEF)
 A `MechanismScenario` contains contact information for an entire mechanism.
 
 Type parameters:
-* `NQ`: quadrature rule number
 * `T`: the `ForwardDiff.Dual` scalar type
 """
-mutable struct MechanismScenario{NQ,T}
-	float::TypedMechanismScenario{NQ,Float64}
-	dual::TypedMechanismScenario{NQ,T}
+mutable struct MechanismScenario{T}
+	float::TypedMechanismScenario{Float64}
+	dual::TypedMechanismScenario{T}
     body_ids::Base.OneTo{BodyID}
     mesh_ids::Base.OneTo{MeshID}
     bristle_ids::Base.OneTo{BristleID}
@@ -160,25 +162,22 @@ mutable struct MechanismScenario{NQ,T}
     τ_ext::Vector{Float64}
     path::RigidBodyDynamics.CustomCollections.IndexDict{BodyID,Base.OneTo{BodyID},Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}}
 
-	function MechanismScenario(; de::Function=calcXd!, n_quad_rule::Int64=2, N_chunk::Int64=6,
+	function MechanismScenario(; de::Function=calcXd!, N_chunk::Int64=6,
 			continuous_controller::Union{Nothing,Function}=nothing,
 			discrete_controller::Union{Nothing,DiscreteControl}=nothing,
 			gravity::SVector{3,Float64}=SVector{3,Float64}(0.0, 0.0, -round(9.8054, digits=8, base=2) ))
 		#
 		mechanism = Mechanism(RigidBody{Float64}("world"); gravity=gravity)  # create empty mechanism
-        (1 <= n_quad_rule <= 2) || error("only quadrature rules 1 (first order) and 2 (second? order) are currently implemented")
-        quad = getTriQuadRule(n_quad_rule)
-        NQ = length(quad.w)
         T = Dual{Nothing,Float64,N_chunk}
-		cache_float = TypedMechanismScenario{NQ,Float64}(mechanism)
-		cache_dual = TypedMechanismScenario{NQ,T}(mechanism)
+		cache_float = TypedMechanismScenario{Float64}(mechanism)
+		cache_dual = TypedMechanismScenario{T}(mechanism)
 		body_ids = Base.OneTo(BodyID(1))
 		mesh_ids = Base.OneTo(MeshID(0))
 		bristle_ids = Base.OneTo(BristleID(0))
 		mesh_cache = MeshCacheDict{MeshCache}(mesh_ids)
 		c_ins = Vector{ContactInstructions}()
 
-		return new{NQ,T}(cache_float, cache_dual, body_ids, mesh_ids, bristle_ids, mesh_cache, c_ins, TT_Cache(), de,
+		return new{T}(cache_float, cache_dual, body_ids, mesh_ids, bristle_ids, mesh_cache, c_ins, TT_Cache(), de,
 			continuous_controller, discrete_controller)
     end
 end
@@ -188,7 +187,7 @@ $(SIGNATURES)
 
 Calculates `MechanismScenario` information needed for simulation.
 """
-function finalize!(m::MechanismScenario{NQ,T}) where {NQ,T}
+function finalize!(m::MechanismScenario{T}) where {T}
 	function makePaths(mechanism::Mechanism, mesh_cache::MeshCacheDict{MeshCache}, body_ids::Base.OneTo{BodyID})
 		the_type = Union{Nothing,RigidBodyDynamics.Graphs.TreePath{RigidBody{Float64},Joint{Float64,JT} where JT<:JointType{Float64}}}
 		v_path = RigidBodyDynamics.BodyDict{the_type}(body_ids)
@@ -202,7 +201,7 @@ function finalize!(m::MechanismScenario{NQ,T}) where {NQ,T}
 		return v_path
 	end
 
-	quad = getTriQuadRule(ifelse(NQ == 1, 1, 2))
+	# quad = getTriQuadRule(ifelse(NQ == 1, 1, 2))
 	mechanism = get_mechanism(m)
 	body_ids = Base.OneTo(last(bodies(mechanism)).id)
 	m.body_ids = body_ids
@@ -210,18 +209,18 @@ function finalize!(m::MechanismScenario{NQ,T}) where {NQ,T}
 	m.τ_ext = zeros(Float64, num_positions(mechanism))
 	m.path = makePaths(mechanism, m.MeshCache, body_ids)
 	cache_path = m.path
-	m.float = TypedMechanismScenario{NQ,Float64}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
-	m.dual  = TypedMechanismScenario{NQ,T}(mechanism, quad, cache_path, body_ids, n_bristle_pairs)
+	m.float = TypedMechanismScenario{Float64}(mechanism, cache_path, body_ids, n_bristle_pairs)
+	m.dual  = TypedMechanismScenario{T}(mechanism, cache_path, body_ids, n_bristle_pairs)
 	return nothing
 end
 
-num_partials(m::MechanismScenario{NQ,Dual{Nothing,Float64,N_partials}}) where {NQ,N_partials} = N_partials
-function num_x(m::MechanismScenario{NQ,T}) where {NQ,T}
+num_partials(m::MechanismScenario{Dual{Nothing,Float64,N_partials}}) where {N_partials} = N_partials
+function num_x(m::MechanismScenario{T}) where {T}
     tm = m.float
     mechanism = tm.state.mechanism
     return num_positions(mechanism) + num_velocities(mechanism) + length(tm.s)
  end
-type_dual(m::MechanismScenario{NQ,T}) where {NQ,T} = T
+type_dual(m::MechanismScenario{T}) where {T} = T
 
 function get_state(m::MechanismScenario)
     x = zeros(num_x(m))
@@ -350,11 +349,13 @@ Returns the added contact instruction.
 function add_friction_regularize!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_2::MeshID;
 		μs::Union{Float64,Nothing}=nothing,
 		μd::Union{Float64,Nothing}=nothing,
-		χ::Float64=default_χ(), v_tol::Float64=0.01)
+		χ::Float64=default_χ(), v_tol::Float64=0.01,
+		n_quad_rule::Int64=2
+		)
 	#
 	μs, μd = determine_μs_μd(μs, μd)
     regularized = Regularized(v_tol)
-    return add_friction!(m, mesh_id_1, mesh_id_2, regularized, μs=μs, μd=μd, χ=χ)
+    return add_friction!(m, mesh_id_1, mesh_id_2, regularized, μs=μs, μd=μd, χ=χ, n_quad_rule=n_quad_rule)
 end
 
 # TODO: explain what the tunable paramaters are.
@@ -367,29 +368,32 @@ Returns the added contact instruction.
 function add_friction_bristle!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_c::MeshID; τ::Float64=0.05, k̄=1.0e4,
 		μs::Union{Float64,Nothing}=nothing,
 		μd::Union{Float64,Nothing}=nothing,
-		χ::Float64=default_χ())
+		χ::Float64=default_χ(),
+		n_quad_rule::Int64=2)
 	#
 	μs, μd = determine_μs_μd(μs, μd)
     isa(μd, Nothing) || (0 < μd) || error("μd cannot be 0 for bristle friction")
     bristle_id = BristleID(1 + length(m.bristle_ids))
     bf = Bristle(bristle_id, τ=τ, k̄=k̄)
     m.bristle_ids = Base.OneTo(bristle_id)
-    return add_friction!(m, mesh_id_1, mesh_id_c, bf, μs=μs, μd=μd, χ=χ)
+    return add_friction!(m, mesh_id_1, mesh_id_c, bf, μs=μs, μd=μd, χ=χ, n_quad_rule=n_quad_rule)
 end
 
 add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, fric_model::FrictionModel; μs::Float64, μd::Float64,
-	χ::Float64) = add_friction!(m, id_1, id_2, m.MeshCache[id_1], m.MeshCache[id_2], fric_model, μs=μs, μd=μd, χ=χ)
+	χ::Float64, n_quad_rule::Int64) = add_friction!(m, id_1, id_2, m.MeshCache[id_1], m.MeshCache[id_2], fric_model, μs=μs, μd=μd, χ=χ, n_quad_rule=n_quad_rule)
 
 function add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, m_1::MeshCache{Nothing,Tet},
-		m_2::MeshCache{Tri,Nothing}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64)
+		m_2::MeshCache{Tri,Nothing}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64,
+		n_quad_rule::Int64)
 
-	return add_friction!(m, id_2, id_1, fric_model; μs=μs, μd=μd, χ=χ)
+	return add_friction!(m, id_2, id_1, fric_model; μs=μs, μd=μd, χ=χ, n_quad_rule=n_quad_rule)
 end
 
 function add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, m_1::MeshCache{T1,T2},
-		m_2::MeshCache{Nothing,Tet}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64) where {T1,T2}
+		m_2::MeshCache{Nothing,Tet}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64,
+		n_quad_rule::Int64) where {T1,T2}
 
-	c_ins_new = ContactInstructions(id_1, id_2, fric_model, μs=μs, μd=μd, χ=χ)
+	c_ins_new = ContactInstructions(id_1, id_2, fric_model, μs=μs, μd=μd, χ=χ, n_quad_rule=n_quad_rule)
 	push!(m.ContactInstructions, c_ins_new)
 	return c_ins_new
 end

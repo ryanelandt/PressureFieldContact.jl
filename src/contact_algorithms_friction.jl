@@ -20,7 +20,7 @@ function bristle_μs_μd(T_s::SVector{3,T}, p_dA::T, μs::Float64, μd::Float64)
     end
 end
 
-function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{T}, c_ins::ContactInstructions) where {T}
     b = tm.bodyBodyCache
     frame = b.mesh_2.FrameID
     v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
@@ -48,8 +48,8 @@ end
 
 ##########################
 
-no_contact!(fric_type::Regularized, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T} = nothing
-function no_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+no_contact!(fric_type::Regularized, tm::TypedMechanismScenario{T}, c_ins::ContactInstructions) where {T} = nothing
+function no_contact!(fric_type::Bristle, tm::TypedMechanismScenario{T}, c_ins::ContactInstructions) where {T}
     BF = c_ins.FrictionModel
     bristle_id = BF.BristleID
     get_bristle_d1(tm, bristle_id) .= -(1 / BF.τ) * get_bristle_d0(tm, bristle_id)
@@ -69,7 +69,7 @@ function calc_K_sqrt⁻¹!(s::spatialStiffness{T}) where {T}
     mul!(s.K⁻¹_sqrt, s.mul_pre, EF.vectors')
 end
 
-function bristle_wrench_in_world(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+function bristle_wrench_in_world(tm::TypedMechanismScenario{T}, c_ins::ContactInstructions) where {T}
     # cop: patch center of pressure
 
     BF = c_ins.FrictionModel
@@ -89,7 +89,7 @@ end
 
 #########################################################
 
-function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions) where {N,T}
+function yes_contact!(fric_type::Bristle, tm::TypedMechanismScenario{T}, c_ins::ContactInstructions) where {T}
     wrench²_normal, wrench²_fric = bristle_wrench_in_world(tm, c_ins)
     return wrench²_normal + wrench²_fric
 end
@@ -97,7 +97,7 @@ end
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
 
 
-function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF, cop::SVector{3,T}) where {N,T}
+function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{T}, BF, cop::SVector{3,T}) where {T}
     b = tm.bodyBodyCache
     tc = b.TractionCache
     K_11_sum = zeros(SMatrix{3,3,T,9})
@@ -121,8 +121,8 @@ function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{N,T}, BF, cop:
     b.spatialStiffness.K.data .*= BF.k̄
 end
 
-function calc_spatial_bristle_force(tm::TypedMechanismScenario{N,T}, c_ins::ContactInstructions, Δ²::SVector{6,T},
-    twist, cop::SVector{3,T}) where {N,T}
+function calc_spatial_bristle_force(tm::TypedMechanismScenario{T}, c_ins::ContactInstructions, Δ²::SVector{6,T},
+    twist, cop::SVector{3,T}) where {T}
 
     b = tm.bodyBodyCache
     tc = b.TractionCache

@@ -10,7 +10,7 @@ function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v
 
     ### Create mechanism and temporary structure
 	mag_grav = 9.8054
-    mech_scen = MechanismScenario(n_quad_rule=n_quad_rule)
+    mech_scen = MechanismScenario()  # n_quad_rule=n_quad_rule)
 
 	eM_plane = eMesh_half_plane(1.0)
     nt_plane = add_contact!(mech_scen, "plane", as_tet_eMesh(eM_plane), c_prop=c_prop_compliant)
@@ -22,10 +22,10 @@ function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v
 	μd = 0.3
 	is_regularize = !isnan(v_tol)
 	if is_regularize
-		add_friction_regularize!(mech_scen, nt_plane.id, nt_box_1.id, μd=μd, v_tol=v_tol)
+		add_friction_regularize!(mech_scen, nt_plane.id, nt_box_1.id, μd=μd, v_tol=v_tol, n_quad_rule=n_quad_rule)
 		vel_box = SVector(0.0, v_tol, 0.0)
 	else
-		add_friction_bristle!(mech_scen, nt_plane.id, nt_box_1.id, μd=μd, k̄=1.0e4, τ=0.03)
+		add_friction_bristle!(mech_scen, nt_plane.id, nt_box_1.id, μd=μd, k̄=1.0e4, τ=0.03, n_quad_rule=n_quad_rule)
 		vel_box = SVector(0.0, 0.0, 0.0)
 	end
 	finalize!(mech_scen)
@@ -136,7 +136,7 @@ end
     eM_box_compliant = eMesh_box(box_rad)
 
     ### Create mechanism and temporary structure
-    mech_scen = MechanismScenario(n_quad_rule=2)
+    mech_scen = MechanismScenario()
 
     name_part = "part"
 	eM_box = eMesh_half_plane(1.0)
@@ -152,7 +152,7 @@ end
 
     τ = 0.03
     k̄ = 1.0e6
-    add_friction_bristle!(mech_scen, nt_part.id, nt_hol_1.id, μd=0.3, χ=0.6, k̄=k̄, τ=τ)
+    add_friction_bristle!(mech_scen, nt_part.id, nt_hol_1.id, μd=0.3, χ=0.6, k̄=k̄, τ=τ, n_quad_rule=2)
 
     finalize!(mech_scen)  # , calcXd!, n_quad_rule=2)
 	mech_scen = mech_scen
@@ -191,10 +191,10 @@ function calc_it(t::SVector{3,Float64})
     c_prop_compliant = ContactProperties(Ē=1.0e6)
     i_prop_rigid     = InertiaProperties(box_density, d=box_rad)
     eM_box_rigid     = as_tri_eMesh(eMesh_box(box_rad))
-    mech_scen = MechanismScenario(n_quad_rule=2)
+    mech_scen = MechanismScenario()  # n_quad_rule=2)
     nt_plane  = add_contact!(     mech_scen, "plane", as_tet_eMesh(eMesh_half_plane()),   c_prop=c_prop_compliant)
     nt_body_1 = add_body_contact!(mech_scen, "box_1", eM_box_rigid,     i_prop=i_prop_rigid)
-    add_friction_bristle!(mech_scen, nt_plane.id,  nt_body_1.id, μd=1.0, χ=2.2)
+    add_friction_bristle!(mech_scen, nt_plane.id,  nt_body_1.id, μd=1.0, χ=2.2, n_quad_rule=2)
     finalize!(mech_scen)
     set_state_spq!(mech_scen, nt_body_1.joint, trans=t + SVector(0.0, 0.0,  0.99 * box_rad), w=SVector(0.4, 0.3, 1.0))
     calcXd(get_state(mech_scen), mech_scen)

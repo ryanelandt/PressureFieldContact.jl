@@ -9,14 +9,14 @@
     c_prop_compliant = ContactProperties(Ē=1.0e6)
     eM_box_compliant = as_tet_eMesh(eMesh_box(box_rad))
 
-    mech_scen = MechanismScenario(n_quad_rule=2)
+    mech_scen = MechanismScenario()  # n_quad_rule=2)
 
     ### Add planes and boxes
     nt_plane  = add_contact!(     mech_scen, "plane", as_tet_eMesh(eMesh_half_plane()),   c_prop=c_prop_compliant)
     nt_body_1 = add_body_contact!(mech_scen, "box_1", eM_box_compliant, i_prop=i_prop_compliant, c_prop=c_prop_compliant)
 
     ### Friction
-    add_friction_regularize!(mech_scen, nt_plane.id,  nt_body_1.id, μd=0.0, χ=0.0)
+    add_friction_regularize!(mech_scen, nt_plane.id,  nt_body_1.id, μd=0.0, χ=0.0, n_quad_rule=2)
 
     finalize!(mech_scen)
     set_state_spq!(mech_scen, nt_body_1.joint, trans=SVector(0.0, 0.0, 2*box_rad), w=SVector(0.0, 0.0, w_z_0))

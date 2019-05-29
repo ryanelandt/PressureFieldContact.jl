@@ -1,6 +1,6 @@
 
-function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NQ,Dual{Nothing,Float64,NC}},NX,NC,NR,NSM};
-        t_start::Float64=0.0, t_final::Float64=1.0, max_steps::Int64=1000, is_disp_count::Bool=false) where {NX,NQ,NC,NR,NSM}
+function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{Dual{Nothing,Float64,NC}},NX,NC,NR,NSM};
+        t_start::Float64=0.0, t_final::Float64=1.0, max_steps::Int64=1000, is_disp_count::Bool=false) where {NX,NC,NR,NSM}
 
     x = get_state(rr.de_object)
     data_state = zeros(max_steps + 1, NX)
@@ -9,9 +9,9 @@ function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NQ,Dual{
     return integrate_scenario_radau(rr, data_state, data_time, t_final=t_final, is_disp_count=is_disp_count)
 end
 
-function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{NQ,Dual{Nothing,Float64,NC}},NX,NC,NR,NSM},
+function integrate_scenario_radau(rr::RadauIntegrator{MechanismScenario{Dual{Nothing,Float64,NC}},NX,NC,NR,NSM},
         data_state::Matrix{Float64}, data_time::Vector{Float64}; t_final::Float64=1.0,
-        is_disp_count::Bool=false) where {NX,NQ,NC,NR,NSM}
+        is_disp_count::Bool=false) where {NX,NC,NR,NSM}
 
     mech_scen = rr.de_object
     s1_state, s2_state = size(data_state)

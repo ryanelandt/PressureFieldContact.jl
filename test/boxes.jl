@@ -23,7 +23,7 @@ i_prop_rigid     = InertiaProperties(box_density, d=box_rad)
 eM_box_rigid     = as_tri_eMesh(eMesh_box(box_rad))
 eM_box_compliant = as_tet_eMesh(eMesh_box(box_rad))
 
-mech_scen = MechanismScenario(n_quad_rule=2)
+mech_scen = MechanismScenario()  # n_quad_rule=2)
 
 ### Add planes and boxes
 nt_plane  = add_contact!(     mech_scen, "plane", as_tet_eMesh(eMesh_half_plane()),   c_prop=c_prop_compliant)
@@ -33,10 +33,10 @@ nt_body_3 = add_body_contact!(mech_scen, "box_3", eM_box_rigid,     i_prop=i_pro
 nt_body_4 = add_body_contact!(mech_scen, "box_4", eM_box_compliant, i_prop=i_prop_compliant, c_prop=c_prop_compliant)
 
 ### Friction
-add_friction_regularize!(mech_scen, nt_plane.id,  nt_body_1.id, μd=0.0, χ=2.2)
-add_friction_regularize!(mech_scen, nt_body_1.id, nt_body_2.id, μd=0.2, χ=0.2)
-add_friction_regularize!(mech_scen, nt_body_2.id, nt_body_3.id, μd=0.2, χ=0.2)
-add_friction_regularize!(mech_scen, nt_body_3.id, nt_body_4.id, μd=0.2, χ=0.2)
+add_friction_regularize!(mech_scen, nt_plane.id,  nt_body_1.id, μd=0.0, χ=2.2, n_quad_rule=2)
+add_friction_regularize!(mech_scen, nt_body_1.id, nt_body_2.id, μd=0.2, χ=0.2, n_quad_rule=2)
+add_friction_regularize!(mech_scen, nt_body_2.id, nt_body_3.id, μd=0.2, χ=0.2, n_quad_rule=2)
+add_friction_regularize!(mech_scen, nt_body_3.id, nt_body_4.id, μd=0.2, χ=0.2, n_quad_rule=2)
 
 finalize!(mech_scen)
 set_state_spq!(mech_scen, nt_body_1.joint, trans=SVector(0.0, 0.0,  2*box_rad), w=SVector(0.0, 0.0, 1.0))

@@ -9,7 +9,7 @@
         c_prop_compliant = ContactProperties(Ē=1.0e9)  # , d=box_rad)
 
         ### Create mechanism and temporary structure
-        mech_scen = MechanismScenario(n_quad_rule=k_quad_rule)
+        mech_scen = MechanismScenario() # n_quad_rule=k_quad_rule)
 
         name_plane = "plane"
         eM_plane = eMesh_half_plane()
@@ -22,7 +22,7 @@
 
         m_id_plane = find_mesh_id(mech_scen, name_plane)
         m_id_box = find_mesh_id(mech_scen, name_box)
-        add_friction_bristle!(mech_scen, m_id_box, m_id_plane, μd=0.3, χ=0.6, k̄=1.0e6, τ=0.03)
+        add_friction_bristle!(mech_scen, m_id_box, m_id_plane, μd=0.3, χ=0.6, k̄=1.0e6, τ=0.03, n_quad_rule=k_quad_rule)
         finalize!(mech_scen)
 
         pene = 0.1 * box_rad
