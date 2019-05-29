@@ -60,9 +60,9 @@ $(SIGNATURES)
 Converts an `eMesh` to a mesh that contains only triangles.
 You need to do this before adding an `eMesh` as contact geometry.
 """
-as_tri_eMesh(e_mesh::eMesh{Tri,Tet}) = eMesh(e_mesh.point, e_mesh.tri, nothing, nothing)
-as_tri_eMesh(e_mesh::eMesh{Tri,Nothing}) = deepcopy(e_mesh)
-function as_tri_eMesh(eM::eMesh{Nothing,Tet})
+as_tri_eMesh(e_mesh::eMesh{Tri,Tet}, is_repair::Bool=true) = eMesh(e_mesh.point, e_mesh.tri, nothing, nothing)
+as_tri_eMesh(e_mesh::eMesh{Tri,Nothing}, is_repair::Bool=true) = deepcopy(e_mesh)
+function as_tri_eMesh(eM::eMesh{Nothing,Tet}, is_repair::Bool=true)
 	i3 = Vector{SVector{3,Int64}}()
 	for k = 1:n_tet(eM)
 		i_tet = eM.tet[k]
@@ -71,7 +71,9 @@ function as_tri_eMesh(eM::eMesh{Nothing,Tet})
 		push!(i3, i_tet_new[1:3])
 	end
 	eM_tri = eMesh(eM.point, i3)
-	mesh_repair!(eM_tri)
+	if is_repair
+		mesh_repair!(eM_tri)
+	end
 	return eM_tri
 end
 
@@ -318,6 +320,8 @@ end
 
 delete_triangles!(e_mesh::eMesh{Nothing,T2}) where {T2} = -9999
 function delete_triangles!(e_mesh::eMesh{Tri,T2}) where {T2}
+	# TODO: fix this to only delete triangles for connected meshes
+
     ### make the first index lowest
     for k = 1:n_tri(e_mesh)
         iΔ = e_mesh.tri[k]

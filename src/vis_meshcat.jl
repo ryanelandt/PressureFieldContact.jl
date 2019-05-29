@@ -43,7 +43,7 @@ get_vertices_32(e_mesh::eMesh{T1,T2})  where {T1,T2} = [Point{3,Float32}(k) for 
 get_faces_32(   e_mesh::eMesh{Tri,T2}) where {T2}    = [Face{3,Int32}(k)    for k = e_mesh.tri]
 
 function HomogenousMesh_32(eM::eMesh)
-	eM = as_tri_eMesh(eM)
+	eM = as_tri_eMesh(eM, false)
 	vertices = get_vertices_32(eM)
     faces = get_faces_32(eM)
     return HomogenousMesh(vertices=vertices, faces=faces)

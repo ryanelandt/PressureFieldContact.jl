@@ -70,7 +70,9 @@ Creates a mesh by sweeping a 3D path for the given inputs:
 * `is_open`: if the path starts and ends at the same point (e.g. ring) set this to false
 * `rot_half`: if the sides of the path are "off" set this to false
 """
-function create_swept_mesh(fun_gen::Function, lr::Union{LinRange,Vector{Float64}}, rad::Float64, n_side::Int64=4, is_open::Bool=true; rot_half::Bool=true)
+function create_swept_mesh(fun_gen::Function, lr::Union{LinRange,Vector{Float64}}, rad::Float64, n_side::Int64=4,
+		is_open::Bool=true; rot_half::Bool=true)
+		
 	l_lr = length(lr)
 	if isa(rad, Float64)
 		rad = zeros(l_lr) .+ rad
