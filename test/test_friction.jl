@@ -1,4 +1,58 @@
 
+using PressureFieldContact: calc_clamped_piecewise, calc_μ, traction
+
+@testset "clac_clamped_piecewise" begin
+	x_1 = 0.3
+	x_2 = 0.5
+	y_1 = 1.1
+	y_2 = 0.1
+	@test y_1   ≈ calc_clamped_piecewise(x_1 - 0.1,        x_1, x_2, y_1, y_2)
+	@test y_1   ≈ calc_clamped_piecewise(x_1,              x_1, x_2, y_1, y_2)
+	@test y_1   ≈ calc_clamped_piecewise(x_1 + 10 * eps(), x_1, x_2, y_1, y_2)
+	x_avg = (x_1 + x_2) / 2
+	y_avg = (y_1 + y_2) / 2
+	@test y_avg ≈ calc_clamped_piecewise(x_avg,            x_1, x_2, y_1, y_2)
+	@test y_2   ≈ calc_clamped_piecewise(x_2 - 10 * eps(), x_1, x_2, y_1, y_2)
+	@test y_2   ≈ calc_clamped_piecewise(x_2,              x_1, x_2, y_1, y_2)
+	@test y_2   ≈ calc_clamped_piecewise(x_2 + 0.1,        x_1, x_2, y_1, y_2)
+end
+
+ins_Bristle = Bristle(BristleID(1), τ=0.01, k̄=1.0e4, μs=1.0, μd=0.3)
+ins_Reg = Regularized(0.1, μs=1.0, μd=0.1)
+
+@testset "FrictionModel" begin
+	@test ins_Bristle.μs < ins_Bristle.T̄s_μ_is_μd
+	@test ins_Bristle.δ_max < ins_Bristle.δ_μ_is_0
+
+	@test ins_Reg.v_tol < ins_Reg.v_μ_is_μd
+end
+
+@testset "calc_μ" begin
+	@test ins_Bristle.μs == calc_μ(ins_Bristle, 0.0, 0.0)
+	@test ins_Bristle.μd == calc_μ(ins_Bristle, 0.0, 10.0)
+	@test            0.0 == calc_μ(ins_Bristle, 10.0, 0.0)
+
+	@test ins_Reg.μs == calc_μ(ins_Reg, 0.0)
+	μ_avg = (ins_Reg.μs + ins_Reg.μd) / 2
+	v_avg = (ins_Reg.v_tol + ins_Reg.v_μ_is_μd) / 2
+	@test μ_avg ≈ calc_μ(ins_Reg, v_avg)
+
+	@test ins_Reg.μd == calc_μ(ins_Reg, 10.0)
+end
+
+@testset "traction" begin
+	sv_0 = zeros(SVector{3,Float64})
+
+	for p_dA_ = (0.1, 1.0, 10.0)
+		@test sv_0 == traction(ins_Bristle, ins_Bristle.δ_μ_is_0, SVector(0.01, 0.01, 0.01), p_dA_)
+
+		r3 = SVector(0.01, 0.2, 0.3)
+		@test r3 * p_dA_ == traction(ins_Bristle, ins_Bristle.δ_max, r3, p_dA_)
+
+		@test normalize(r3) * ins_Bristle.μd * p_dA_ ≈ traction(ins_Bristle, ins_Bristle.δ_max, r3 * 1000, p_dA_)
+	end
+end
+
 function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v_tol::Float64=NaN)
     box_rad = 0.05
     i_prop_compliant = InertiaProperties(400.0)
@@ -66,55 +120,6 @@ end
 		data_time, data_state = integrate_scenario_radau(rr, t_final=1.0)
 		@test abs(data_state[end, i_box_y_vel]) < 1.0e-12
 	end
-end
-
-μs_std = 0.7
-p_dA_ = 3.0
-v_dir_ = normalize(SVector(1.0, 2.0, 3.0))
-v_tol_ = 0.01
-
-test_μs_μd = ((μs_std, μs_std), (μs_std, μs_std / 2), (0.0, 0.0))
-
-@testset "regularized" begin
-    for k = 1:3
-        μs_, μd_ = test_μs_μd[k]
-
-        test_ans = (
-            (0.00 * v_tol_, -v_dir_ * p_dA_ * 0.0 * μs_),
-            (0.50 * v_tol_, -v_dir_ * p_dA_ * 0.5 * μs_),
-            (1.00 * v_tol_, -v_dir_ * p_dA_ * 1.0 * μs_),
-            (1.25 * v_tol_, -v_dir_ * p_dA_ * (μs_ + μd_) / 2),
-            (1.50 * v_tol_, -v_dir_ * p_dA_ * 1.0 * μd_),
-            (1.75 * v_tol_, -v_dir_ * p_dA_ * 1.0 * μd_),
-        )
-        for (k_test, test_) = enumerate(test_ans)
-            v_mag_, correct_ans = test_
-            v_ = v_dir_ * v_mag_
-            @test correct_ans ≈ PressureFieldContact.regularized_μs_μd(v_, p_dA_, v_tol_, μs_, μd_)
-        end
-    end
-end
-
-T_s_ = normalize(SVector(1.0, 2.0, 3.0))
-
-@testset "bristle" begin
-    for k = 1:3
-        μs_, μd_ = test_μs_μd[k]
-        term = p_dA_ * μs_
-        test_ans = (
-            (0.00 * term, T_s_ * term * 0.0),
-            (0.50 * term, T_s_ * term * 0.5),
-            (1.00 * term, T_s_ * term * 1.0),
-            (1.25 * term, T_s_ * p_dA_ * (μs_ + μd_) / 2),
-            (1.50 * term, T_s_ * p_dA_ * 1.0 * μd_),
-            (1.75 * term, T_s_ * p_dA_ * 1.0 * μd_),
-        )
-        for test_ = test_ans
-            T_mag_, correct_ans = test_
-            T_ = T_s_ * T_mag_
-            @test correct_ans ≈ PressureFieldContact.bristle_μs_μd(T_, p_dA_, μs_, μd_)
-        end
-    end
 end
 
 @testset "calc_K_sqrt⁻¹" begin

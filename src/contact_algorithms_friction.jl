@@ -1,30 +1,58 @@
 
-function regularized_μs_μd(cart_vel_t::SVector{3,T}, p_dA::T, v_tol::Float64, μs::Float64, μd::Float64) where {T}
-    mag_vel_t = norm(cart_vel_t)
-    if mag_vel_t <= v_tol
-        term = T(μs / v_tol)
-    else
-        μ = max(μd, μs * (2 - mag_vel_t / v_tol) )
-        term = μ / mag_vel_t
-    end
-    return (-term) * p_dA * cart_vel_t
+function calc_clamped_piecewise(x::T, x_1::Float64, x_2::Float64, y_1::Float64, y_2::Float64) where {T <: Real}
+	# The function varies linearly between y_1 at x_1 to y_2 at x_2.
+	# It is assumed that y_2 < y_1.
+	# The output is bounded between y_1 and y_2.
+
+	k = (y_2 - y_1) / (x_2 - x_1)
+	y = y_1 + (x - x_1) * k
+	return clamp(y, y_2, y_1)
 end
 
-function bristle_μs_μd(T_s::SVector{3,T}, p_dA::T, μs::Float64, μd::Float64) where {T}
-    mag_T_s = norm(T_s)
-    if mag_T_s <= p_dA * μs  # can stick
-        return T_s
-    else
-        μ_now = max(μd, 2 * μs - mag_T_s / p_dA)
-        return T_s * p_dA * μ_now / mag_T_s
-    end
+function calc_μ(ins::Bristle, δ::T, mag_T̄s::T) where {T}
+    δ_max = ins.δ_max
+	μs    = ins.μs
+	μd    = ins.μd
+    γ     = calc_clamped_piecewise(δ, δ_max, ins.δ_μ_is_0, 1.0, 0.0)
+    return γ * calc_clamped_piecewise(mag_T̄s, μs, ins.T̄s_μ_is_μd, μs, μd)
+end
+
+function calc_μ(ins::Regularized, mag_vel_t::T) where {T}
+	μs = ins.μs
+	μd = ins.μd
+	return calc_clamped_piecewise(mag_vel_t, ins.v_tol, ins.v_μ_is_μd, μs, μd)
+end
+
+### Traction
+function traction(ins::Bristle, δ::T, T̄s::SVector{3,T}, p_dA::T) where {T}
+	mag_T̄s = norm(T̄s)
+	μ = calc_μ(ins, δ, mag_T̄s)
+	if μ == 0
+		return 0 * T̄s
+	elseif mag_T̄s <= μ
+		T̄c = T̄s
+	else
+		T̄c = T̄s * μ * (1 / mag_T̄s)
+	end
+	return T̄c * p_dA
+end
+
+function traction(ins::Regularized, cart_vel_t::SVector{3,T}, p_dA::T) where {T}
+	mag_vel_t = norm(cart_vel_t)
+	μ = calc_μ(ins, mag_vel_t)
+	T_c = -μ * p_dA * cart_vel_t
+	if mag_vel_t <= ins.v_tol
+		return T_c * (1 / ins.v_tol)
+	else
+		return T_c * (1 / mag_vel_t)
+	end
 end
 
 function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{T}, c_ins::ContactInstructions) where {T}
     b = tm.bodyBodyCache
     frame = b.mesh_2.FrameID
-    v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
-    v_tol = 1 / v_tol⁻¹
+    # v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
+    # v_tol = 1 / v_tol⁻¹
     twist = b.twist_r²_r¹_r²
     vʳᵉˡ = as_static_vector(twist)
     wrench_lin = zeros(SVector{3,T})
@@ -37,7 +65,10 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{T}, c_i
         cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
         p_dA = calc_p_dA(trac)
 
-        T_c = regularized_μs_μd(cart_vel_t, p_dA, v_tol, b.μs, b.μd)
+        # T_c = regularized_μs_μd(cart_vel_t, p_dA, v_tol, b.μs, b.μd)
+
+		T_c = traction(fric_type, cart_vel_t, p_dA)
+
         traction_k = -p_dA * n̂ - T_c
 
         wrench_lin += traction_k
@@ -96,7 +127,6 @@ end
 
 spatial_vel_formula(v::SVector{6,T}, b::SVector{3,T}) where {T} = last_3_of_6(v) + cross(first_3_of_6(v), b)
 
-
 function calc_patch_spatial_stiffness!(tm::TypedMechanismScenario{T}, BF, cop::SVector{3,T}) where {T}
     b = tm.bodyBodyCache
     tc = b.TractionCache
@@ -140,9 +170,11 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{T}, c_ins::Contac
         δ² = spatial_vel_formula(Δ², x²)
         ṙ²_perp = spatial_vel_formula(vʳᵉˡ, r)
         p_dA = calc_p_dA(trac)
-        λ_s = k̄ * p_dA * (δ² - τ * ṙ²_perp)
-        λ_s = vec_sub_vec_proj(λ_s, n̂)
-        T_c = bristle_μs_μd(λ_s, p_dA, b.μs, b.μd)
+
+		T̄s = k̄ * (δ² - τ * ṙ²_perp)
+        T̄s = vec_sub_vec_proj(T̄s, n̂)
+		T_c = traction(BF, norm(δ²), T̄s, p_dA)
+
         wrench_lin += T_c
         wrench_ang += cross(x², T_c)
     end

@@ -6,31 +6,44 @@ struct Bristle <: FrictionModel
     BristleID::BristleID
     τ::Float64
     k̄::Float64
-    Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64) = new(bristle_ID, τ, k̄)
+	μs::Float64
+	μd::Float64
+	δ_max::Float64
+	δ_μ_is_0::Float64
+	T̄s_μ_is_μd::Float64
+    function Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64, μs::Float64, μd::Float64)
+		δ_max = μs / k̄
+		δ_μ_is_0 = 2 * δ_max
+		T̄s_μ_is_μd = 2 * μs
+		μs, μd = determine_μs_μd(μs, μd)
+		return new(bristle_ID, τ, k̄, μs, μd, δ_max, δ_μ_is_0, T̄s_μ_is_μd)
+	end
 end
 
 struct Regularized <: FrictionModel
-    v_tol⁻¹::Float64
-    Regularized(v_tol) = new(1 / v_tol)
+    v_tol::Float64
+	μs::Float64
+	μd::Float64
+	v_μ_is_μd::Float64
+    function Regularized(v_tol; μs::Float64, μd::Float64)
+		μs, μd = determine_μs_μd(μs, μd)
+		v_μ_is_μd = 2 * v_tol
+		return new(v_tol, μs, μd, v_μ_is_μd)
+	end
 end
 
 struct ContactInstructions
     id_1::MeshID
     id_2::MeshID
-    μs::Float64
-	μd::Float64
     χ::Float64
     FrictionModel::Union{Regularized,Bristle}
 	quad::TriTetQuadRule{3,N} where {N}
-    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, fric_model::Union{Regularized,Bristle};
-            μs::Float64, μd::Float64, χ::Float64, n_quad_rule)
-
-		(0.0 <= μs <= 3.0) || error("mu in unexpected range.")
-		(0.0 <= μd <= 3.0) || error("mu in unexpected range.")
+    function ContactInstructions(id_tri::MeshID, id_tet::MeshID, fric_model::Union{Regularized,Bristle}; χ::Float64,
+			n_quad_rule::Int64)
 
 		(1 <= n_quad_rule <= 2) || error("only quadrature rules 1 (first order) and 2 (second? order) are currently implemented")
 		quad = getTriQuadRule(n_quad_rule)
-        return new(id_tri, id_tet, μs, μd, χ, fric_model, quad)
+        return new(id_tri, id_tet, χ, fric_model, quad)
     end
 end
 
@@ -69,8 +82,6 @@ mutable struct TypedElasticBodyBodyCache{T}
 	x_r²_r¹::Transform3D{T}
     twist_r²_r¹_r²::Twist{T}
     χ::Float64
-	μs::Float64
-	μd::Float64
     Ē::Float64
     wrench::Wrench{T}
     function TypedElasticBodyBodyCache{T}() where {T}
@@ -354,8 +365,8 @@ function add_friction_regularize!(m::MechanismScenario, mesh_id_1::MeshID, mesh_
 		)
 	#
 	μs, μd = determine_μs_μd(μs, μd)
-    regularized = Regularized(v_tol)
-    return add_friction!(m, mesh_id_1, mesh_id_2, regularized, μs=μs, μd=μd, χ=χ, n_quad_rule=n_quad_rule)
+    regularized = Regularized(v_tol, μs=μs, μd=μd)
+    return add_friction!(m, mesh_id_1, mesh_id_2, regularized, χ=χ, n_quad_rule=n_quad_rule)
 end
 
 # TODO: explain what the tunable paramaters are.
@@ -374,26 +385,26 @@ function add_friction_bristle!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_
 	μs, μd = determine_μs_μd(μs, μd)
     isa(μd, Nothing) || (0 < μd) || error("μd cannot be 0 for bristle friction")
     bristle_id = BristleID(1 + length(m.bristle_ids))
-    bf = Bristle(bristle_id, τ=τ, k̄=k̄)
+    bf = Bristle(bristle_id, τ=τ, k̄=k̄, μs=μs, μd=μd)
     m.bristle_ids = Base.OneTo(bristle_id)
-    return add_friction!(m, mesh_id_1, mesh_id_c, bf, μs=μs, μd=μd, χ=χ, n_quad_rule=n_quad_rule)
+    return add_friction!(m, mesh_id_1, mesh_id_c, bf, χ=χ, n_quad_rule=n_quad_rule)
 end
 
-add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, fric_model::FrictionModel; μs::Float64, μd::Float64,
-	χ::Float64, n_quad_rule::Int64) = add_friction!(m, id_1, id_2, m.MeshCache[id_1], m.MeshCache[id_2], fric_model, μs=μs, μd=μd, χ=χ, n_quad_rule=n_quad_rule)
+add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, fric_model::FrictionModel; χ::Float64,
+	n_quad_rule::Int64) = add_friction!(m, id_1, id_2, m.MeshCache[id_1], m.MeshCache[id_2], fric_model, χ=χ, n_quad_rule=n_quad_rule)
 
 function add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, m_1::MeshCache{Nothing,Tet},
-		m_2::MeshCache{Tri,Nothing}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64,
+		m_2::MeshCache{Tri,Nothing}, fric_model::Union{Regularized,Bristle}; χ::Float64,
 		n_quad_rule::Int64)
 
-	return add_friction!(m, id_2, id_1, fric_model; μs=μs, μd=μd, χ=χ, n_quad_rule=n_quad_rule)
+	return add_friction!(m, id_2, id_1, fric_model; χ=χ, n_quad_rule=n_quad_rule)
 end
 
 function add_friction!(m::MechanismScenario, id_1::MeshID, id_2::MeshID, m_1::MeshCache{T1,T2},
-		m_2::MeshCache{Nothing,Tet}, fric_model::Union{Regularized,Bristle}; μs::Float64, μd::Float64, χ::Float64,
+		m_2::MeshCache{Nothing,Tet}, fric_model::Union{Regularized,Bristle}; χ::Float64,
 		n_quad_rule::Int64) where {T1,T2}
 
-	c_ins_new = ContactInstructions(id_1, id_2, fric_model, μs=μs, μd=μd, χ=χ, n_quad_rule=n_quad_rule)
+	c_ins_new = ContactInstructions(id_1, id_2, fric_model, χ=χ, n_quad_rule=n_quad_rule)
 	push!(m.ContactInstructions, c_ins_new)
 	return c_ins_new
 end
