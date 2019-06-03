@@ -115,7 +115,11 @@ function updateStageX!(rr::RadauIntegrator{T_object,NX,NC,NR,NSM}, table::RadauT
     end
     for i = 1:NS  # Update X_stage
         # LinearAlgebra.BLAS.axpy!(1.0, real.(rr.ct.delta_Z_stage[i]), rr.ct.X_stage[i])
-        rr.ct.X_stage[i] .-= real.(rr.ct.delta_Z_stage[i])
+        update_term = real.(rr.ct.delta_Z_stage[i])
+        if 1.0e1 < maximum(abs.(update_term))  # TODO: make this tuneable
+            return true
+        end
+        rr.ct.X_stage[i] .-= update_term
     end
-    return nothing
+    return false
 end

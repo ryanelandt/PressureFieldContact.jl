@@ -61,7 +61,12 @@ function simple_newton!(rr::RadauIntegrator{T_object,NX,NC,NR,NSM}, x0::Vector{F
         zeroFill!(rr.ct.delta_Z_stage, table)
         updateFX!(rr, table, x0, t)
         residual__ = calcEw!(rr, table, x0)
-        updateStageX!(rr, table)
+        if updateStageX!(rr, table)
+            set_exit_flag_fail_diverge(rr)
+            update_dense_unsuccessful!(rr)
+            return nothing
+        end
+
         if residual__ < rr.step.tol_newton
             set_exit_flag_success(rr)
             update_dense_successful!(rr, table)
