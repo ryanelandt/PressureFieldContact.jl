@@ -13,7 +13,7 @@ end
 Conventions:
 n̂ refers to the contact surface normal that points into body B
 v_cart refers to + velocity of B - the velocity of A
-the wrench is the wrench applied TO body A
+the wrench is the wrench applied TO body B
 """
 function calcXd!(xx::AbstractVector{T1}, x::AbstractVector{T1}, m::MechanismScenario{T2},
         tm::TypedMechanismScenario{T1}, t::Float64=0.0) where {T1,T2}
@@ -266,8 +266,8 @@ function addGeneralizedForcesThirdLaw!(wrench::Wrench{T}, tm::TypedMechanismScen
     torque_third_law = tm.torque_third_law
     f_generalized = tm.f_generalized
 	wrench = transform(wrench, tm.bodyBodyCache.x_rʷ_r²)
-    addGeneralizedForcesExternal!(f_generalized,  wrench, tm.GeometricJacobian[tm.bodyBodyCache.mesh_1.BodyID], torque_third_law)
-    addGeneralizedForcesExternal!(f_generalized, -wrench, tm.GeometricJacobian[tm.bodyBodyCache.mesh_2.BodyID], torque_third_law)
+	addGeneralizedForcesExternal!(f_generalized,  wrench, tm.GeometricJacobian[tm.bodyBodyCache.mesh_2.BodyID], torque_third_law)
+    addGeneralizedForcesExternal!(f_generalized, -wrench, tm.GeometricJacobian[tm.bodyBodyCache.mesh_1.BodyID], torque_third_law)
 end
 
 function addGeneralizedForcesExternal!(f_generalized::Vector{T}, wrench::Wrench{T}, jac::Nothing,

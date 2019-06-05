@@ -37,7 +37,7 @@
         check = b.Ē * pene / 1.0 * box_rad^2*4
         f3 = SVector(0.0, 0.0, check)
         a3 = cross(SVector(p_pos..., 0.0), f3)
-        check = vcat(a3,f3)
+        check = -vcat(a3, f3)
         @test wrench ≈ check
 
         # wrench, p_center = normal_wrench_patch_center(b)

@@ -41,7 +41,9 @@ function traction(ins::Regularized, cart_vel_t::SVector{3,T}, p_dA::T) where {T}
 	mag_vel_t = norm(cart_vel_t)
 	μ = calc_μ(ins, mag_vel_t)
 	T_c = -μ * p_dA * cart_vel_t
-	if mag_vel_t <= ins.v_tol
+	if μ == 0
+		return 0 * T_c
+	elseif mag_vel_t <= ins.v_tol
 		return T_c * (1 / ins.v_tol)
 	else
 		return T_c * (1 / mag_vel_t)
@@ -65,11 +67,8 @@ function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{T}, c_i
         cart_vel_t = vec_sub_vec_proj(cart_vel, n̂)
         p_dA = calc_p_dA(trac)
 
-        # T_c = regularized_μs_μd(cart_vel_t, p_dA, v_tol, b.μs, b.μd)
-
 		T_c = traction(fric_type, cart_vel_t, p_dA)
-
-        traction_k = -p_dA * n̂ - T_c
+        traction_k = p_dA * n̂ + T_c
 
         wrench_lin += traction_k
         wrench_ang += cross(r, traction_k)
@@ -115,7 +114,7 @@ function bristle_wrench_in_world(tm::TypedMechanismScenario{T}, c_ins::ContactIn
     Δ² = spatial_stiffness.K⁻¹_sqrt * s
     wrenchᶜᵒᵖ_fric, wrench²_fric = calc_spatial_bristle_force(tm, c_ins, Δ², b.twist_r²_r¹_r², cop.v)
     get_bristle_d1(tm, bristle_id) .= τ⁻¹ * ( spatial_stiffness.K⁻¹_sqrt * wrenchᶜᵒᵖ_fric - s)
-    return wrench²_normal, -wrench²_fric
+    return wrench²_normal, wrench²_fric
 end
 
 #########################################################
