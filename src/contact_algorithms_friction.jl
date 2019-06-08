@@ -9,45 +9,42 @@ function calc_clamped_piecewise(x::T, x_1::Float64, x_2::Float64, y_1::Float64, 
 	return clamp(y, y_2, y_1)
 end
 
-function calc_μ(ins::Bristle, δ::T, mag_T̄s::T) where {T}
-    δ_max = ins.δ_max
-	μs    = ins.μs
-	μd    = ins.μd
-    γ     = calc_clamped_piecewise(δ, δ_max, ins.δ_μ_is_0, 1.0, 0.0)
-    return γ * calc_clamped_piecewise(mag_T̄s, μs, ins.T̄s_μ_is_μd, μs, μd)
-end
+### Traction
+function traction(ins::Regularized, vel_t::SVector{3,T}, p_dA::T) where {T}
+	# TODO write unit test to ensure that this function cannot produce a NaN in partials
 
-function calc_μ(ins::Regularized, mag_vel_t::T) where {T}
+	mag_vel_t² = dot(vel_t, vel_t)
 	μs = ins.μs
 	μd = ins.μd
-	return calc_clamped_piecewise(mag_vel_t, ins.v_tol, ins.v_μ_is_μd, μs, μd)
-end
+	v_c = ins.v_c
 
-### Traction
-function traction(ins::Bristle, δ::T, T̄s::SVector{3,T}, p_dA::T) where {T}
-	mag_T̄s = norm(T̄s)
-	μ = calc_μ(ins, δ, mag_T̄s)
-	if μ == 0
-		return 0 * T̄s
-	elseif mag_T̄s <= μ
-		T̄c = T̄s
+	if mag_vel_t² < (ins.v_c^2)
+		T̄c = -μs * vel_t / v_c
 	else
-		T̄c = T̄s * μ * (1 / mag_T̄s)
+		mag_vel_t = sqrt(mag_vel_t²)
+		μ = calc_clamped_piecewise(mag_vel_t, ins.v_μs, ins.v_μd, μs, μd)
+		T̄c = -μ * vel_t / mag_vel_t
 	end
+
 	return T̄c * p_dA
 end
 
-function traction(ins::Regularized, cart_vel_t::SVector{3,T}, p_dA::T) where {T}
-	mag_vel_t = norm(cart_vel_t)
-	μ = calc_μ(ins, mag_vel_t)
-	T_c = -μ * p_dA * cart_vel_t
-	if μ == 0
-		return 0 * T_c
-	elseif mag_vel_t <= ins.v_tol
-		return T_c * (1 / ins.v_tol)
+function traction(ins::Bristle, T̄s::SVector{3,T}, p_dA::T) where {T}
+	# TODO write unit test to ensure that this function cannot produce a NaN in partials
+
+	mag_T̄s² = dot(T̄s, T̄s)
+	μs = ins.μs
+	μd = ins.μd
+
+	if mag_T̄s² < (μs^2)
+		T̄c = T̄s
 	else
-		return T_c * (1 / mag_vel_t)
+		mag_T̄s = sqrt(mag_T̄s²)
+		μ = calc_clamped_piecewise(mag_T̄s, ins.T̄s_μs, ins.T̄s_μd, μs, μd)
+		T̄c = μ * T̄s / mag_T̄s
 	end
+
+	return T̄c * p_dA
 end
 
 function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{T}, c_ins::ContactInstructions) where {T}
@@ -166,13 +163,13 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{T}, c_ins::Contac
         n̂ = trac.n̂
         r = trac.r_cart
         x² = r - cop
-        δ² = spatial_vel_formula(Δ², x²)
+        δ² = spatial_vel_formula(Δ², x²)  # TODO: the stated frame is not correct
         ṙ²_perp = spatial_vel_formula(vʳᵉˡ, r)
         p_dA = calc_p_dA(trac)
 
 		T̄s = k̄ * (δ² - τ * ṙ²_perp)
         T̄s = vec_sub_vec_proj(T̄s, n̂)
-		T_c = traction(BF, norm(δ²), T̄s, p_dA)
+		T_c = traction(BF, T̄s, p_dA)
 
         wrench_lin += T_c
         wrench_ang += cross(x², T_c)

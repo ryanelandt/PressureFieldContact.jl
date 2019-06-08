@@ -1,5 +1,5 @@
 
-using PressureFieldContact: calc_clamped_piecewise, calc_μ, traction
+using PressureFieldContact: calc_clamped_piecewise, traction
 
 @testset "clac_clamped_piecewise" begin
 	x_1 = 0.3
@@ -17,41 +17,100 @@ using PressureFieldContact: calc_clamped_piecewise, calc_μ, traction
 	@test y_2   ≈ calc_clamped_piecewise(x_2 + 0.1,        x_1, x_2, y_1, y_2)
 end
 
-ins_Bristle = Bristle(BristleID(1), τ=0.01, k̄=1.0e4, μs=1.0, μd=0.3)
-ins_Reg = Regularized(0.1, μs=1.0, μd=0.1)
-
-@testset "FrictionModel" begin
-	@test ins_Bristle.μs < ins_Bristle.T̄s_μ_is_μd
-	@test ins_Bristle.δ_max < ins_Bristle.δ_μ_is_0
-
-	@test ins_Reg.v_tol < ins_Reg.v_μ_is_μd
-end
-
-@testset "calc_μ" begin
-	@test ins_Bristle.μs == calc_μ(ins_Bristle, 0.0, 0.0)
-	@test ins_Bristle.μd == calc_μ(ins_Bristle, 0.0, 10.0)
-	@test            0.0 == calc_μ(ins_Bristle, 10.0, 0.0)
-
-	@test ins_Reg.μs == calc_μ(ins_Reg, 0.0)
-	μ_avg = (ins_Reg.μs + ins_Reg.μd) / 2
-	v_avg = (ins_Reg.v_tol + ins_Reg.v_μ_is_μd) / 2
-	@test μ_avg ≈ calc_μ(ins_Reg, v_avg)
-
-	@test ins_Reg.μd == calc_μ(ins_Reg, 10.0)
-end
-
-@testset "traction" begin
-	sv_0 = zeros(SVector{3,Float64})
-
-	for p_dA_ = (0.1, 1.0, 10.0)
-		@test sv_0 == traction(ins_Bristle, ins_Bristle.δ_μ_is_0, SVector(0.01, 0.01, 0.01), p_dA_)
-
-		r3 = SVector(0.01, 0.2, 0.3)
-		@test r3 * p_dA_ == traction(ins_Bristle, ins_Bristle.δ_max, r3, p_dA_)
-
-		@test normalize(r3) * ins_Bristle.μd * p_dA_ ≈ traction(ins_Bristle, ins_Bristle.δ_max, r3 * 1000, p_dA_)
+function verify_fric_calc_bri(ins::Bristle, T̄s::SVector{3,T}, p_dA::T) where {T}
+	mag_T̄s = norm(T̄s)
+	T_μs = ins.μs * T̄s / mag_T̄s * p_dA
+	T_μd = ins.μd * T̄s / mag_T̄s * p_dA
+	if mag_T̄s <= ins.μs
+		return T̄s * p_dA
+	elseif mag_T̄s <= ins.T̄s_μs
+		return T_μs
+	elseif ins.T̄s_μd <= mag_T̄s
+		return T_μd
+	else
+		w_μd = (mag_T̄s - ins.T̄s_μs) / (ins.T̄s_μd - ins.T̄s_μs)
+		w_μs = 1 - w_μd
+		return T_μs * w_μs + T_μd * w_μd
 	end
 end
+
+function verify_fric_calc_reg(ins::Regularized, vel_t::SVector{3,T}, p_dA::T) where {T}
+	mag_vel_t = norm(vel_t)
+	T_μs = -ins.μs * vel_t / mag_vel_t * p_dA
+	T_μd = -ins.μd * vel_t / mag_vel_t * p_dA
+	if mag_vel_t <= ins.v_c
+		return -ins.μs * vel_t / ins.v_c * p_dA
+	elseif mag_vel_t <= ins.v_μs
+		return T_μs
+	elseif ins.v_μd <= mag_vel_t
+		return T_μd
+	else
+		w_μd = (mag_vel_t - ins.v_μs) / (ins.v_μd - ins.v_μs)
+		w_μs = 1 - w_μd
+		return T_μs * w_μs + T_μd * w_μd
+	end
+end
+
+v_c = 1.0e-4
+μs_ = 1.1
+μd_ = 0.3
+ins_bri = Bristle(BristleID(1), τ=0.01, k̄=1000.0, μs=μs_, μd=μd_)
+T̂s_ = normalize(SVector(1.0, 2.0, 3.0))
+p_dA_ = 0.133
+@testset "bristle" begin
+	for v_mag = LinRange(0.0, 4 * μs_, 100)
+		T̄s = v_mag * T̂s_
+		Tc = traction(ins_bri, T̄s, p_dA_)
+		@test Tc ≈ verify_fric_calc_bri(ins_bri, T̄s, p_dA_)
+	end
+end
+
+ins_reg = Regularized(v_c, μs=μs_, μd=μd_)
+v_dir_ = normalize(SVector(1.0, 2.0, 3.0))
+p_dA_ = 0.133
+@testset "regularized" begin
+	for v_mag = LinRange(0.0, 4 * v_c, 100)
+		vel_t = v_mag * v_dir_
+		Tc = traction(ins_reg, vel_t, p_dA_)
+		@test Tc ≈ verify_fric_calc_reg(ins_reg, vel_t, p_dA_)
+	end
+end
+
+# ins_Bristle = Bristle(BristleID(1), τ=0.01, k̄=1.0e4, μs=1.0, μd=0.3)
+# ins_Reg = Regularized(0.1, μs=1.0, μd=0.1)
+#
+# @testset "FrictionModel" begin
+# 	@test ins_Bristle.μs < ins_Bristle.T̄s_μ_is_μd
+# 	@test ins_Bristle.δ_max < ins_Bristle.δ_μ_is_0
+#
+# 	@test ins_Reg.v_tol < ins_Reg.v_μ_is_μd
+# end
+#
+# @testset "calc_μ" begin
+# 	@test ins_Bristle.μs == calc_μ(ins_Bristle, 0.0, 0.0)
+# 	@test ins_Bristle.μd == calc_μ(ins_Bristle, 0.0, 10.0)
+# 	@test            0.0 == calc_μ(ins_Bristle, 10.0, 0.0)
+#
+# 	@test ins_Reg.μs == calc_μ(ins_Reg, 0.0)
+# 	μ_avg = (ins_Reg.μs + ins_Reg.μd) / 2
+# 	v_avg = (ins_Reg.v_tol + ins_Reg.v_μ_is_μd) / 2
+# 	@test μ_avg ≈ calc_μ(ins_Reg, v_avg)
+#
+# 	@test ins_Reg.μd == calc_μ(ins_Reg, 10.0)
+# end
+#
+# @testset "traction" begin
+# 	sv_0 = zeros(SVector{3,Float64})
+#
+# 	for p_dA_ = (0.1, 1.0, 10.0)
+# 		@test sv_0 == traction(ins_Bristle, ins_Bristle.δ_μ_is_0, SVector(0.01, 0.01, 0.01), p_dA_)
+#
+# 		r3 = SVector(0.01, 0.2, 0.3)
+# 		@test r3 * p_dA_ == traction(ins_Bristle, ins_Bristle.δ_max, r3, p_dA_)
+#
+# 		@test normalize(r3) * ins_Bristle.μd * p_dA_ ≈ traction(ins_Bristle, ins_Bristle.δ_max, r3 * 1000, p_dA_)
+# 	end
+# end
 
 function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v_tol::Float64=NaN)
     box_rad = 0.05

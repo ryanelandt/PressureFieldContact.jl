@@ -8,27 +8,27 @@ struct Bristle <: FrictionModel
     k̄::Float64
 	μs::Float64
 	μd::Float64
-	δ_max::Float64
-	δ_μ_is_0::Float64
-	T̄s_μ_is_μd::Float64
-    function Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64, μs::Float64, μd::Float64)
-		δ_max = μs / k̄
-		δ_μ_is_0 = 2 * δ_max
-		T̄s_μ_is_μd = 2 * μs
+	T̄s_μs::Float64
+	T̄s_μd::Float64
+	function Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64, μs::Float64, μd::Float64)
 		μs, μd = determine_μs_μd(μs, μd)
-		return new(bristle_ID, τ, k̄, μs, μd, δ_max, δ_μ_is_0, T̄s_μ_is_μd)
+		T̄s_μs = 2 * μs
+		T̄s_μd = 3 * μs
+		return new(bristle_ID, τ, k̄, μs, μd, T̄s_μs, T̄s_μd)
 	end
 end
 
 struct Regularized <: FrictionModel
-    v_tol::Float64
 	μs::Float64
 	μd::Float64
-	v_μ_is_μd::Float64
-    function Regularized(v_tol; μs::Float64, μd::Float64)
+	v_c::Float64
+	v_μs::Float64
+	v_μd::Float64
+    function Regularized(v_c; μs::Float64, μd::Float64)
 		μs, μd = determine_μs_μd(μs, μd)
-		v_μ_is_μd = 2 * v_tol
-		return new(v_tol, μs, μd, v_μ_is_μd)
+		v_μs = 2 * v_c
+		v_μd = 3 * v_c
+		return new(μs, μd, v_c, v_μs, v_μd)
 	end
 end
 
