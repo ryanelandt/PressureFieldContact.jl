@@ -67,7 +67,7 @@ end
 v_c = 1.0e-4
 μs_ = 1.1
 μd_ = 0.3
-ins_bri = Bristle(BristleID(1), τ=0.01, k̄=1000.0, μs=μs_, μd=μd_)
+ins_bri = Bristle(BristleID(1), τ=0.01, k̄=1000.0, μs=μs_, μd=μd_, magic=1.0e-2)
 T̂s_ = normalize(SVector(1.0, 2.0, 3.0))
 p_dA_ = 0.133
 @testset "bristle" begin
@@ -88,42 +88,6 @@ p_dA_ = 0.133
 		@test Tc ≈ verify_fric_calc_reg(ins_reg, vel_t, p_dA_)
 	end
 end
-
-# ins_Bristle = Bristle(BristleID(1), τ=0.01, k̄=1.0e4, μs=1.0, μd=0.3)
-# ins_Reg = Regularized(0.1, μs=1.0, μd=0.1)
-#
-# @testset "FrictionModel" begin
-# 	@test ins_Bristle.μs < ins_Bristle.T̄s_μ_is_μd
-# 	@test ins_Bristle.δ_max < ins_Bristle.δ_μ_is_0
-#
-# 	@test ins_Reg.v_tol < ins_Reg.v_μ_is_μd
-# end
-#
-# @testset "calc_μ" begin
-# 	@test ins_Bristle.μs == calc_μ(ins_Bristle, 0.0, 0.0)
-# 	@test ins_Bristle.μd == calc_μ(ins_Bristle, 0.0, 10.0)
-# 	@test            0.0 == calc_μ(ins_Bristle, 10.0, 0.0)
-#
-# 	@test ins_Reg.μs == calc_μ(ins_Reg, 0.0)
-# 	μ_avg = (ins_Reg.μs + ins_Reg.μd) / 2
-# 	v_avg = (ins_Reg.v_tol + ins_Reg.v_μ_is_μd) / 2
-# 	@test μ_avg ≈ calc_μ(ins_Reg, v_avg)
-#
-# 	@test ins_Reg.μd == calc_μ(ins_Reg, 10.0)
-# end
-#
-# @testset "traction" begin
-# 	sv_0 = zeros(SVector{3,Float64})
-#
-# 	for p_dA_ = (0.1, 1.0, 10.0)
-# 		@test sv_0 == traction(ins_Bristle, ins_Bristle.δ_μ_is_0, SVector(0.01, 0.01, 0.01), p_dA_)
-#
-# 		r3 = SVector(0.01, 0.2, 0.3)
-# 		@test r3 * p_dA_ == traction(ins_Bristle, ins_Bristle.δ_max, r3, p_dA_)
-#
-# 		@test normalize(r3) * ins_Bristle.μd * p_dA_ ≈ traction(ins_Bristle, ins_Bristle.δ_max, r3 * 1000, p_dA_)
-# 	end
-# end
 
 function create_box_and_plane(n_quad_rule::Int64, tang_force_coe::Float64=0.0, v_tol::Float64=NaN)
     box_rad = 0.05
@@ -194,12 +158,21 @@ end
 	end
 end
 
-@testset "calc_K_sqrt⁻¹" begin
-    s = spatialStiffness{Float64}()
-	K_orig = Matrix(rand_pd(6))
-    s.K.data .= K_orig
-    PressureFieldContact.calc_K_sqrt⁻¹!(s)
-    @test s.K⁻¹_sqrt ≈ sqrt(inv(K_orig))
+using ForwardDiff: Dual
+
+@testset "decompose and factor K" begin
+	for T = (Float64, Dual{Nothing,Float64,9})
+		s = spatialStiffness{T}()
+		M = Diagonal([1.0, 1.0, 1.0, 1000, 1000, 1000])
+		s.K.data .= M * rand_pd(6) * M
+		magic = 1.0e-2
+		PressureFieldContact.decompose_K!(s, magic)
+		K̄ = inv(s.K̄⁻¹_sqrt)^2
+		t_1, t_2 = PressureFieldContact.calc_trace_12(K̄)
+		@test t_1 ≈ (t_2 * magic^2)
+		S = inv(s.S⁻¹)
+		@test s.K ≈ S * K̄ * S
+	end
 end
 
 @testset "spatial spring friction" begin
@@ -251,15 +224,16 @@ end
 	# set_configuration!(mech_scen, mvis, x)
 	# #######################
 
-    ### Test 1 -- see if stiffness is what is expected
-    calcXd(x, mech_scen)
-    K_ana = (hol_rad^2) * 4 * k̄ * (Ē * (pene / hol_rad))
+	### Test 1 -- see if stiffness is what is expected
+	calcXd(x, mech_scen)
+	K_ana = (hol_rad^2) * 4 * k̄ * (Ē * (pene / hol_rad))
 	s = mech_scen.float.bodyBodyCache.spatialStiffness
-	K² = inv(s.K⁻¹_sqrt * s.K⁻¹_sqrt)
+	S = inv(s.S⁻¹)
+	K² = S * inv(s.K̄⁻¹_sqrt * s.K̄⁻¹_sqrt) * S
 	K_44 = K²[4,4]
 	K_55 = K²[5,5]
 	@test K_44 ≈ K_55
-    @test 0.99 * K_ana < K_55 < 1.01 * K_ana
+	@test 0.99 * K_ana < K_55 < 1.01 * K_ana
 end
 
 function calc_it(t::SVector{3,Float64})

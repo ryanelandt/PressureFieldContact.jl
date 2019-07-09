@@ -50,8 +50,6 @@ end
 function yes_contact!(fric_type::Regularized, tm::TypedMechanismScenario{T}, c_ins::ContactInstructions) where {T}
     b = tm.bodyBodyCache
     frame = b.mesh_2.FrameID
-    # v_tol⁻¹ = c_ins.FrictionModel.v_tol⁻¹
-    # v_tol = 1 / v_tol⁻¹
     twist = b.twist_r²_r¹_r²
     vʳᵉˡ = as_static_vector(twist)
     wrench_lin = zeros(SVector{3,T})
@@ -84,16 +82,38 @@ end
 
 #########################################################
 
-# TODO: make this allocate less
-function calc_K_sqrt⁻¹!(s::spatialStiffness{T}) where {T}
-    EF = eigen!(s.K)
+function calc_K̄_sqrt_inv(s::spatialStiffness{T}) where {T}
+    # TODO: make this allocate less
+
+    EF = eigen!(s.K̄)
     s.σ_sqrt.diag .= EF.values
     max_σ = maximum(s.σ_sqrt.diag)
     for k = 1:6
         s.σ_sqrt.diag[k] = 1.0 / sqrt(max(s.σ_sqrt.diag[k], max_σ * 1.0e-16))
     end
     mul!(s.mul_pre, EF.vectors, s.σ_sqrt)
-    mul!(s.K⁻¹_sqrt, s.mul_pre, EF.vectors')
+    mul!(s.K̄⁻¹_sqrt, s.mul_pre, EF.vectors')
+end
+
+@inline function calc_trace_12(K)
+    trace_1 = K[1]  + K[8]  + K[15]
+    trace_2 = K[22] + K[29] + K[36]
+    return trace_1, trace_2
+end
+
+function decompose_K!(s::spatialStiffness{T}, magic::Float64) where {T}
+	t_1, t_2 = calc_trace_12(s.K)
+	s_1 = 1 / sqrt(t_1)
+	for k = 1:3
+        s.S⁻¹.diag[k] = s_1 * magic
+	end
+	s_2 = 1 / sqrt(t_2)
+    for k = 4:6
+        s.S⁻¹.diag[k] = s_2
+	end
+
+    s.K̄.data .= s.S⁻¹ * s.K * s.S⁻¹
+    calc_K̄_sqrt_inv(s)
 end
 
 function bristle_wrench_in_world(tm::TypedMechanismScenario{T}, c_ins::ContactInstructions) where {T}
@@ -106,11 +126,12 @@ function bristle_wrench_in_world(tm::TypedMechanismScenario{T}, c_ins::ContactIn
     τ⁻¹ = 1 / BF.τ
     cop, wrench²_normal = normal_wrench_cop(b)
     calc_patch_spatial_stiffness!(tm, BF, cop.v)
-    calc_K_sqrt⁻¹!(spatial_stiffness)
-    s = get_bristle_d0(tm, bristle_id)
-    Δ² = spatial_stiffness.K⁻¹_sqrt * s
+	s = get_bristle_d0(tm, bristle_id)
+    decompose_K!(spatial_stiffness, BF.magic)
+	Δ² = spatial_stiffness.S⁻¹ * (spatial_stiffness.K̄⁻¹_sqrt * s)
+	Δ² = SVector{6,T}(Δ²[1], Δ²[2], Δ²[3], Δ²[4], Δ²[5], Δ²[6])
     wrenchᶜᵒᵖ_fric, wrench²_fric = calc_spatial_bristle_force(tm, c_ins, Δ², b.twist_r²_r¹_r², cop.v)
-    get_bristle_d1(tm, bristle_id) .= τ⁻¹ * ( spatial_stiffness.K⁻¹_sqrt * wrenchᶜᵒᵖ_fric - s)
+	get_bristle_d1(tm, bristle_id) .= τ⁻¹ * ( spatial_stiffness.K̄⁻¹_sqrt * (spatial_stiffness.S⁻¹ * wrenchᶜᵒᵖ_fric) - s)
     return wrench²_normal, wrench²_fric
 end
 

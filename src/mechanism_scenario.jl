@@ -10,11 +10,12 @@ struct Bristle <: FrictionModel
 	μd::Float64
 	T̄s_μs::Float64
 	T̄s_μd::Float64
-	function Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64, μs::Float64, μd::Float64)
+	magic::Float64
+	function Bristle(bristle_ID::BristleID; τ::Float64, k̄::Float64, μs::Float64, μd::Float64, magic::Float64)
 		μs, μd = determine_μs_μd(μs, μd)
 		T̄s_μs = 2 * μs
 		T̄s_μd = 3 * μs
-		return new(bristle_ID, τ, k̄, μs, μd, T̄s_μs, T̄s_μd)
+		return new(bristle_ID, τ, k̄, μs, μd, T̄s_μs, T̄s_μd, magic)
 	end
 end
 
@@ -57,16 +58,20 @@ end
 @inline calc_p_dA(t::TractionCache) = t.p * t.dA
 
 mutable struct spatialStiffness{T}
-    K::Hermitian{T,Matrix{T}}
+	K::Hermitian{T,Matrix{T}}
+	K̄::Hermitian{T,Matrix{T}}
     σ_sqrt::Diagonal{T,MVector{6,T}}
-    K⁻¹_sqrt::MMatrix{6,6,T,36}
-    mul_pre::MMatrix{6,6,T,36}
+    K̄⁻¹_sqrt::MMatrix{6,6,T,36}
+	S⁻¹::Diagonal{T,MVector{6,T}}
+	mul_pre::MMatrix{6,6,T,36}
     function spatialStiffness{T}() where {T}
-        K = Hermitian(Matrix(T.(zeros(6,6) .+ NaN)))
-        σ_sqrt = Diagonal(MVector{6,T}(NaN, NaN, NaN, NaN, NaN, NaN))
-        K⁻¹_sqrt = MMatrix{6,6,T,36}(T.(zeros(6,6) .+ NaN))
+		K = Hermitian(Matrix(T.(zeros(6,6) .+ NaN)))
+		K̄ = Hermitian(Matrix(T.(zeros(6,6) .+ NaN)))
+		σ_sqrt = Diagonal(MVector{6,T}(NaN, NaN, NaN, NaN, NaN, NaN))
+        K̄⁻¹_sqrt = MMatrix{6,6,T,36}(T.(zeros(6,6) .+ NaN))
+		S⁻¹ = Diagonal(MVector{6,T}(NaN, NaN, NaN, NaN, NaN, NaN))
         mul_pre = MMatrix{6,6,T,36}(T.(zeros(6,6)) .+ NaN)
-        return new(K, σ_sqrt, K⁻¹_sqrt, mul_pre)
+        return new(K, K̄, σ_sqrt, K̄⁻¹_sqrt, S⁻¹, mul_pre)
     end
 end
 
@@ -380,12 +385,13 @@ function add_friction_bristle!(m::MechanismScenario, mesh_id_1::MeshID, mesh_id_
 		μs::Union{Float64,Nothing}=nothing,
 		μd::Union{Float64,Nothing}=nothing,
 		χ::Float64=default_χ(),
-		n_quad_rule::Int64=2)
+		n_quad_rule::Int64=2,
+		magic::Float64=1.0e-3)
 	#
 	μs, μd = determine_μs_μd(μs, μd)
     isa(μd, Nothing) || (0 < μd) || error("μd cannot be 0 for bristle friction")
     bristle_id = BristleID(1 + length(m.bristle_ids))
-    bf = Bristle(bristle_id, τ=τ, k̄=k̄, μs=μs, μd=μd)
+    bf = Bristle(bristle_id, τ=τ, k̄=k̄, μs=μs, μd=μd, magic=magic)
     m.bristle_ids = Base.OneTo(bristle_id)
     return add_friction!(m, mesh_id_1, mesh_id_c, bf, χ=χ, n_quad_rule=n_quad_rule)
 end
