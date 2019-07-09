@@ -1,6 +1,19 @@
 
 using PressureFieldContact: calc_clamped_piecewise, traction
 
+# TODO: remove this test when GenericLinearAlgebra tags a patch that includes PR #53
+using GenericLinearAlgebra
+@testset "convergence criterion when diagonal has zeros" begin
+    M1 = Hermitian(zeros(3, 3))
+    M1[1,1] = 0.01
+    M2 = Hermitian(zeros(3, 3))
+    M2[3, 3] = 0.01
+    @test eigvals(M1) == GenericLinearAlgebra._eigvals!(copy(M1))
+    @test eigvals(M2) == GenericLinearAlgebra._eigvals!(copy(M2))
+    @test eigen(M1).values == GenericLinearAlgebra._eigen!(copy(M1)).values
+    @test eigen(M2).values == GenericLinearAlgebra._eigen!(copy(M2)).values
+end
+
 @testset "clac_clamped_piecewise" begin
 	x_1 = 0.3
 	x_2 = 0.5
