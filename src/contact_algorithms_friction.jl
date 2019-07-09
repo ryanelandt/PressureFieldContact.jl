@@ -131,7 +131,7 @@ function bristle_wrench_in_world(tm::TypedMechanismScenario{T}, c_ins::ContactIn
 	Δ² = spatial_stiffness.S⁻¹ * (spatial_stiffness.K̄⁻¹_sqrt * s)
 	Δ² = SVector{6,T}(Δ²[1], Δ²[2], Δ²[3], Δ²[4], Δ²[5], Δ²[6])
     wrenchᶜᵒᵖ_fric, wrench²_fric = calc_spatial_bristle_force(tm, c_ins, Δ², b.twist_r²_r¹_r², cop.v)
-	get_bristle_d1(tm, bristle_id) .= τ⁻¹ * ( spatial_stiffness.K̄⁻¹_sqrt * (spatial_stiffness.S⁻¹ * wrenchᶜᵒᵖ_fric) - s)
+	get_bristle_d1(tm, bristle_id) .= -τ⁻¹ * ( spatial_stiffness.K̄⁻¹_sqrt * (spatial_stiffness.S⁻¹ * wrenchᶜᵒᵖ_fric) + s)
     return wrench²_normal, wrench²_fric
 end
 
@@ -188,7 +188,7 @@ function calc_spatial_bristle_force(tm::TypedMechanismScenario{T}, c_ins::Contac
         ṙ²_perp = spatial_vel_formula(vʳᵉˡ, r)
         p_dA = calc_p_dA(trac)
 
-		T̄s = k̄ * (δ² - τ * ṙ²_perp)
+		T̄s = -k̄ * (δ² + τ * ṙ²_perp)
         T̄s = vec_sub_vec_proj(T̄s, n̂)
 		T_c = traction(BF, T̄s, p_dA)
 
