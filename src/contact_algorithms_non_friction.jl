@@ -255,9 +255,11 @@ function fillTractionCacheInnerLoop!(k::Int64, quad::TriTetQuadRule{3,N}, b::Typ
 	r² = A_r²_ϕ * rϕ
 	ϵ_quad = a_dot_one_pad_b(ϵ_r², r²)
 	ṙ² = spatial_vel_formula(b.twist_r²_r¹_r², r²)
-	ϵϵ = - a_dot_one_pad_b(ϵ_r², ṙ²)  # TODO: Why is there a negative sign?
-	damp_term = max(zero(T), 1.0 + b.χ * ϵϵ)
-    p_hc = ϵ_quad * b.Ē * damp_term
+	# There is a negative sign in the line below becuase the change in ϵ depends on how fast 1 is moving away from 2 and
+	# ṙ² is how fast 2 is moving relative to 1.
+	ϵϵ = - dot(unPad(ϵ_r²), ṙ²)
+	damp_term = max(zero(T), 1.0 + b.χ * ϵϵ)  # pressure is always positive
+	p_hc = ϵ_quad * b.Ē * damp_term
 	dA = quad.w[k] * area_quad_k
 	return r², dA, p_hc
 end
