@@ -3,7 +3,7 @@ module PressureFieldContact
 
 using DocStringExtensions
 using StaticArrays
-using Rotations: Quat, Rotation, SPQuat, RotMatrix
+using Rotations: UnitQuaternion, Rotation, MRP, RotMatrix
 using ForwardDiff: Dual
 using RigidBodyDynamics
 using RigidBodyDynamics.Spatial: vector_to_skew_symmetric, vector_to_skew_symmetric_squared

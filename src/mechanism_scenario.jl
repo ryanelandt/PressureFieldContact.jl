@@ -244,11 +244,11 @@ function get_state(m::MechanismScenario)
     return x
 end
 
-function set_state_spq!(m::MechanismScenario, joint::Joint; rot::Rotation=one(Quat{Float64}),
+function set_state_spq!(m::MechanismScenario, joint::Joint; rot::Rotation=one(UnitQuaternion{Float64}),
         trans::SVector{3,Float64}=zeros(SVector{3,Float64}), w::SVector{3,Float64}=zeros(SVector{3,Float64}),
         vel::SVector{3,Float64}=zeros(SVector{3,Float64}))
 
-    rot = components(SPQuat(rot))
+    rot = components(MRP(rot))
     state = m.float.state
     set_configuration!(state, joint, vcat(rot, trans))
     set_velocity!(state, joint, vcat(w, vel))

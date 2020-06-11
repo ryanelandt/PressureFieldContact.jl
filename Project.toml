@@ -35,7 +35,7 @@ GenericLinearAlgebra      = ">=0.1.0"
 MeshCat                   = ">=0.6.0"
 MeshCatMechanisms         = ">=0.3.0"
 NearestNeighbors          = ">=0.4.3"
-RigidBodyDynamics         = ">=1.1.0"   # because of SPQuat
+RigidBodyDynamics         = ">=1.1.0"   # because of MRP
 Rotations                 = ">=0.9.1"   # because of principal_value!
 StaticArrays              = ">=0.10.3"
 # WebIO                                 # addressed by MeshCat

@@ -189,7 +189,7 @@ function crop_mesh(eM::eMesh{Tri,Nothing}, plane::SMatrix{1,4,Float64,4})
     function add_cropped_triangle!(eM_new::eMesh{Tri,Nothing}, iΔ::SVector{3,Int64})
         function plane_dot_2(eM_new::eMesh{Tri,Nothing}, plane::SMatrix{1,4,Float64,4}, k::Int64)
             p = get_point(eM_new)[k]
-            w = dot(plane, onePad(p))
+            w = dot(plane[:], onePad(p))
             b = -1.0e-12 < w
             return PointObj(p, w, b, k)
         end
@@ -599,7 +599,7 @@ end
 
 function add_stuff_for_extrude!(tri::Vector{SI3}, tet::Vector{SI4}, k::Int64, i_tri_k::SI3, n_✴_2D::Int64)
 	b1, b2, b3 = i_tri_k
-	t4, t5, t6 = i_tri_k + n_✴_2D
+	t4, t5, t6 = i_tri_k .+ n_✴_2D
 	i_center = k + n_✴_2D * 2
 	oriented_slice_faces = (
         SI4(b1,b2,t5,t4),

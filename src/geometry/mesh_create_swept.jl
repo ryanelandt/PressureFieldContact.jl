@@ -36,12 +36,12 @@ function add_rot_sym_segment!(eM, fun_gen, θ, ϕ, rad, is_open::NTuple{2,Bool})
     p5 = p2 + AngleAxis(ϕ[1], ŷ2...) * x̂2 * rad[2]
     p7 = p2 + AngleAxis(ϕ[2], ŷ2...) * x̂2 * rad[2]
     n_offset = length(eM.point)
-    i1 = SVector{4,Int64}(1,3,4,6) + n_offset
-    i2 = SVector{4,Int64}(3,2,5,7) + n_offset
-    i3 = SVector{4,Int64}(3,4,6,7) + n_offset
-    i4 = SVector{4,Int64}(4,3,5,7) + n_offset
-    i5 = SVector{3,Int64}(4,6,7) + n_offset
-    i6 = SVector{3,Int64}(4,7,5) + n_offset
+    i1 = SVector{4,Int64}(1,3,4,6) .+ n_offset
+    i2 = SVector{4,Int64}(3,2,5,7) .+ n_offset
+    i3 = SVector{4,Int64}(3,4,6,7) .+ n_offset
+    i4 = SVector{4,Int64}(4,3,5,7) .+ n_offset
+    i5 = SVector{3,Int64}(4,6,7) .+ n_offset
+    i6 = SVector{3,Int64}(4,7,5) .+ n_offset
     append!(eM.point, [p1, p2, p3, p4, p5, p6, p7])
     append!(eM.tri, [i5, i6])
     append!(eM.tet, [i1, i2, i3, i4])
@@ -49,11 +49,11 @@ function add_rot_sym_segment!(eM, fun_gen, θ, ϕ, rad, is_open::NTuple{2,Bool})
     ϵ[1:3] .= 1.0
     if is_open[1]
         ϵ[1] = 0.0
-        push!(eM.tri, SVector{3,Int64}(1,6,4) + n_offset)
+        push!(eM.tri, SVector{3,Int64}(1,6,4) .+ n_offset)
     end
     if is_open[2]
         ϵ[2] = 0.0
-        push!(eM.tri, SVector{3,Int64}(2,5,7) + n_offset)
+        push!(eM.tri, SVector{3,Int64}(2,5,7) .+ n_offset)
     end
     append!(eM.ϵ, ϵ)
     return nothing

@@ -14,7 +14,7 @@ end
     tol = 1.0e-13
     n_empty = 0
     n_hits = zeros(MVector{8,Int64})
-    for k_tet = 1:500000
+    for k_tet = 1:5000000
         if n_hits[8] <= 2
             r_orig = make_4_sided()
 
@@ -33,7 +33,7 @@ end
             for k = 1:length(r_clip)  # confirm that all vertices on plane
                 # TODO: adjust the test to use the origional normal of the clipped shape so this tolerance
                 # can be tightened
-                @test abs(dist_from_plane(plane, r_clip[k])) < (200 * tol)
+                @test abs(dist_from_plane(plane, r_clip[k])) < (2000 * tol)
             end
 
             for k = 1:30  # test 30 random points

@@ -17,7 +17,7 @@ set_zero_subnormals(true)
 BLAS.set_num_threads(1)  # NOTE: comment out this line if using IntelMKL
 
 
-is_bristle = true  # set to false to use REGURALIZED friction between the pencil and the pads
+is_bristle = false  # set to false to use REGURALIZED friction between the pencil and the pads
 
 # TUNABLE BRISTLE FRICTION PARAMATERS
 k̄ = 8.0e4

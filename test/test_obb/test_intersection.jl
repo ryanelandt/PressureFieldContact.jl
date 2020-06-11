@@ -54,7 +54,7 @@ function edge_edge_test(tt::TT_Cache, dir_1::SVector{3,Float64}, theta_axis::Flo
   aabb_1 = OBB(zero_three, one_three, I3)
   aabb_2 = OBB(zero_three, one_three, I3)
   vec_1 = dir_1 .* aabb_1.e
-  R_total = RotMatrix(Quat(AngleAxis(theta_axis, vec_1[1], vec_1[2], vec_1[3])) * R_box_2)
+  R_total = RotMatrix(UnitQuaternion(AngleAxis(theta_axis, vec_1[1], vec_1[2], vec_1[3])) * R_box_2)
   total_sep_dist = vec_1 * 2
   update_TT_Cache!(tt, total_sep_dist * (1 - tolerance), R_total)
   is_sect_pos = BB_BB_intersect(tt, aabb_1, aabb_2)

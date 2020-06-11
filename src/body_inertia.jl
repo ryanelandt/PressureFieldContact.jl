@@ -54,7 +54,7 @@ end
 function centroidVolumeCombo(point::Vector{SVector{3,Float64}}, vec_vol_ind::Vector{SVector{N,Int64}},
         d::Union{Nothing,Float64}) where {N}
 
-    v_cum, c_cum = 0.0, 0.0
+    v_cum, c_cum = 0.0, zeros(SVector{3,Float64})
     for ind_k = vec_vol_ind
         points_simplex_k = point[ind_k]
         v = equiv_volume(points_simplex_k, d)

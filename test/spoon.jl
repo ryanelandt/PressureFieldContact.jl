@@ -1,8 +1,8 @@
 
 using CoordinateTransformations: Translation, LinearMap
 using StaticArrays
-using Rotations: RotZ, RotX, SPQuat
-using Binary_BB_Trees
+using Rotations: RotZ, RotX, MRP
+# using Binary_BB_Trees
 using LinearAlgebra  # TODO: is this used?
 using RigidBodyDynamics
 using MeshCat
